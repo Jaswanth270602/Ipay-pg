@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Events Monitor - Badlicash</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 4px;
+        }
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .event-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+        }
+        .event-item:hover {
+            border-color: #6366f1;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .event-type {
+            font-weight: 700;
+            font-size: 16px;
+            color: #1e293b;
+        }
+        .event-badge {
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-failed { background: #fee2e2; color: #991b1b; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .event-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .event-payload {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .no-events {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1 class="title">📡 Webhook Events Monitor</h1>
+                <p class="subtitle">Real-time webhook events from Badlicash Payment Gateway</p>
+            </div>
+            <button class="refresh-btn" onclick="loadWebhooks()">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Events</div>
+                <div class="stat-value" id="totalEvents">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Success</div>
+                <div class="stat-value" style="color: #10b981;" id="successEvents">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value" style="color: #ef4444;" id="failedEvents">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Last Event</div>
+                <div class="stat-value" style="font-size: 14px;" id="lastEvent">-</div>
+            </div>
+        </div>
+
+        <div class="events-list" id="eventsList">
+            <div class="no-events">
+                <div class="empty-icon">📭</div>
+                <p>No webhook events received yet</p>
+                <p style="font-size: 14px; margin-top: 8px;">Make a payment to see webhook events here</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadWebhooks() {
+            try {
+                const response = await fetch('logs/webhooks.json?' + Date.now());
+                const events = await response.json();
+
+                if (!events || events.length === 0) {
+                    document.getElementById('eventsList').innerHTML = `
+                        <div class="no-events">
+                            <div class="empty-icon">📭</div>
+                            <p>No webhook events received yet</p>
+                            <p style="font-size: 14px; margin-top: 8px;">Make a payment to see webhook events here</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Update stats
+                document.getElementById('totalEvents').textContent = events.length;
+                
+                const successCount = events.filter(e => 
+                    e.event_type?.includes('success') || 
+                    e.event_type?.includes('charged') || 
+                    e.status === 'success'
+                ).length;
+                document.getElementById('successEvents').textContent = successCount;
+                
+                const failedCount = events.filter(e => 
+                    e.event_type?.includes('failed') || 
+                    e.status === 'failed'
+                ).length;
+                document.getElementById('failedEvents').textContent = failedCount;
+                
+                const lastEventTime = events[0]?.timestamp || '-';
+                document.getElementById('lastEvent').textContent = formatTime(lastEventTime);
+
+                // Render events
+                const html = events.map(event => {
+                    const badge = getBadgeClass(event.event_type, event.status);
+                    return `
+                        <div class="event-item">
+                            <div class="event-header">
+                                <div class="event-type">${event.event_type || 'unknown'}</div>
+                                <span class="event-badge ${badge}">${event.status || 'received'}</span>
+                            </div>
+                            <div class="event-meta">
+                                <span>🕐 ${event.timestamp}</span>
+                                ${event.transaction_id ? `<span>🔖 TXN: ${event.transaction_id}</span>` : ''}
+                                ${event.amount ? `<span>💰 ${event.amount}</span>` : ''}
+                            </div>
+                            <div class="event-payload">
+                                ${JSON.stringify(event.payload, null, 2)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('eventsList').innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load webhooks:', error);
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="no-events">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Failed to load webhook events</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getBadgeClass(eventType, status) {
+            if (eventType?.includes('success') || eventType?.includes('charged') || status === 'success') {
+                return 'badge-success';
+            } else if (eventType?.includes('failed') || status === 'failed') {
+                return 'badge-failed';
+            } else if (eventType?.includes('pending')) {
+                return 'badge-pending';
+            }
+            return 'badge-info';
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp || timestamp === '-') return '-';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleString();
+        }
+
+        // Auto-refresh every 3 seconds
+        setInterval(loadWebhooks, 3000);
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', loadWebhooks);
+    </script>
+</body>
+</html>
+

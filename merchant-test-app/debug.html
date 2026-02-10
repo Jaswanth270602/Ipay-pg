@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Script Loading Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .test {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #10b981;
+            color: white;
+        }
+        .error {
+            background: #ef4444;
+            color: white;
+        }
+        h1 { color: #60a5fa; }
+        pre {
+            background: #334155;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Script Loading Debug Page</h1>
+    <div id="results"></div>
+
+    <script src="config.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(message, success) {
+            const div = document.createElement('div');
+            div.className = `test ${success ? 'success' : 'error'}`;
+            div.innerHTML = success ? `✅ ${message}` : `❌ ${message}`;
+            results.appendChild(div);
+        }
+
+        // Test 1: Check if GATEWAY_CONFIG is loaded
+        if (typeof GATEWAY_CONFIG !== 'undefined') {
+            addResult('config.js loaded successfully', true);
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(GATEWAY_CONFIG, null, 2);
+            results.appendChild(pre);
+        } else {
+            addResult('config.js NOT loaded', false);
+        }
+
+        // Test 2: Check if createPayment exists
+        if (typeof createPayment === 'function') {
+            addResult('createPayment function exists', true);
+        } else {
+            addResult('createPayment function NOT found', false);
+        }
+
+        // Test 3: Check if getPaymentStatus exists
+        if (typeof getPaymentStatus === 'function') {
+            addResult('getPaymentStatus function exists', true);
+        } else {
+            addResult('getPaymentStatus function NOT found', false);
+        }
+
+        // Test 4: Check if initiatePayment exists
+        if (typeof initiatePayment === 'function') {
+            addResult('initiatePayment function exists', true);
+        } else {
+            addResult('initiatePayment function NOT found', false);
+        }
+
+        // Test 5: Check if processPayment exists
+        if (typeof processPayment === 'function') {
+            addResult('processPayment function exists', true);
+        } else {
+            addResult('processPayment function NOT found', false);
+        }
+
+        // List all global functions
+        results.innerHTML += '<h2 style="color: #60a5fa; margin-top: 30px;">Global Functions Available:</h2>';
+        const pre2 = document.createElement('pre');
+        const funcs = [];
+        for (let key in window) {
+            if (typeof window[key] === 'function' && !key.startsWith('_')) {
+                funcs.push(key);
+            }
+        }
+        pre2.textContent = funcs.filter(f => 
+            f.includes('Payment') || 
+            f.includes('payment') || 
+            f.includes('initiate') || 
+            f.includes('process') ||
+            f.includes('Webhook')
+        ).join('\n') || 'No payment-related functions found';
+        results.appendChild(pre2);
+    </script>
+</body>
+</html>
+

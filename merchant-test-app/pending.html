@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Pending - Badlicash</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .status-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .status-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+            text-align: center;
+        }
+
+        .status-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 32px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        .status-icon svg {
+            width: 64px;
+            height: 64px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .status-title {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 16px;
+        }
+
+        .status-message {
+            font-size: 18px;
+            color: var(--gray);
+            margin-bottom: 32px;
+        }
+
+        .info-box {
+            background: #fef3c7;
+            border: 2px solid #fde68a;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .info-title {
+            font-weight: 700;
+            color: #d97706;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-message {
+            color: #92400e;
+            line-height: 1.6;
+        }
+
+        .transaction-details {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--gray);
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .webhook-logs {
+            margin-top: 32px;
+            text-align: left;
+        }
+
+        .webhook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .webhook-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .refresh-btn {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .log-item {
+            background: var(--white);
+            border: 2px solid var(--light);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .log-item:hover {
+            border-color: var(--warning);
+            box-shadow: var(--shadow);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .log-event {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 16px;
+        }
+
+        .log-time {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .log-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            background: var(--warning);
+            color: white;
+        }
+
+        .log-details {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--dark);
+            overflow-x: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+
+        .btn-primary {
+            padding: 14px 32px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            padding: 14px 32px;
+            background: var(--white);
+            color: var(--gray);
+            border: 2px solid var(--light);
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gray);
+            color: var(--dark);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--light);
+            border-top-color: var(--warning);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="status-card">
+            <div class="status-icon">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+
+            <h1 class="status-title">Payment Pending</h1>
+            <p class="status-message">Your payment is being processed. Please wait...</p>
+
+            <div class="info-box">
+                <div class="info-title">⏳ What's happening?</div>
+                <div class="info-message">
+                    Your payment is currently being verified by the payment processor. 
+                    This usually takes a few moments. The page will automatically update 
+                    when the payment status changes.
+                </div>
+            </div>
+
+            <div class="transaction-details" id="transactionDetails">
+                <div class="loading">
+                    <div class="loader"></div>
+                    <p>Loading transaction details...</p>
+                </div>
+            </div>
+
+            <div class="webhook-logs">
+                <div class="webhook-header">
+                    <h3 class="webhook-title">📡 Webhook Events</h3>
+                    <button class="refresh-btn" onclick="loadWebhookLogs()">
+                        🔄 Refresh
+                    </button>
+                </div>
+                <div id="webhookLogs">
+                    <div class="loading">
+                        <div class="loader"></div>
+                        <p>Loading webhook logs...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="checkStatus()">
+                    Check Status
+                </button>
+                <button class="btn-secondary" onclick="window.location.href='index.html'">
+                    Go Back to Store
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="js/payment.js"></script>
+    <script>
+        let transactionId = null;
+        let statusCheckInterval = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            transactionId = urlParams.get('transaction_id');
+
+            if (!transactionId) {
+                alert('No transaction ID found');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            await loadTransactionDetails();
+            await loadWebhookLogs();
+
+            // Auto-refresh logs every 3 seconds
+            setInterval(loadWebhookLogs, 3000);
+
+            // Auto-check status every 5 seconds
+            statusCheckInterval = setInterval(checkStatus, 5000);
+        });
+
+        async function loadTransactionDetails() {
+            const result = await getPaymentStatus(transactionId);
+            
+            if (result.success && result.data) {
+                const data = result.data;
+                const html = `
+                    <div class="detail-row">
+                        <span class="detail-label">Transaction ID:</span>
+                        <span class="detail-value">${transactionId}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Amount:</span>
+                        <span class="detail-value">$${(data.amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value" style="color: var(--warning);">⏳ ${data.status || 'Pending'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Customer:</span>
+                        <span class="detail-value">${data.customer_email || 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">${new Date(data.created_at || Date.now()).toLocaleString()}</span>
+                    </div>
+                `;
+                document.getElementById('transactionDetails').innerHTML = html;
+            } else {
+                document.getElementById('transactionDetails').innerHTML = `
+                    <p style="text-align: center; color: var(--gray);">Unable to load transaction details</p>
+                `;
+            }
+        }
+
+        async function loadWebhookLogs() {
+            const result = await getWebhookLogs(transactionId);
+            
+            if (result.success && result.logs && result.logs.length > 0) {
+                const html = result.logs.map(log => `
+                    <div class="log-item">
+                        <div class="log-header">
+                            <div>
+                                <div class="log-event">${log.event || 'payment.pending'}</div>
+                                <div class="log-time">${new Date(log.created_at || Date.now()).toLocaleString()}</div>
+                            </div>
+                            <span class="log-status">${log.status || 'pending'}</span>
+                        </div>
+                        <div class="log-details">
+                            ${JSON.stringify(log.payload || log, null, 2)}
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('webhookLogs').innerHTML = html;
+            } else {
+                document.getElementById('webhookLogs').innerHTML = `
+                    <p style="text-align: center; color: var(--gray); padding: 20px;">No webhook events found yet</p>
+                `;
+            }
+        }
+
+        async function checkStatus() {
+            const result = await getPaymentStatus(transactionId);
+            
+            if (result.success && result.data) {
+                const status = result.data.status.toLowerCase();
+                
+                // Redirect if status changed
+                if (status === 'success' || status === 'completed') {
+                    clearInterval(statusCheckInterval);
+                    window.location.href = `success.html?transaction_id=${transactionId}`;
+                } else if (status === 'failed' || status === 'failure') {
+                    clearInterval(statusCheckInterval);
+                    window.location.href = `failure.html?transaction_id=${transactionId}`;
+                } else if (status === 'refunded') {
+                    clearInterval(statusCheckInterval);
+                    window.location.href = `refund.html?transaction_id=${transactionId}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

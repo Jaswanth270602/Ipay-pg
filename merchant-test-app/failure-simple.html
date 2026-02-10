@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Failed - Badlicash</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .status-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .status-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 36px;
+            max-width: 550px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: scaleIn 0.5s ease;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .status-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+        .status-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+        .status-message {
+            font-size: 15px;
+            color: var(--gray);
+            margin-bottom: 20px;
+        }
+        .error-box {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: #991b1b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .transaction-details {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            font-size: 13px;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            font-weight: 600;
+            color: var(--gray);
+            font-size: 13px;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: var(--dark);
+            word-break: break-all;
+            font-size: 13px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+        .btn-primary {
+            padding: 14px 32px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="status-card">
+            <div class="status-icon">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </div>
+
+            <h1 class="status-title">Payment Failed</h1>
+            <p class="status-message">Unfortunately, your payment could not be processed</p>
+
+            <div class="error-box">
+                ❌ Payment was declined or an error occurred
+            </div>
+
+            <div class="transaction-details">
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID:</span>
+                    <span class="detail-value" id="txnId">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="color: var(--danger);">✗ Failed</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date:</span>
+                    <span class="detail-value" id="date">-</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 20px; border-top: 2px solid var(--light);">
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 12px; text-align: left;">
+                    📡 Webhook Events
+                </h3>
+                <div id="webhookEvents" style="max-height: 250px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 20px; color: var(--gray); font-size: 13px;">
+                        Loading webhook events...
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <a href="index.html" class="btn-primary">Try Again</a>
+                <a href="webhook-logs.html" class="btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                    View All Events
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactionId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            transactionId = urlParams.get('transaction_id');
+            
+            if (transactionId) {
+                document.getElementById('txnId').textContent = transactionId;
+            } else {
+                document.getElementById('txnId').textContent = 'Not Available';
+            }
+            
+            document.getElementById('date').textContent = new Date().toLocaleString();
+            
+            console.log('❌ Payment Failed');
+            console.log('Transaction ID:', transactionId);
+
+            // Load webhook events
+            loadWebhookEvents();
+            
+            // Auto-refresh webhook events every 2 seconds
+            setInterval(loadWebhookEvents, 2000);
+        });
+
+        async function loadWebhookEvents() {
+            try {
+                const response = await fetch('logs/webhooks.json?' + Date.now());
+                const allEvents = await response.json();
+                
+                // Filter events for this transaction
+                const events = allEvents.filter(e => e.transaction_id === transactionId);
+                
+                if (events.length === 0) {
+                    document.getElementById('webhookEvents').innerHTML = `
+                        <div style="text-align: center; padding: 16px; color: var(--gray); font-size: 13px;">
+                            No webhook events yet. Events will appear here automatically.
+                        </div>
+                    `;
+                    return;
+                }
+
+                const html = events.map(event => `
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #ef4444;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <strong style="font-size: 13px; color: #1e293b;">${event.event_type}</strong>
+                            <span style="font-size: 11px; color: #64748b;">${event.timestamp}</span>
+                        </div>
+                        <div style="font-size: 12px; color: #64748b;">
+                            ${event.status ? `Status: ${event.status}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('webhookEvents').innerHTML = html;
+            } catch (error) {
+                console.log('Waiting for webhook events...');
+            }
+        }
+    </script>
+</body>
+</html>
+

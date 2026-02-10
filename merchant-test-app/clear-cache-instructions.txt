@@ -1,0 +1,20 @@
+🔄 CLEAR BROWSER CACHE INSTRUCTIONS
+
+If the JavaScript functions are still not loading:
+
+1. Hard Refresh (Clears cache):
+   - Windows: Ctrl + Shift + R  OR  Ctrl + F5
+   - Mac: Cmd + Shift + R
+   
+2. Or manually clear cache:
+   - Press F12 (open DevTools)
+   - Right-click the refresh button
+   - Select "Empty Cache and Hard Reload"
+
+3. Or clear browser data:
+   - Chrome: Ctrl + Shift + Delete
+   - Select "Cached images and files"
+   - Click "Clear data"
+
+4. Then reload: http://localhost:8080
+

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badlicash Test Store - Premium Products</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+                    <path d="M20 10L30 20L20 30L10 20L20 10Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#6366f1"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="logo-text">Test Store</span>
+            </div>
+            <div class="header-badge">
+                <span class="badge-dot"></span>
+                Powered by Badlicash
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1 class="hero-title">Test Payment Gateway Integration</h1>
+            <p class="hero-subtitle">Experience seamless payments with Badlicash Payment Gateway</p>
+        </section>
+
+        <!-- Products Grid -->
+        <section class="products">
+            <div class="section-header">
+                <h2>Choose a Product to Test Payment</h2>
+                <p>Select any product and test the complete payment flow</p>
+            </div>
+
+            <div class="products-grid">
+                <!-- Product 1 -->
+                <div class="product-card" data-product-id="prod_001">
+                    <div class="product-badge">Popular</div>
+                    <div class="product-image">
+                        <div class="product-icon">📱</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Premium Subscription</h3>
+                        <p class="product-description">1 month access to all premium features</p>
+                        <div class="product-features">
+                            <span class="feature">✓ Unlimited Access</span>
+                            <span class="feature">✓ Priority Support</span>
+                            <span class="feature">✓ No Ads</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">99.99</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <button class="btn-pay" onclick="initiatePayment('prod_001', 'Premium Subscription', 99.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="product-card" data-product-id="prod_002">
+                    <div class="product-image">
+                        <div class="product-icon">💼</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Business Plan</h3>
+                        <p class="product-description">Complete business solution package</p>
+                        <div class="product-features">
+                            <span class="feature">✓ Team Collaboration</span>
+                            <span class="feature">✓ Advanced Analytics</span>
+                            <span class="feature">✓ API Access</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">299.99</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <button class="btn-pay" onclick="initiatePayment('prod_002', 'Business Plan', 299.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="product-card" data-product-id="prod_003">
+                    <div class="product-badge special">New</div>
+                    <div class="product-image">
+                        <div class="product-icon">🎓</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Learning Course</h3>
+                        <p class="product-description">Complete web development masterclass</p>
+                        <div class="product-features">
+                            <span class="feature">✓ 50+ Hours Content</span>
+                            <span class="feature">✓ Certificate</span>
+                            <span class="feature">✓ Lifetime Access</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">149.99</span>
+                                <span class="period">one-time</span>
+                            </div>
+                            <button class="btn-pay" onclick="initiatePayment('prod_003', 'Learning Course', 149.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Modal -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Complete Payment</h3>
+                    <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="payment-summary">
+                        <div class="summary-item">
+                            <span>Product:</span>
+                            <strong id="modal-product-name"></strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Amount:</span>
+                            <strong id="modal-amount"></strong>
+                        </div>
+                    </div>
+                    <div class="payment-form">
+                        <div class="form-group">
+                            <label>Customer Email</label>
+                            <input type="email" id="customer-email" placeholder="customer@example.com" value="test@merchant.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Customer Name</label>
+                            <input type="text" id="customer-name" placeholder="John Doe" value="Test Customer">
+                        </div>
+                        <button class="btn-confirm-payment" onclick="processPayment()">
+                            <span class="btn-text">Confirm & Pay</span>
+                            <span class="btn-loader" style="display: none;">
+                                <svg class="spinner" viewBox="0 0 50 50">
+                                    <circle cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🔒 Secured by Badlicash Payment Gateway</p>
+            <p class="footer-note">This is a test merchant application for gateway integration testing</p>
+        </footer>
+    </div>
+
+    <script src="config.js" onerror="alert('Failed to load config.js')"></script>
+    <script src="js/payment.js" onerror="alert('Failed to load payment.js')"></script>
+    <script src="js/app.js" onerror="alert('Failed to load app.js')"></script>
+    
+    <script>
+        // Debug: Check if functions are loaded
+        window.addEventListener('load', function() {
+            console.log('🔍 Debug Info:');
+            console.log('GATEWAY_CONFIG:', typeof GATEWAY_CONFIG !== 'undefined' ? '✅ Loaded' : '❌ Missing');
+            console.log('createPayment:', typeof createPayment === 'function' ? '✅ Loaded' : '❌ Missing');
+            console.log('processPayment:', typeof processPayment === 'function' ? '✅ Loaded' : '❌ Missing');
+            console.log('initiatePayment:', typeof initiatePayment === 'function' ? '✅ Loaded' : '❌ Missing');
+            
+            if (typeof createPayment !== 'function') {
+                console.error('❌ createPayment function is not loaded! Check if js/payment.js loaded correctly.');
+            }
+        });
+    </script>
+</body>
+</html>
+

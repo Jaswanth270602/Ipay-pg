@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badlicash Test Store - Premium Products</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+                    <path d="M20 10L30 20L20 30L10 20L20 10Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#6366f1"/>
+                            <stop offset="100%" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="logo-text">Test Store</span>
+            </div>
+            <div class="header-badge">
+                <span class="badge-dot"></span>
+                Powered by Badlicash
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1 class="hero-title">Test Payment Gateway Integration</h1>
+            <p class="hero-subtitle">Experience seamless payments with Badlicash Payment Gateway</p>
+        </section>
+
+        <!-- Products Grid -->
+        <section class="products">
+            <div class="section-header">
+                <h2>Choose a Product to Test Payment</h2>
+                <p>Select any product and test the complete payment flow</p>
+            </div>
+
+            <div class="products-grid">
+                <!-- Product 1 -->
+                <div class="product-card" data-product-id="prod_001">
+                    <div class="product-badge">Popular</div>
+                    <div class="product-image">
+                        <div class="product-icon">📱</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Premium Subscription</h3>
+                        <p class="product-description">1 month access to all premium features</p>
+                        <div class="product-features">
+                            <span class="feature">✓ Unlimited Access</span>
+                            <span class="feature">✓ Priority Support</span>
+                            <span class="feature">✓ No Ads</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">99.99</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <button class="btn-pay" onclick="window.initiatePayment('prod_001', 'Premium Subscription', 99.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="product-card" data-product-id="prod_002">
+                    <div class="product-image">
+                        <div class="product-icon">💼</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Business Plan</h3>
+                        <p class="product-description">Complete business solution package</p>
+                        <div class="product-features">
+                            <span class="feature">✓ Team Collaboration</span>
+                            <span class="feature">✓ Advanced Analytics</span>
+                            <span class="feature">✓ API Access</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">299.99</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <button class="btn-pay" onclick="window.initiatePayment('prod_002', 'Business Plan', 299.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="product-card" data-product-id="prod_003">
+                    <div class="product-badge special">New</div>
+                    <div class="product-image">
+                        <div class="product-icon">🎓</div>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Learning Course</h3>
+                        <p class="product-description">Complete web development masterclass</p>
+                        <div class="product-features">
+                            <span class="feature">✓ 50+ Hours Content</span>
+                            <span class="feature">✓ Certificate</span>
+                            <span class="feature">✓ Lifetime Access</span>
+                        </div>
+                        <div class="product-footer">
+                            <div class="product-price">
+                                <span class="currency">$</span>
+                                <span class="amount">149.99</span>
+                                <span class="period">one-time</span>
+                            </div>
+                            <button class="btn-pay" onclick="window.initiatePayment('prod_003', 'Learning Course', 149.99)">
+                                <span>Pay Now</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Modal -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Complete Payment</h3>
+                    <button class="modal-close" onclick="window.closePaymentModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="payment-summary">
+                        <div class="summary-item">
+                            <span>Product:</span>
+                            <strong id="modal-product-name"></strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Amount:</span>
+                            <strong id="modal-amount"></strong>
+                        </div>
+                    </div>
+                    <div class="payment-form">
+                        <div class="form-group">
+                            <label>Customer Email</label>
+                            <input type="email" id="customer-email" placeholder="customer@example.com" value="test@merchant.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Customer Name</label>
+                            <input type="text" id="customer-name" placeholder="John Doe" value="Test Customer">
+                        </div>
+                        <button class="btn-confirm-payment" onclick="window.processPayment()">
+                            <span class="btn-text">Confirm & Pay</span>
+                            <span class="btn-loader" style="display: none;">
+                                <svg class="spinner" viewBox="0 0 50 50">
+                                    <circle cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>🔒 Secured by Badlicash Payment Gateway</p>
+            <p class="footer-note">This is a test merchant application for gateway integration testing</p>
+        </footer>
+    </div>
+
+    <!-- ALL JAVASCRIPT INLINE TO AVOID LOADING ISSUES -->
+    <script>
+        // GATEWAY CONFIGURATION
+        const GATEWAY_CONFIG = {
+            apiUrl: 'http://localhost:8000/api',
+            apiKey: 'pk_test_88tdbeR269j8EKABtx0dA34vV4foXzBp',
+            secretKey: 'sk_test_SdBNftTovx41kANBayBSWZQQFsnuvSgo',
+            merchantId: '1',
+            returnUrl: window.location.origin + '/merchant-test-app/',
+            webhookUrl: window.location.origin + '/merchant-test-app/webhook',
+            statusCheckInterval: 5000,
+            webhookRefreshInterval: 3000,
+            debug: true
+        };
+
+        console.log('✅ Configuration loaded:', GATEWAY_CONFIG);
+
+        // PAYMENT FUNCTIONS
+        async function createPayment(paymentData) {
+            try {
+                console.log('📝 Creating payment...', paymentData);
+                const response = await fetch(`${GATEWAY_CONFIG.apiUrl}/payments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${GATEWAY_CONFIG.apiKey}`,
+                        'X-Merchant-ID': GATEWAY_CONFIG.merchantId
+                    },
+                    body: JSON.stringify({
+                        amount: paymentData.amount,
+                        currency: 'USD',
+                        description: `Payment for ${paymentData.product_name}`,
+                        customer_email: paymentData.customer_email,
+                        customer_name: paymentData.customer_name,
+                        metadata: {
+                            product_id: paymentData.product_id,
+                            product_name: paymentData.product_name
+                        },
+                        return_url: GATEWAY_CONFIG.returnUrl,
+                        webhook_url: GATEWAY_CONFIG.webhookUrl
+                    })
+                });
+
+                const data = await response.json();
+                console.log('📦 Payment response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Payment creation failed');
+                }
+
+                return {
+                    success: true,
+                    payment_url: data.payment_url || data.checkout_url,
+                    transaction_id: data.transaction_id || data.id,
+                    data: data
+                };
+            } catch (error) {
+                console.error('❌ Payment creation error:', error);
+                return {
+                    success: false,
+                    message: error.message
+                };
+            }
+        }
+
+        // APP LOGIC
+        let currentProduct = null;
+
+        window.initiatePayment = function(productId, productName, amount) {
+            console.log('🎯 Initiating payment for:', productName);
+            currentProduct = {
+                id: productId,
+                name: productName,
+                amount: amount
+            };
+
+            document.getElementById('modal-product-name').textContent = productName;
+            document.getElementById('modal-amount').textContent = `$${amount.toFixed(2)}`;
+
+            const modal = document.getElementById('paymentModal');
+            modal.classList.add('active');
+        };
+
+        window.closePaymentModal = function() {
+            const modal = document.getElementById('paymentModal');
+            modal.classList.remove('active');
+            currentProduct = null;
+        };
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('paymentModal');
+            if (event.target === modal) {
+                window.closePaymentModal();
+            }
+        };
+
+        window.processPayment = async function() {
+            console.log('💳 Processing payment...');
+            
+            if (!currentProduct) {
+                alert('No product selected');
+                return;
+            }
+
+            const customerEmail = document.getElementById('customer-email').value;
+            const customerName = document.getElementById('customer-name').value;
+
+            if (!customerEmail || !customerName) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            const btn = document.querySelector('.btn-confirm-payment');
+            btn.disabled = true;
+            btn.querySelector('.btn-text').style.display = 'none';
+            btn.querySelector('.btn-loader').style.display = 'flex';
+
+            try {
+                const result = await createPayment({
+                    product_id: currentProduct.id,
+                    product_name: currentProduct.name,
+                    amount: currentProduct.amount,
+                    customer_email: customerEmail,
+                    customer_name: customerName
+                });
+
+                if (result.success && result.payment_url) {
+                    console.log('✅ Payment created! Redirecting to:', result.payment_url);
+                    window.location.href = result.payment_url;
+                } else {
+                    throw new Error(result.message || 'Payment initialization failed');
+                }
+            } catch (error) {
+                console.error('❌ Payment error:', error);
+                alert('Payment failed: ' + error.message);
+                
+                btn.disabled = false;
+                btn.querySelector('.btn-text').style.display = 'block';
+                btn.querySelector('.btn-loader').style.display = 'none';
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Badlicash Test Store Initialized (Working Version)');
+            console.log('✅ All functions loaded successfully!');
+        });
+    </script>
+</body>
+</html>
+
