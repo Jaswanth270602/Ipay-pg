@@ -36,6 +36,12 @@ if (!function_exists('logo_path')) {
     function logo_path(): string
     {
         $appName = config('app.name', 'PaymentGateway');
+
+        // Explicit override when a fixed logo is required
+        $fixedLogo = 'images/logo/ipay_logo.jpg';
+        if (file_exists(public_path($fixedLogo))) {
+            return $fixedLogo;
+        }
         
         // First, try with hyphens preserved (for names like "Payment Gateway" -> "Payment-gateway_logo.png")
         $hyphenName = strtolower(preg_replace('/[^a-zA-Z0-9\s]/', '', $appName)); // Keep spaces

@@ -1,0 +1,7 @@
+Refund ID,Status,Notes,Reason,Amount,Currency
+RFD_TEST123456789,completed,Refund processed successfully,Customer request,100.50,USD
+RFD_TEST987654321,pending,Waiting for approval,Product defect,250.00,USD
+RFD_TEST111222333,processing,In progress,Duplicate payment,75.25,USD
+RFD_TEST444555666,failed,Payment gateway error,Service cancellation,500.00,USD
+RFD_TEST777888999,completed,Refund completed,Order cancelled,150.75,EUR
+

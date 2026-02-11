@@ -11,7 +11,7 @@
     .stat-card.card-success-rate {
         position: relative;
         overflow: hidden;
-        border: none !important;
+        border: 1px solid #e5e7eb !important;
     }
     
     .stat-card.card-transactions::before,
@@ -24,55 +24,39 @@
         left: 0;
         right: 0;
         height: 4px;
-        background: rgba(255, 255, 255, 0.3);
+        background: linear-gradient(90deg, #7c3aed, #ec4899);
     }
     
     .stat-card.card-transactions {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .stat-card.card-transactions h6,
-    .stat-card.card-transactions h3,
-    .stat-card.card-transactions small,
-    .stat-card.card-transactions i {
-        color: white;
+        background: #ffffff;
+        color: #111827;
     }
     
     .stat-card.card-volume {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
+        background: #ffffff;
+        color: #111827;
     }
-    
-    .stat-card.card-volume h6,
-    .stat-card.card-volume h3,
-    .stat-card.card-volume small,
-    .stat-card.card-volume i {
-        color: white;
+
+    .stat-card.card-volume::before {
+        background: linear-gradient(90deg, #ec4899, #f97373);
     }
     
     .stat-card.card-refunds {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
+        background: #ffffff;
+        color: #111827;
     }
-    
-    .stat-card.card-refunds h6,
-    .stat-card.card-refunds h3,
-    .stat-card.card-refunds small,
-    .stat-card.card-refunds i {
-        color: white;
+
+    .stat-card.card-refunds::before {
+        background: linear-gradient(90deg, #fb7185, #f97373);
     }
     
     .stat-card.card-success-rate {
-        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-        color: white;
+        background: #ffffff;
+        color: #111827;
     }
-    
-    .stat-card.card-success-rate h6,
-    .stat-card.card-success-rate h3,
-    .stat-card.card-success-rate small,
-    .stat-card.card-success-rate i {
-        color: white;
+
+    .stat-card.card-success-rate::before {
+        background: linear-gradient(90deg, #7c3aed, #ec4899);
     }
     
     .stat-card.card-transactions:hover,
@@ -109,30 +93,18 @@
         text-decoration: none !important;
     }
     
-    .quick-action-card.card-payment-link {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .quick-action-card.card-transactions {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-    }
-    
-    .quick-action-card.card-integration {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
-    }
-    
+    .quick-action-card.card-payment-link,
+    .quick-action-card.card-transactions,
+    .quick-action-card.card-integration,
     .quick-action-card.card-api-keys {
-        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-        color: white;
+        background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+        color: #ffffff;
     }
     
     .quick-action-card h6,
     .quick-action-card small,
     .quick-action-card i {
-        color: white;
+        color: #ffffff;
     }
 </style>
 @endpush
@@ -141,7 +113,7 @@
 <div ng-app="badlicashApp" ng-controller="DashboardController as dc">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h3 class="fw-bold">Welcome, {{ $user->name }}</h3>
+            <h3 class="fw-bold" style="color:#E10600;">Welcome, {{ $user->name }}</h3>
             <p class="text-muted">{{ $merchant->name }} - <span class="badge {{ $merchant->test_mode ? 'bg-warning' : 'bg-success' }}">{{ $merchant->test_mode ? 'TEST MODE' : 'LIVE MODE' }}</span></p>
         </div>
     </div>

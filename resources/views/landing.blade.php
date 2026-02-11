@@ -1,936 +1,538 @@
-@extends('layouts.app')
+@extends('layouts.marketing')
 
-@section('title', config('app.name') . ' – The Safer, Smarter Payment Gateway for Modern Businesses')
+@section('title', config('app.name') . ' – Modern Payment Gateway')
 
 @section('content')
 <style>
     :root {
-        --bc-primary: #6366f1;
-        --bc-primary-dark: #4f46e5;
-        --bc-primary-soft: #eef2ff;
-        --bc-bg: #020617;
+        --pg-primary: #E10600;
+        --pg-primary-dark: #B00500;
+        --pg-accent-yellow: #E10600;
+        --pg-accent-green: #E10600;
+        --pg-surface: #20242D;
+        --pg-bg: #1A1D24;
+        --pg-surface-card: #262B36;
+        --pg-text-main: #FFFFFF;
+        --pg-text-muted: #9CA3AF;
+        --pg-radius-xl: 26px;
     }
 
     body {
-        background: radial-gradient(circle at top left, #1d213b 0, #020617 40%, #020617 100%);
-        color: #e5e7eb;
+        background: var(--pg-bg);
+        color: var(--pg-text-main);
     }
 
-    .landing-wrapper {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
+    .lp-hero {
+        padding: 32px 0 64px;
     }
 
-    .landing-nav {
-        padding: 20px 0;
+    .lp-hero-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 40px;
+        align-items: center;
     }
 
-    .landing-badge {
-        background: rgba(148, 163, 184, 0.25);
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        color: #cbd5f5;
-    }
-
-    .gradient-pill {
+    .lp-pill {
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        padding: 4px 12px 4px 6px;
         border-radius: 999px;
-        padding: 4px 10px 4px 4px;
-        background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.4));
-        border: 1px solid rgba(129, 140, 248, 0.7);
-        font-size: 12px;
-        color: #e0f2fe;
+        background: rgba(225, 6, 0, 0.14);
+        border: 1px solid rgba(225, 6, 0, 0.6);
+        font-size: 11px;
+        color: #fef2f2;
     }
 
-    .hero-title {
-        font-size: clamp(2.6rem, 4vw, 3.4rem);
+    .lp-pill-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #E10600;
+        font-size: 10px;
+    }
+
+    .lp-hero-title {
+        font-size: clamp(2.6rem, 3.8vw, 3.2rem);
         font-weight: 800;
-        line-height: 1.05;
         letter-spacing: -.04em;
-        color: #f9fafb;
+        line-height: 1.05;
+        color: var(--pg-text-main);
+        margin-bottom: 14px;
     }
 
-    .hero-gradient-text {
-        background: linear-gradient(135deg, #a855f7, #6366f1, #22c55e);
+    .lp-hero-title span.lp-highlight {
+        background: linear-gradient(135deg, #ffffff, #E10600);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
 
-    .hero-subtitle {
-        font-size: 16px;
-        color: #9ca3af;
+    .lp-hero-subtitle {
+        font-size: 15px;
+        color: var(--pg-text-muted);
         max-width: 520px;
     }
 
-    .hero-metrics {
+    .lp-hero-actions {
         display: flex;
-        gap: 24px;
         flex-wrap: wrap;
-        margin-top: 24px;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
     }
 
-    .hero-metric {
-        min-width: 120px;
+    .lp-btn-primary {
+        background: linear-gradient(135deg, var(--pg-primary), var(--pg-primary-dark));
+        border-radius: 999px;
+        padding: 11px 26px;
+        border: none;
+        color: #ffffff;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 16px 32px rgba(225, 6, 0, 0.45);
+        text-decoration: none;
+        font-size: 14px;
     }
 
-    .hero-metric-value {
-        font-size: 20px;
-        font-weight: 700;
-        color: #e5e7eb;
+    .lp-btn-primary:hover {
+        filter: brightness(1.02);
+        transform: translateY(-1px);
     }
 
-    .hero-metric-label {
+    .lp-btn-ghost {
+        border-radius: 999px;
+        padding: 10px 22px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        background: transparent;
+        color: #d11717;
+        font-weight: 500;
+        text-decoration: none;
+        font-size: 14px;
+    }
+
+    .lp-hero-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 20px;
         font-size: 12px;
-        color: #9ca3af;
+    }
+
+    .lp-hero-metric-label {
+        color: var(--pg-text-muted);
         text-transform: uppercase;
         letter-spacing: .08em;
     }
 
-    .btn-primary-hero {
-        background: linear-gradient(135deg, var(--bc-primary) 0%, var(--bc-primary-dark) 100%);
-        border: none;
-        padding: 12px 26px;
-        border-radius: 999px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 18px 45px rgba(79, 70, 229, 0.5);
-    }
-
-    .btn-primary-hero:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 22px 55px rgba(79, 70, 229, 0.7);
-    }
-
-    .btn-outline-hero {
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.5);
-        color: #e5e7eb;
-        padding: 11px 22px;
-        font-weight: 500;
-    }
-
-    .btn-outline-hero:hover {
-        background: rgba(15, 23, 42, 0.85);
-    }
-
-    .hero-card {
-        background: radial-gradient(circle at top, rgba(248, 250, 252, 0.06), rgba(15, 23, 42, 0.95));
-        border-radius: 24px;
-        padding: 22px 22px 18px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
-    }
-
-    .hero-logos {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 18px;
-        align-items: center;
-        margin-top: 14px;
-    }
-
-    .logo-pill {
-        border-radius: 999px;
-        padding: 6px 12px;
-        background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(148, 163, 184, 0.5);
-        font-size: 11px;
-        color: #cbd5f5;
-    }
-
-    .features-grid {
-        margin-top: 64px;
-    }
-
-    .feature-card {
-        background: rgba(15, 23, 42, 0.9);
-        border-radius: 18px;
-        padding: 18px 18px 16px;
-        border: 1px solid rgba(55, 65, 81, 0.9);
-        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.8);
-        height: 100%;
-    }
-
-    .feature-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(37, 99, 235, 0.12);
-        color: #60a5fa;
-        margin-bottom: 8px;
-    }
-
-    .testimonials-strip {
-        margin-top: 50px;
-        border-radius: 18px;
-        padding: 14px 18px;
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(55, 65, 81, 0.9);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-    }
-
-    .testimonial-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #38bdf8, #6366f1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        color: #0f172a;
+    .lp-hero-metric-value {
         font-weight: 700;
+        color: var(--pg-text-main);
+        font-size: 18px;
     }
 
-    .testimonial-quote {
-        font-size: 13px;
-        color: #e5e7eb;
+    /* Hero visual – stacked payment cards (Unlimit-style) */
+    .lp-hero-visual {
+        position: relative;
+        width: 420px;
+        margin-left: auto;
     }
 
-    .floating-badge {
-        position: absolute;
-        top: -14px;
-        right: 24px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(34, 197, 94, 0.15);
-        border: 1px solid rgba(34, 197, 94, 0.6);
-        font-size: 10px;
-        color: #bbf7d0;
-        text-transform: uppercase;
-        letter-spacing: .1em;
-    }
-
-    .section-divider {
-        margin: 80px 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.3), transparent);
-    }
-
-    .section-title {
-        font-size: clamp(1.8rem, 3vw, 2.5rem);
-        font-weight: 800;
-        color: #f9fafb;
-        margin-bottom: 16px;
-    }
-
-    .section-subtitle {
-        font-size: 16px;
-        color: #9ca3af;
-        max-width: 600px;
+    .lp-card-stack {
+        position: relative;
+        width: 100%;
+        max-width: 360px;
         margin: 0 auto;
     }
 
-    .how-it-works-card {
-        background: rgba(15, 23, 42, 0.85);
-        border-radius: 20px;
-        padding: 28px;
-        border: 1px solid rgba(55, 65, 81, 0.9);
-        height: 100%;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .how-it-works-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(79, 70, 229, 0.3);
-        border-color: rgba(99, 102, 241, 0.6);
-    }
-
-    .svg-illustration {
-        width: 100%;
-        max-width: 320px;
-        height: auto;
-        margin: 0 auto 20px;
-        opacity: 0.95;
-    }
-
-    .step-number {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #6366f1, #4f46e5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-weight: 700;
-        font-size: 18px;
-        margin-bottom: 16px;
-    }
-
-    .security-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        margin-top: 40px;
-    }
-
-    .security-card {
-        background: rgba(15, 23, 42, 0.9);
-        border-radius: 16px;
-        padding: 24px;
-        border: 1px solid rgba(55, 65, 81, 0.9);
-        text-align: center;
-    }
-
-    .security-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 14px;
-        background: rgba(34, 197, 94, 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 16px;
-        color: #6ee7b7;
-        font-size: 24px;
-    }
-
-    .business-boost-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 24px;
-        margin-top: 40px;
-    }
-
-    .boost-card {
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(79, 70, 229, 0.05));
-        border-radius: 18px;
-        padding: 24px;
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .boost-card::before {
-        content: '';
+    .lp-card-bg {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #6366f1, #a855f7, #22c55e);
+        inset: 16px -10px -16px;
+        border-radius: 28px;
+        background: linear-gradient(140deg, #E10600, #7F0300);
+        opacity: 0.9;
+        transform: rotate(8deg);
     }
 
-    .use-case-comparison {
-        background: rgba(15, 23, 42, 0.95);
+    .lp-card-main {
+        position: relative;
         border-radius: 24px;
-        padding: 40px;
-        border: 1px solid rgba(55, 65, 81, 0.9);
-        margin-top: 40px;
+        background: #ffffff;
+        padding: 18px 20px 16px;
+        box-shadow: 0 26px 60px rgba(15, 23, 42, 0.45);
     }
 
-    .comparison-item {
+    .lp-card-header-row {
         display: flex;
-        align-items: start;
-        gap: 20px;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 16px;
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(55, 65, 81, 0.6);
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 11px;
+        color: #6b7280;
     }
 
-    .comparison-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+    .lp-card-amount {
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .lp-card-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    .lp-card-input {
+        border-radius: 10px;
+        background: #f3f4f6;
+        padding: 6px 8px;
+        font-size: 11px;
+        color: #111827;
+        margin-top: 4px;
+    }
+
+    .lp-card-pay-btn {
+        margin-top: 12px;
+        border-radius: 10px;
+        padding: 10px 0;
+        text-align: center;
+        background: #E10600;
+        font-weight: 600;
+        font-size: 13px;
+        color: #ffffff;
+    }
+
+    /* Additional sections */
+    .lp-section {
+        padding: 56px 0 64px;
+    }
+
+    .lp-section-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .lp-section-title {
+        font-size: 26px;
+        font-weight: 700;
+        color:rgb(207, 17, 11);
+        margin-bottom: 6px;
+    }
+
+    .lp-section-subtitle {
+        font-size: 14px;
+        color: var(--pg-text-muted);
+        max-width: 620px;
+        margin: 0 auto;
+    }
+
+    .lp-three-column {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 22px;
+    }
+
+    .lp-card-simple {
+        background: #262B36;
+        border-radius: 18px;
+        padding: 18px 18px 16px;
+        border: 1px solid #20242D;
+        box-shadow: 0 14px 30px rgba(26, 29, 36, 0.35);
+    }
+
+    .lp-card-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 24px;
-        margin: 60px 0;
-    }
-
-    .stat-card {
-        text-align: center;
-        padding: 24px;
-        background: rgba(15, 23, 42, 0.7);
-        border-radius: 16px;
-        border: 1px solid rgba(55, 65, 81, 0.6);
-    }
-
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #a855f7, #6366f1, #22c55e);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        background: rgba(225, 6, 0, 0.16);
+        color: #E10600;
         margin-bottom: 8px;
     }
 
-    .testimonials-grid {
+    .lp-stats-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 24px;
-        margin-top: 40px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        text-align: center;
+        margin-top: 26px;
     }
 
-    .testimonial-card {
-        background: rgba(15, 23, 42, 0.9);
-        border-radius: 18px;
-        padding: 24px;
-        border: 1px solid rgba(55, 65, 81, 0.9);
+    .lp-stat-label {
+        font-size: 13px;
+        color: var(--pg-text-muted);
     }
 
-    .payment-illustration-wrapper {
-        animation: float 6s ease-in-out infinite;
+    .lp-stat-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--pg-text-main);
     }
 
-    @keyframes float {
-        0%, 100% {
-            transform: translateY(0px);
-        }
-        50% {
-            transform: translateY(-20px);
-        }
+    .lp-cta-strip {
+        text-align: center;
+        padding: 40px 24px;
+        border-radius: 20px;
+        background: #20242D;
+        border: 1px solid #E10600;
+    }
+
+    .lp-split-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 40px;
+        align-items: center;
+    }
+
+    .lp-logo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 16px;
+    }
+
+    .lp-logo-cell {
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid rgba(209, 213, 219, 0.9);
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #111827;
     }
 
     @media (max-width: 992px) {
-        .hero-card {
-            margin-top: 32px;
+        .lp-hero-row {
+            grid-template-columns: minmax(0, 1fr);
         }
-        .section-divider {
-            margin: 60px 0;
-        }
-        .payment-illustration-wrapper {
-            margin-top: 40px;
+        .lp-hero-visual {
+            max-width: 420px;
+            margin: 24px auto 0;
         }
     }
 </style>
 
-<div class="landing-wrapper">
-    <header class="landing-nav">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <div class="rounded-circle bg-primary bg-opacity-20 d-flex align-items-center justify-content-center" style="width:px;height:34px;">
-                    <!-- <i class="bi bi-wallet2 text-primary"></i> -->
-                </div>
-                <div>
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <img src="{{ asset(logo_path()) }}" alt="{{ config('app.name') }}" style="height: 72px; width: auto;">
-                        <div class="fw-bold text-white" style="font-size: 28px; font-weight: 700;">{{ config('app.name') }}</div>
-                    </div>
-                    <div style="font-size:11px;color:#9ca3af;">Safer payments for ambitious teams</div>
-                </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('login') }}" class="btn btn-sm btn-outline-hero">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                </a>
-                <a href="{{ route('signup') }}" class="btn btn-sm btn-primary-hero">
-                    Start accepting payments
-                    <i class="bi bi-arrow-right-short"></i>
-                </a>
-            </div>
-        </div>
-    </header>
-
-    <section class="py-4 py-md-5">
-        <div class="row align-items-center g-4">
-            <div class="col-lg-6">
-                <div class="mb-3">
-                    <span class="gradient-pill">
-                        <span class="badge bg-dark border border-info border-opacity-50 rounded-pill me-1">
-                            <i class="bi bi-shield-check"></i>
-                        </span>
-                        PCI-ready sandbox · Go live in days, not weeks
-                    </span>
-                </div>
-                <h1 class="hero-title mb-3">
-                    The payment gateway
-                    <span class="hero-gradient-text">teams actually love</span>.
+<div class="lp-shell">
+    <section class="lp-hero">
+        <div class="lp-hero-row">
+            <div>
+                <h1 class="lp-hero-title">
+                    Process card payments with a single integration.
                 </h1>
-                <p class="hero-subtitle mb-3">
-                    {{ config('app.name') }} is a developer-first, bank-grade payment gateway designed to feel as smooth as Razorpay,
-                    but with obsessive focus on observability, sandbox–production parity, and merchant UX.
+                <p class="lp-hero-subtitle mb-3">
+                    Seamlessly accept debit and credit card payments with {{ config('app.name') }}, while leveraging 1000+ alternative payment methods for global customers.
                 </p>
-                <ul class="list-unstyled mb-4" style="font-size:13px;color:#9ca3af;">
-                    <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> Unified APIs for payments, refunds, disputes & settlements</li>
-                    <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> Realistic sandbox flows with webhooks that mirror production</li>
-                    <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i> SDK checkout widget that drops into your app in minutes</li>
-                </ul>
-
-                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-                    <a href="{{ route('signup') }}" class="btn btn-primary-hero">
-                        Create free test account
+                <div class="lp-hero-actions">
+                    <a href="{{ route('signup') }}" class="lp-btn-primary">
+                        Start free sandbox
                         <i class="bi bi-arrow-right-short"></i>
                     </a>
-                    <a href="#features" class="btn btn-outline-hero">
-                        View features
+                    <a href="{{ route('products.page') }}" class="lp-btn-ghost">
+                        Explore products
                     </a>
                 </div>
-
-                <div class="hero-metrics">
-                    <div class="hero-metric">
-                        <div class="hero-metric-value">99.95%</div>
-                        <div class="hero-metric-label">Uptime Simulated</div>
-                    </div>
-                    <div class="hero-metric">
-                        <div class="hero-metric-value">&lt; 60 sec</div>
-                        <div class="hero-metric-label">Webhook Latency</div>
-                    </div>
-                    <div class="hero-metric">
-                        <div class="hero-metric-value">0</div>
-                        <div class="hero-metric-label">Bank Dependencies Today</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6 position-relative d-flex align-items-center justify-content-center">
-                <div class="payment-illustration-wrapper" style="width: 100%; max-width: 600px; position: relative;">
-                    <!-- Payment Gateway Illustration -->
-                    <svg viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; filter: drop-shadow(0 20px 40px rgba(99, 102, 241, 0.3));">
-                        <!-- Background gradient circles -->
-                        <circle cx="300" cy="250" r="200" fill="url(#gradient1)" opacity="0.3"/>
-                        <circle cx="300" cy="250" r="150" fill="url(#gradient2)" opacity="0.2"/>
-                        
-                        <!-- Gradient Definitions -->
-                        <defs>
-                            <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
-                            </linearGradient>
-                            <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
-                            </linearGradient>
-                            <linearGradient id="cardGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.9" />
-                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.9" />
-                            </linearGradient>
-                            <linearGradient id="cardGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.9" />
-                                <stop offset="100%" style="stop-color:#16a34a;stop-opacity:0.9" />
-                            </linearGradient>
-                            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-                                <polygon points="0 0, 10 3, 0 6" fill="rgba(34, 197, 94, 0.8)" />
-                            </marker>
-                        </defs>
-                        
-                        <!-- Credit Card 1 -->
-                        <g transform="translate(100, 150) rotate(-10)">
-                            <rect x="0" y="0" width="180" height="110" rx="12" fill="url(#cardGradient1)"/>
-                            <rect x="0" y="0" width="180" height="110" rx="12" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <rect x="20" y="20" width="60" height="40" rx="6" fill="rgba(255,255,255,0.2)"/>
-                            <rect x="20" y="70" width="140" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
-                            <rect x="20" y="80" width="100" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
-                            <circle cx="150" cy="30" r="8" fill="rgba(255,255,255,0.3)"/>
-                            <circle cx="165" cy="30" r="8" fill="rgba(255,255,255,0.3)"/>
-                        </g>
-                        
-                        <!-- Credit Card 2 -->
-                        <g transform="translate(320, 180) rotate(10)">
-                            <rect x="0" y="0" width="180" height="110" rx="12" fill="url(#cardGradient2)"/>
-                            <rect x="0" y="0" width="180" height="110" rx="12" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
-                            <rect x="20" y="20" width="60" height="40" rx="6" fill="rgba(255,255,255,0.2)"/>
-                            <rect x="20" y="70" width="140" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
-                            <rect x="20" y="80" width="100" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
-                            <circle cx="150" cy="30" r="8" fill="rgba(255,255,255,0.3)"/>
-                            <circle cx="165" cy="30" r="8" fill="rgba(255,255,255,0.3)"/>
-                        </g>
-                        
-                        <!-- Payment Processing Center -->
-                        <g transform="translate(240, 200)">
-                            <circle cx="60" cy="60" r="50" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.6)" stroke-width="3"/>
-                            <circle cx="60" cy="60" r="35" fill="rgba(99, 102, 241, 0.3)"/>
-                            <path d="M 45 60 L 55 70 L 75 50" stroke="#6366f1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        </g>
-                        
-                        <!-- Payment Flow Arrows -->
-                        <path d="M 190 205 Q 240 180, 260 230" stroke="rgba(34, 197, 94, 0.6)" stroke-width="3" fill="none" stroke-linecap="round" marker-end="url(#arrowhead)"/>
-                        <path d="M 410 235 Q 360 210, 340 260" stroke="rgba(34, 197, 94, 0.6)" stroke-width="3" fill="none" stroke-linecap="round" marker-end="url(#arrowhead)"/>
-                        
-                        <!-- UPI/Phone Icon -->
-                        <g transform="translate(80, 320)">
-                            <rect x="0" y="0" width="80" height="120" rx="20" fill="rgba(168, 85, 247, 0.2)" stroke="rgba(168, 85, 247, 0.6)" stroke-width="2"/>
-                            <rect x="15" y="20" width="50" height="70" rx="8" fill="rgba(168, 85, 247, 0.3)"/>
-                            <circle cx="40" cy="100" r="8" fill="rgba(168, 85, 247, 0.5)"/>
-                        </g>
-                        
-                        <!-- Bank/Netbanking Icon -->
-                        <g transform="translate(440, 320)">
-                            <rect x="0" y="0" width="100" height="80" rx="12" fill="rgba(251, 146, 60, 0.2)" stroke="rgba(251, 146, 60, 0.6)" stroke-width="2"/>
-                            <rect x="20" y="20" width="60" height="40" rx="6" fill="rgba(251, 146, 60, 0.3)"/>
-                            <rect x="25" y="25" width="15" height="10" rx="2" fill="rgba(251, 146, 60, 0.5)"/>
-                            <rect x="45" y="25" width="30" height="10" rx="2" fill="rgba(251, 146, 60, 0.5)"/>
-                            <rect x="25" y="40" width="50" height="10" rx="2" fill="rgba(251, 146, 60, 0.5)"/>
-                        </g>
-                        
-                        <!-- Payment Methods Icons (small) -->
-                        <circle cx="150" cy="380" r="30" fill="rgba(99, 102, 241, 0.15)" stroke="rgba(99, 102, 241, 0.5)" stroke-width="2"/>
-                        <path d="M 135 380 L 145 390 L 165 370" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        
-                        <circle cx="450" cy="380" r="30" fill="rgba(34, 197, 94, 0.15)" stroke="rgba(34, 197, 94, 0.5)" stroke-width="2"/>
-                        <path d="M 435 380 L 445 390 L 465 370" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        
-                    </svg>
-                </div>
-            </div>
-            
-        </div>
-
-        <div id="features" class="features-grid mt-5">
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <i class="bi bi-columns-gap"></i>
-                        </div>
-                        <div class="fw-semibold mb-1">Merchant-first dashboards</div>
-                        <div style="font-size:13px;color:#9ca3af;">
-                            Rich dashboards for merchants and admins, including test/live toggles, settlement insights,
-                            disputes, and detailed transaction timelines.
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:rgba(16,185,129,.12);color:#6ee7b7;">
-                            <i class="bi bi-webhook"></i>
-                        </div>
-                        <div class="fw-semibold mb-1">Webhooks that just work</div>
-                        <div style="font-size:13px;color:#9ca3af;">
-                            Payment, refund, subscription and payment-link webhooks with retries, signatures,
-                            event toggles and test/live headers out of the box.
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background:rgba(244,114,182,.12);color:#f9a8d4;">
-                            <i class="bi bi-code-slash"></i>
-                        </div>
-                        <div class="fw-semibold mb-1">Drop-in checkout widget</div>
-                        <div style="font-size:13px;color:#9ca3af;">
-                            A lightweight JS SDK that opens a beautiful hosted checkout in a modal, while your app receives
-                            simple success/failure callbacks.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- How It Works Section -->
-        <div class="text-center mb-5">
-            <div class="landing-badge mb-3">Simple integration</div>
-            <h2 class="section-title">How {{ config('app.name') }} works</h2>
-            <p class="section-subtitle">Get up and running in minutes. Our streamlined process makes payment integration effortless.</p>
-        </div>
-
-        <div class="row g-4 mt-4">
-            <div class="col-md-4">
-                <div class="how-it-works-card text-center">
-                    <div class="step-number mx-auto">1</div>
-                    <svg class="svg-illustration" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="20" y="60" width="160" height="80" rx="8" fill="rgba(99, 102, 241, 0.2)" stroke="rgba(99, 102, 241, 0.6)" stroke-width="2"/>
-                        <path d="M60 100 L90 100 L100 90 L110 100 L140 100" stroke="rgba(34, 197, 94, 0.8)" stroke-width="3" fill="none" stroke-linecap="round"/>
-                        <circle cx="100" cy="40" r="20" fill="rgba(99, 102, 241, 0.4)" stroke="rgba(99, 102, 241, 0.8)" stroke-width="2"/>
-                        <text x="100" y="45" text-anchor="middle" fill="#6366f1" font-size="14" font-weight="bold">API</text>
-                    </svg>
-                    <h4 class="fw-semibold mb-2" style="color:#e5e7eb;">Sign up & get API keys</h4>
-                    <p style="font-size:13px;color:#9ca3af;">Create your merchant account in under 2 minutes. Receive sandbox and live API keys instantly.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="how-it-works-card text-center">
-                    <div class="step-number mx-auto">2</div>
-                    <svg class="svg-illustration" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="30" y="40" width="140" height="100" rx="10" fill="rgba(168, 85, 247, 0.2)" stroke="rgba(168, 85, 247, 0.6)" stroke-width="2"/>
-                        <rect x="50" y="60" width="100" height="20" rx="4" fill="rgba(168, 85, 247, 0.4)"/>
-                        <rect x="50" y="90" width="80" height="15" rx="4" fill="rgba(168, 85, 247, 0.3)"/>
-                        <circle cx="70" cy="125" r="8" fill="rgba(34, 197, 94, 0.6)"/>
-                        <circle cx="100" cy="125" r="8" fill="rgba(34, 197, 94, 0.6)"/>
-                        <circle cx="130" cy="125" r="8" fill="rgba(34, 197, 94, 0.6)"/>
-                    </svg>
-                    <h4 class="fw-semibold mb-2" style="color:#e5e7eb;">Integrate our SDK</h4>
-                    <p style="font-size:13px;color:#9ca3af;">Drop our lightweight JavaScript SDK into your app. Just 3 lines of code to get started.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="how-it-works-card text-center">
-                    <div class="step-number mx-auto">3</div>
-                    <svg class="svg-illustration" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M50 80 Q100 40, 150 80" stroke="rgba(34, 197, 94, 0.8)" stroke-width="3" fill="none" stroke-linecap="round"/>
-                        <circle cx="50" cy="80" r="12" fill="rgba(99, 102, 241, 0.6)"/>
-                        <circle cx="100" cy="60" r="10" fill="rgba(168, 85, 247, 0.6)"/>
-                        <circle cx="150" cy="80" r="12" fill="rgba(34, 197, 94, 0.6)"/>
-                        <path d="M70 100 L90 100 L100 90 L110 100 L130 100" stroke="rgba(34, 197, 94, 0.8)" stroke-width="2" fill="none" stroke-linecap="round"/>
-                        <text x="100" y="135" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="bold">Payment Complete</text>
-                    </svg>
-                    <h4 class="fw-semibold mb-2" style="color:#e5e7eb;">Accept payments instantly</h4>
-                    <p style="font-size:13px;color:#9ca3af;">Customers pay seamlessly. You receive real-time webhooks and detailed transaction analytics.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- Security & Safety Section -->
-        <div class="text-center mb-5">
-            <div class="landing-badge mb-3">Enterprise-grade security</div>
-            <h2 class="section-title">Bank-level security, built-in</h2>
-            <p class="section-subtitle">Your customers' payment data is protected with industry-leading encryption and compliance standards.</p>
-        </div>
-
-        <div class="security-grid">
-            <div class="security-card">
-                <div class="security-icon">
-                    <i class="bi bi-shield-lock"></i>
-                </div>
-                <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">PCI DSS Compliant</h5>
-                <p style="font-size:13px;color:#9ca3af;">Fully compliant with Payment Card Industry Data Security Standards. We never store your card details.</p>
-            </div>
-            <div class="security-card">
-                <div class="security-icon" style="background:rgba(37,99,235,0.15);color:#60a5fa;">
-                    <i class="bi bi-encryption"></i>
-                </div>
-                <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">End-to-end encryption</h5>
-                <p style="font-size:13px;color:#9ca3af;">All payment data is encrypted in transit using TLS 1.3 and at rest with AES-256 encryption.</p>
-            </div>
-            <div class="security-card">
-                <div class="security-icon" style="background:rgba(244,114,182,0.15);color:#f9a8d4;">
-                    <i class="bi bi-shield-check"></i>
-                </div>
-                <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">Fraud protection</h5>
-                <p style="font-size:13px;color:#9ca3af;">Advanced fraud detection algorithms and risk scoring protect your business from chargebacks.</p>
-            </div>
-            <div class="security-card">
-                <div class="security-icon" style="background:rgba(251,146,60,0.15);color:#fb923c;">
-                    <i class="bi bi-key"></i>
-                </div>
-                <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">Secure API keys</h5>
-                <p style="font-size:13px;color:#9ca3af;">Separate test and live API keys with granular permissions. Rotate keys anytime from your dashboard.</p>
-            </div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- Boost Your Business Section -->
-        <div class="text-center mb-5">
-            <div class="landing-badge mb-3">Growth tools</div>
-            <h2 class="section-title">Boost your business with {{ config('app.name') }}</h2>
-            <p class="section-subtitle">Everything you need to grow your revenue and delight your customers.</p>
-        </div>
-
-        <div class="business-boost-grid">
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle bg-primary bg-opacity-20 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
-                        <i class="bi bi-graph-up-arrow text-primary" style="font-size:20px;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Increase conversion rates</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Faster checkout flows and optimized payment methods reduce cart abandonment by up to 30%.</p>
-            </div>
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(34,197,94,0.15);">
-                        <i class="bi bi-clock-history" style="font-size:20px;color:#22c55e;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Faster settlements</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Get paid faster with flexible settlement cycles. Automatic reconciliation and detailed reports included.</p>
-            </div>
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(168,85,247,0.15);">
-                        <i class="bi bi-people" style="font-size:20px;color:#a855f7;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Better customer experience</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Smooth, mobile-first checkout experience with support for cards, UPI, netbanking, and wallets.</p>
-            </div>
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(251,146,60,0.15);">
-                        <i class="bi bi-bar-chart" style="font-size:20px;color:#fb923c;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Real-time analytics</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Comprehensive dashboards with transaction insights, revenue trends, and customer payment patterns.</p>
-            </div>
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(236,72,153,0.15);">
-                        <i class="bi bi-recycle" style="font-size:20px;color:#ec4899;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Automated refunds</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Process refunds instantly from your dashboard. Full or partial refunds with automatic reconciliation.</p>
-            </div>
-            <div class="boost-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(59,130,246,0.15);">
-                        <i class="bi bi-link-45deg" style="font-size:20px;color:#3b82f6;"></i>
-                    </div>
-                    <h5 class="fw-semibold mb-0 ms-3" style="color:#e5e7eb;">Payment links</h5>
-                </div>
-                <p style="font-size:13px;color:#9ca3af;">Create shareable payment links in seconds. Perfect for invoices, subscriptions, and one-off payments.</p>
-            </div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- Why Developers Love Us Section -->
-        <div class="use-case-comparison">
-            <div class="text-center mb-4">
-                <div class="landing-badge mb-3">Developer-first</div>
-                <h2 class="section-title">Built for everyone, loved by students</h2>
-                <p class="section-subtitle">While enterprise teams struggle with complex integrations, students build payment systems in hours.</p>
-            </div>
-
-            <div class="comparison-item">
-                <div class="comparison-icon" style="background:rgba(148,163,184,0.2);color:#94a3b8;">
-                    <i class="bi bi-building" style="font-size:24px;"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">Enterprise teams</h5>
-                    <p style="font-size:13px;color:#9ca3af;margin-bottom:8px;">Heavy payment gateways require weeks of integration, complex documentation, and lengthy approval processes. Teams spend months configuring webhooks and handling edge cases.</p>
-                    <div style="font-size:12px;color:#64748b;">
-                        <i class="bi bi-clock me-1"></i> 2-4 weeks integration time
-                    </div>
-                </div>
-            </div>
-
-            <div class="comparison-item" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.4);">
-                <div class="comparison-icon" style="background:rgba(99,102,241,0.3);color:#818cf8;">
-                    <i class="bi bi-mortarboard" style="font-size:24px;"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <h5 class="fw-semibold mb-2" style="color:#e5e7eb;">Students & developers</h5>
-                    <p style="font-size:13px;color:#9ca3af;margin-bottom:8px;">{{ config('app.name') }}'s intuitive APIs and comprehensive documentation let students integrate payments into college projects in hours. Perfect for hackathons, portfolio projects, and learning payment systems.</p>
-                    <div style="font-size:12px;color:#818cf8;">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> 2-3 hours to first payment
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4 p-3 rounded-3" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:rgba(34,197,94,0.2);">
-                        <i class="bi bi-code-square text-success"></i>
+                <div class="lp-hero-metrics">
+                    <div>
+                        <div class="lp-hero-metric-label">Currencies supported</div>
+                        <div class="lp-hero-metric-value">70+</div>
                     </div>
                     <div>
-                        <div class="fw-semibold mb-1" style="color:#e5e7eb;">Easy integration for any skill level</div>
-                        <p style="font-size:13px;color:#9ca3af;margin:0;">Our sandbox environment lets you test everything risk-free. Realistic webhooks and test data make your development environment production-ready from day one.</p>
+                        <div class="lp-hero-metric-label">Countries covered</div>
+                        <div class="lp-hero-metric-value">190+</div>
+                    </div>
+                    <div>
+                        <div class="lp-hero-metric-label">Availability</div>
+                        <div class="lp-hero-metric-value">24 / 7</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lp-hero-visual">
+                <div class="lp-card-stack">
+                    <div class="lp-card-bg"></div>
+                    <div class="lp-card-main">
+                        <div class="lp-card-header-row">
+                            <span>Demo Store</span>
+                            <span class="badge bg-light text-dark border border-light-subtle" style="font-size:10px;">VISA</span>
+                        </div>
+                        <div class="lp-card-amount">₹ 2,999</div>
+                        <div class="lp-card-line">
+                            <span>Order number</span>
+                            <span>9812416901</span>
+                        </div>
+                        <div class="mt-2">
+                            <div class="lp-card-line">
+                                <span>Card number</span>
+                                <span class="text-muted" style="font-size:10px;">•••• •••• •••• 0101</span>
+                            </div>
+                            <div class="lp-card-input">4761 7390 0101 0101</div>
+                        </div>
+                        <div class="d-flex gap-2 mt-2">
+                            <div style="flex:1;">
+                                <div class="lp-card-line">
+                                    <span>Exp. date</span>
+                                </div>
+                                <div class="lp-card-input">04/36</div>
+                            </div>
+                            <div style="flex:1;">
+                                <div class="lp-card-line">
+                                    <span>CVV/CVC</span>
+                                </div>
+                                <div class="lp-card-input">•••</div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="lp-card-line">
+                                <span>Cardholder name</span>
+                            </div>
+                            <div class="lp-card-input">LUCAS WRIGHT</div>
+                        </div>
+                        <div class="lp-card-pay-btn">Pay</div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="section-divider"></div>
-
-        <!-- Stats Section -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-value">&lt; 3 min</div>
-                <div style="font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;">Setup Time</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">5 lines</div>
-                <div style="font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;">Of Code</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">99.9%</div>
-                <div style="font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;">Uptime</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">24/7</div>
-                <div style="font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;">Support</div>
-            </div>
+    <!-- Section 1: Why teams choose -->
+    <section class="lp-section">
+        <div class="lp-section-header">
+            <div class="lp-section-title">Why teams choose {{ config('app.name') }}</div>
+            <p class="lp-section-subtitle">A single platform for payouts, collections and global expansion—without the complexity.</p>
         </div>
-
-        <div class="section-divider"></div>
-
-        <!-- More Testimonials -->
-        <div class="text-center mb-5">
-            <div class="landing-badge mb-3">Real stories</div>
-            <h2 class="section-title">Loved by developers worldwide</h2>
-        </div>
-
-        <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="testimonial-avatar">R</div>
-                    <div class="ms-3">
-                        <div class="fw-semibold" style="color:#e5e7eb;">Rajesh Kumar</div>
-                        <div style="font-size:11px;color:#9ca3af;">CS Student, IIT Delhi</div>
-                    </div>
-                    <div class="ms-auto" style="color:#fbbf24;">★★★★★</div>
+        <div class="lp-three-column">
+            <div class="lp-card-simple">
+                <div class="lp-card-icon">
+                    <i class="bi bi-diagram-3"></i>
                 </div>
-                <p style="font-size:13px;color:#9ca3af;line-height:1.6;">
-                    "Used {{ config('app.name') }} for my final year project. The documentation is so clear that I had payments working in my e-commerce app within a day. My professor was impressed!"
+                <h6 class="fw-semibold mb-1">One platform, all rails</h6>
+                <p class="mb-0" style="font-size:13px; color: var(--pg-text-muted);">
+                    Cards, UPI, netbanking and wallets under one unified API and dashboard.
                 </p>
             </div>
-            <div class="testimonial-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="testimonial-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">P</div>
-                    <div class="ms-3">
-                        <div class="fw-semibold" style="color:#e5e7eb;">Priya Sharma</div>
-                        <div style="font-size:11px;color:#9ca3af;">Founder, TechStartup</div>
-                    </div>
-                    <div class="ms-auto" style="color:#fbbf24;">★★★★★</div>
+            <div class="lp-card-simple">
+                <div class="lp-card-icon" style="background:rgba(34,197,94,0.12);color:#15803d;">
+                    <i class="bi bi-graph-up-arrow"></i>
                 </div>
-                <p style="font-size:13px;color:#9ca3af;line-height:1.6;">
-                    "We switched from Razorpay to {{ config('app.name') }} because the webhook system is so much more reliable. Zero missed webhooks in 6 months. Highly recommended!"
+                <h6 class="fw-semibold mb-1">Better conversion</h6>
+                <p class="mb-0" style="font-size:13px; color: var(--pg-text-muted);">
+                    Optimised routing and local payment methods help more customers complete checkout.
                 </p>
             </div>
-            <div class="testimonial-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="testimonial-avatar" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);">A</div>
-                    <div class="ms-3">
-                        <div class="fw-semibold" style="color:#e5e7eb;">Amit Patel</div>
-                        <div style="font-size:11px;color:#9ca3af;">Full Stack Developer</div>
-                    </div>
-                    <div class="ms-auto" style="color:#fbbf24;">★★★★★</div>
+            <div class="lp-card-simple">
+                <div class="lp-card-icon" style="background:rgba(250,204,21,0.16);color:#a16207;">
+                    <i class="bi bi-shield-lock"></i>
                 </div>
-                <p style="font-size:13px;color:#9ca3af;line-height:1.6;">
-                    "Best payment gateway for hackathons! The sandbox mode is perfect for demos, and the API is straightforward. Won first place thanks to seamless payments."
+                <h6 class="fw-semibold mb-1">Bank‑grade security</h6>
+                <p class="mb-0" style="font-size:13px; color: var(--pg-text-muted);">
+                    Enterprise security, PCI compliance and observability built into every flow.
                 </p>
             </div>
         </div>
+    </section>
 
-        <div class="section-divider"></div>
+    <!-- Section 2: We take care of payments (text + image) -->
+    <section class="lp-section">
+        <div style="background:#ffffff;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);padding:40px 40px;">
+        <div class="lp-split-row">
+            <div>
+                <h2 class="lp-section-title" style="text-align:left;font-size:30px;margin-bottom:12px;">
+                    We take care of payments,<br>so you can take care of your customers <span style="color:#16a34a;">anywhere</span>.
+                </h2>
+                <p class="lp-section-subtitle" style="text-align:left;margin-left:0;margin-bottom:18px;">
+                    Seamless integration of card processing and local methods like UPI from a single API integration,
+                    no matter where your customers are.
+                </p>
+                <a href="{{ route('products.page') }}" class="lp-btn-primary mt-1">
+                    Find out more <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="text-end">
+                <div style="display:inline-block;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.25);width:100%;max-width:360px;height:220px;background:#f3f4f6;">
+                    <img src="{{ asset('images/landing-payments.png') }}" alt="Payments and customers worldwide" class="w-100 h-100" style="object-fit:cover;">
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
 
-        <!-- Final CTA -->
-        <div class="text-center">
-            <div class="landing-badge mb-2">Get started in minutes</div>
-            <h2 style="font-size:22px;font-weight:700;color:#e5e7eb;">Open your {{ config('app.name') }} merchant account today</h2>
-            <p style="font-size:13px;color:#9ca3af;max-width:480px;margin:6px auto 16px;">
-                No calls. No PDFs. Fill a modern, guided signup and start integrating with {{ config('app.name') }}'s sandbox and live-ready APIs.
+    <!-- Section 3: Stats strip -->
+    <section class="lp-section" style="padding-top:16px;">
+        <div class="lp-section-header">
+            <div class="lp-section-title">Do global business, like a local</div>
+            <p class="lp-section-subtitle">Join the businesses that rely on {{ config('app.name') }} to move money confidently across borders.</p>
+        </div>
+        <div class="lp-stats-row">
+            <div>
+                <div class="lp-stat-value">70+</div>
+                <div class="lp-stat-label">currencies supported</div>
+            </div>
+            <div>
+                <div class="lp-stat-value">190+</div>
+                <div class="lp-stat-label">countries & territories</div>
+            </div>
+            <div>
+                <div class="lp-stat-value">20+</div>
+                <div class="lp-stat-label">languages supported</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Payment methods grid + copy -->
+    <section class="lp-section" style="padding-top:24px;">
+        <div style="background:rgba(255,255,255,0.92);border-radius:24px;box-shadow:0 20px 45px rgba(15,23,42,0.18);padding:36px 40px;">
+            <div class="lp-split-row">
+                <div>
+                    <div class="lp-logo-grid">
+                        @foreach(['VISA','Mastercard','UPI','Netbanking','Alipay','PIX','M-Pesa','SEPA','KakaoPay','iDEAL','OXXO','POLi'] as $logo)
+                            <div class="lp-logo-cell">{{ $logo }}</div>
+                        @endforeach
+                    </div>
+                </div>
+                <div>
+                    <h2 class="lp-section-title" style="text-align:left;font-size:24px;margin-bottom:10px;">Reach 4 billion customers</h2>
+                    <p class="lp-section-subtitle" style="text-align:left;margin-left:0;margin-bottom:14px;">
+                        {{ config('app.name') }} partners with leading local payment methods so you can accept
+                        cards, wallets, bank transfers and more in key regions around the world.
+                    </p>
+                    <a href="{{ route('products.page') }}" class="lp-btn-ghost mt-1">
+                        See all payment methods
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Final CTA -->
+    <section class="lp-section" style="padding-top:16px;padding-bottom:72px;">
+        <div class="lp-cta-strip">
+            <h3 style="font-size:22px;font-weight:700;color:var(--pg-text-main);margin-bottom:6px;">
+                Get your free {{ config('app.name') }} account now
+            </h3>
+            <p style="font-size:13px;color:var(--pg-text-muted);max-width:480px;margin:0 auto 14px;">
+                Create a sandbox account in minutes and start testing payments, webhooks and settlements without risk.
             </p>
-            <a href="{{ route('signup') }}" class="btn btn-primary-hero">
-                Sign up – free developer account
+            <a href="{{ route('signup') }}" class="lp-btn-primary">
+                Sign up – it’s free
                 <i class="bi bi-arrow-right-short"></i>
             </a>
         </div>
     </section>
 </div>
 @endsection
-
 

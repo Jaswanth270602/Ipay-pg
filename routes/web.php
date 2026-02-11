@@ -67,6 +67,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::view('/about', 'about')->name('about.page');
+Route::view('/products', 'products')->name('products.page');
+Route::view('/contact', 'contact')->name('contact.page');
+Route::view('/privacy', 'privacy')->name('privacy.page');
+Route::view('/terms', 'terms')->name('terms.page');
 
 // Public payment checkout
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');

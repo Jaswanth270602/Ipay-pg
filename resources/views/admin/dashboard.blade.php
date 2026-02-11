@@ -31,31 +31,31 @@
     }
     
     .dashboard-card.card-gtv {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: #ffffff;
+        color: #111827;
         --card-gradient-start: #667eea;
         --card-gradient-end: #764ba2;
     }
     
     .dashboard-card.card-transactions {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        --card-gradient-start: #f093fb;
-        --card-gradient-end: #f5576c;
+        background: #ffffff;
+        color: #111827;
+        --card-gradient-start: #7c3aed;
+        --card-gradient-end: #ec4899;
     }
     
     .dashboard-card.card-refunded {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-        --card-gradient-start: #4facfe;
-        --card-gradient-end: #00f2fe;
+        background: #ffffff;
+        color: #111827;
+        --card-gradient-start: #ec4899;
+        --card-gradient-end: #f97373;
     }
     
     .dashboard-card.card-chargeback {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: white;
-        --card-gradient-start: #fa709a;
-        --card-gradient-end: #fee140;
+        background: #ffffff;
+        color: #111827;
+        --card-gradient-start: #fb7185;
+        --card-gradient-end: #f97373;
     }
     
     .dashboard-card .card-icon {
@@ -139,7 +139,7 @@
     <div class="date-range-selector">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <h5 class="mb-0">Dashboard</h5>
+                <h5 class="mb-0" style="color:#E10600;font-weight:700;letter-spacing:-0.01em;">Dashboard</h5>
                 <small class="text-muted">Payment-Gateway Dashboard</small>
             </div>
             <div class="col-md-6">
