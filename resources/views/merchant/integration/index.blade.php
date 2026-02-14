@@ -4,11 +4,11 @@
 @section('page-title', 'Integration')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="IntegrationController as ic">
+<div ng-app="ipayApp" ng-controller="IntegrationController as ic">
     <div class="row mb-4">
         <div class="col-md-12">
             <h3 class="fw-bold">Integration Guide</h3>
-            <p class="text-muted">Integrate BadliCash payment gateway into your application</p>
+            <p class="text-muted">Integrate Ipay payment gateway into your application</p>
         </div>
     </div>
 

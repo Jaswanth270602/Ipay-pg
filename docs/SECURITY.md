@@ -2,7 +2,7 @@
 
 ## ⚠️ Important Security Notice
 
-**BadliCash is a demo/MVP application.** Before deploying to production and handling real payment data, you **MUST**:
+**Ipay is a demo/MVP application.** Before deploying to production and handling real payment data, you **MUST**:
 
 1. Complete a full security audit
 2. Achieve PCI DSS compliance
@@ -32,7 +32,7 @@ The Payment Card Industry Data Security Standard (PCI DSS) is a set of security 
 
 ### Compliance Levels
 
-BadliCash, as a payment gateway, falls under **PCI DSS Level 1** (processes over 6 million transactions annually) or **Level 2** (1-6 million transactions).
+Ipay, as a payment gateway, falls under **PCI DSS Level 1** (processes over 6 million transactions annually) or **Level 2** (1-6 million transactions).
 
 ### Self-Assessment Questionnaires (SAQ)
 
@@ -48,7 +48,7 @@ BadliCash, as a payment gateway, falls under **PCI DSS Level 1** (processes over
 
 ### Current Implementation
 
-BadliCash **DOES NOT** store full PAN (Primary Account Number) or CVV. Instead:
+Ipay **DOES NOT** store full PAN (Primary Account Number) or CVV. Instead:
 
 ```php
 // NEVER do this:
@@ -279,7 +279,7 @@ Log::info('Payment processed', [
 
 ### Audit Logs
 
-BadliCash includes audit logging:
+Ipay includes audit logging:
 
 ```php
 AuditLog::logAction(
@@ -423,7 +423,7 @@ add_header Content-Security-Policy "..." always;
 ## Contact
 
 For security concerns or to report vulnerabilities:
-- Email: security@badlicash.com
+- Email: security@ipay.com
 - Use PGP key for sensitive communications
 
 **Bug Bounty Program**: TBD

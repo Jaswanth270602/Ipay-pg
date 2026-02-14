@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminMerchantsController', ['$http', function($http) {
                 var vm = this;
                 vm.merchants = [];

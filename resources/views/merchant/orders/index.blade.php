@@ -4,7 +4,7 @@
 @section('page-title','Orders')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="OrdersController as oc">
+<div ng-app="ipayApp" ng-controller="OrdersController as oc">
     <div class="stat-card mb-3">
         <div class="row g-3">
             <div class="col-md-6 col-lg-3">

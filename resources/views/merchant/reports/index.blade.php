@@ -4,7 +4,7 @@
 @section('page-title','Reports')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="ReportsController as rptc">
+<div ng-app="ipayApp" ng-controller="ReportsController as rptc">
     <div class="stat-card mb-3">
         <div class="row g-3">
             <div class="col-md-6 col-lg-3">

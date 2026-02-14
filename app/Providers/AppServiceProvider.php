@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
             if ($merchant) {
                 return $merchant->test_mode ? new SandboxBankProvider() : new ProductionBankProvider();
             }
-            $mode = config('badlicash.mode', 'test');
+            $mode = config('ipay.mode', 'test');
             return $mode === 'test' ? new SandboxBankProvider() : new ProductionBankProvider();
         });
     }

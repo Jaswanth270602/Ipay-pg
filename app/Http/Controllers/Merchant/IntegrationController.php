@@ -55,15 +55,15 @@ class IntegrationController extends Controller
         $companyName = config('app.name');
         return <<<HTML
 <!-- {$companyName} Payment Widget -->
-<script src="{$baseUrl}/sdk/badlicash.js"></script>
+<script src="{$baseUrl}/sdk/ipay.js"></script>
 <script>
-    const badlicash = new BadliCash({
+    const ipay = new Ipay({
         key: '{$apiKey->key}',
         mode: '{$apiKey->mode}'
     });
     
     // Initialize payment
-    badlicash.open({
+    ipay.open({
         amount: 1000, // Amount in paise/cents
         currency: 'INR',
         order_id: 'order_123',
@@ -113,12 +113,12 @@ PHP;
         $headerName = 'X-' . str_replace(' ', '-', $companyName) . '-Signature';
         return <<<PHP
 // Webhook endpoint
-Route::post('/webhook/badlicash', function (Request \$request) {
+Route::post('/webhook/ipay', function (Request \$request) {
     \$payload = \$request->all();
     \$signature = \$request->header('{$headerName}');
     
     // Verify signature
-    \$expectedSignature = hash_hmac('sha256', json_encode(\$payload), config('badlicash.webhook_secret'));
+    \$expectedSignature = hash_hmac('sha256', json_encode(\$payload), config('ipay.webhook_secret'));
     
     if (!hash_equals(\$expectedSignature, \$signature)) {
         return response()->json(['error' => 'Invalid signature'], 401);

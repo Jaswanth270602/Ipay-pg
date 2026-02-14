@@ -4,7 +4,7 @@
 @section('page-title','Admin Reports')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminReportsController as arc">
+<div ng-app="ipayApp" ng-controller="AdminReportsController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Reports']

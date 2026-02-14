@@ -146,7 +146,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminDisputesController as adc">
+<div ng-app="ipayApp" ng-controller="AdminDisputesController as adc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Disputes']

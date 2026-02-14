@@ -1,4 +1,4 @@
-# BadliCash API Documentation
+# Ipay API Documentation
 
 ## Base URL
 
@@ -581,7 +581,7 @@ Each returns the same structure as `GET /api/v1/status` but focused on a single 
 
 ## Webhook Events
 
-BadliCash sends webhooks to your configured URL for the following events:
+Ipay sends webhooks to your configured URL for the following events:
 
 ### Event: `payment.created`
 
@@ -642,7 +642,7 @@ BadliCash sends webhooks to your configured URL for the following events:
 
 ## Webhook Signature Verification
 
-All webhooks include an `X-BadliCash-Signature` header. Verify it using HMAC SHA256:
+All webhooks include an `X-Ipay-Signature` header. Verify it using HMAC SHA256:
 
 ```php
 $signature = hash_hmac('sha256', json_encode($payload), $webhookSecret);
@@ -677,9 +677,9 @@ Requests with the same idempotency key will return the original result without c
 
 ## SDKs and Libraries
 
-Currently, BadliCash provides a REST API. Language-specific SDKs can be generated from the OpenAPI specification.
+Currently, Ipay provides a REST API. Language-specific SDKs can be generated from the OpenAPI specification.
 
 ## Support
 
-For API questions, contact: support@badlicash.com
+For API questions, contact: support@ipay.com
 

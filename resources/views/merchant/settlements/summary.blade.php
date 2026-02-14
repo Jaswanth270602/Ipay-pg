@@ -4,7 +4,7 @@
 @section('page-title', 'Settlement Summary')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantSettlementSummaryController as mssc">
+<div ng-app="ipayApp" ng-controller="MerchantSettlementSummaryController as mssc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Settlement Summary']
@@ -262,7 +262,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantSettlementSummaryController', ['$http', function($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

@@ -4,7 +4,7 @@
 @section('page-title', 'Bulk Chargebacks Upload')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantBulkChargebacksController as mbcc">
+<div ng-app="ipayApp" ng-controller="MerchantBulkChargebacksController as mbcc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Bulk Chargebacks Upload']
@@ -226,7 +226,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantBulkChargebacksController', ['$http', function($http) {
                 var vm = this;
                 vm.jobs = [];

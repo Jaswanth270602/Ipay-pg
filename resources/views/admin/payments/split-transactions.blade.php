@@ -4,7 +4,7 @@
 @section('page-title', 'Split Transactions')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminSplitTransactionsController as astc">
+<div ng-app="ipayApp" ng-controller="AdminSplitTransactionsController as astc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Split Transaction Details']
@@ -313,7 +313,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminSplitTransactionsController', ['$http', function($http) {
                 var vm = this;
                 vm.transactions = [];

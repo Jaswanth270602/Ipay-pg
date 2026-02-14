@@ -11,9 +11,9 @@ console.log('=== Payment Links Controller Script Loaded ===');
             return;
         }
         try {
-            console.log('Trying to get badlicashApp module...');
-            var app = angular.module('badlicashApp');
-            console.log('Got badlicashApp module, registering controller...');
+            console.log('Trying to get ipayApp module...');
+            var app = angular.module('ipayApp');
+            console.log('Got ipayApp module, registering controller...');
             app.controller('PaymentLinksController', ['$http', '$window', '$timeout', '$scope', function($http, $window, $timeout, $scope) {
                 console.log('PaymentLinksController initialized');
                 var vm = this;

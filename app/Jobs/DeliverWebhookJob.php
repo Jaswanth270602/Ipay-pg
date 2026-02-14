@@ -56,10 +56,10 @@ class DeliverWebhookJob implements ShouldQueue
             // Build headers
             $headers = [
                 'Content-Type' => 'application/json',
-                'X-BadliCash-Signature' => $signature,
-                'X-BadliCash-Event' => $this->webhookEvent->event_type,
-                'X-BadliCash-Delivery-ID' => (string) $this->webhookEvent->id,
-                'X-BadliCash-Mode' => $isTestMode ? 'test' : 'live',
+                'X-Ipay-Signature' => $signature,
+                'X-Ipay-Event' => $this->webhookEvent->event_type,
+                'X-Ipay-Delivery-ID' => (string) $this->webhookEvent->id,
+                'X-Ipay-Mode' => $isTestMode ? 'test' : 'live',
             ];
 
             // Send webhook

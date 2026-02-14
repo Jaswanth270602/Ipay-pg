@@ -4,7 +4,7 @@
 @section('page-title', 'Transactions Details')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPaymentsTransactionsController as atc">
+<div ng-app="ipayApp" ng-controller="AdminPaymentsTransactionsController as atc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Latest Transactions']
@@ -486,7 +486,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPaymentsTransactionsController', ['$http', function($http) {
                 var vm = this;
                 vm.transactions = [];

@@ -4,7 +4,7 @@
 @section('page-title', 'Sales Date and TID Report')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="SalesDateAndTidController as sr">
+<div ng-app="ipayApp" ng-controller="SalesDateAndTidController as sr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']
@@ -189,7 +189,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('SalesDateAndTidController', ['$http', '$scope', function ($http, $scope) {
                 var vm = this;
 

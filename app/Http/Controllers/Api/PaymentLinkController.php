@@ -54,7 +54,7 @@ class PaymentLinkController extends Controller
 
             $expiresAt = isset($request->expires_in) 
                 ? now()->addSeconds($request->expires_in) 
-                : now()->addHours(config('badlicash.payment_link_expiry_hours', 24));
+                : now()->addHours(config('ipay.payment_link_expiry_hours', 24));
 
             $paymentLink = PaymentLink::create([
                 'merchant_id' => $merchant->id,
@@ -107,7 +107,7 @@ class PaymentLinkController extends Controller
     {
         $merchant = $request->get('api_merchant');
 
-        $perPage = min($request->get('per_page', 10), config('badlicash.pagination.max_per_page'));
+        $perPage = min($request->get('per_page', 10), config('ipay.pagination.max_per_page'));
         $status = $request->get('status');
 
         $query = $merchant->paymentLinks()->latest();

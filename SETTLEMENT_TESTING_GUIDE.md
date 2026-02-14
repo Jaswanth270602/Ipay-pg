@@ -1,4 +1,4 @@
-# 🏦 Settlement Testing Guide - BadliCash
+# 🏦 Settlement Testing Guide - Ipay
 
 ## ✅ Settlement Test Data Created!
 
@@ -79,7 +79,7 @@ Net Settlement Amount: INR 975.00 ← Paid to merchant
 
 ### Step 1: Login as Admin (TEST MODE)
 
-1. **Login:** admin@badlicash.com / password
+1. **Login:** admin@ipay.test / password
 2. **Switch to:** TEST MODE (yellow button)
 3. **Navigate:** Admin → **Settlements** → **Settlement Summary**
 

@@ -755,9 +755,9 @@
             if (typeof angular !== 'undefined') {
                 // Create module if it doesn't exist
                 try {
-                    angular.module('badlicashApp');
+                    angular.module('ipayApp');
                 } catch(e) {
-                    angular.module('badlicashApp', []);
+                    angular.module('ipayApp', []);
                 }
             } else {
                 setTimeout(initModule, 10);
@@ -1712,7 +1712,7 @@ document.addEventListener('click', function(event) {
     
     // Also make it available as a global function for AngularJS
     if (typeof angular !== 'undefined') {
-        angular.module('badlicashApp').service('ToastService', function() {
+        angular.module('ipayApp').service('ToastService', function() {
             return {
                 show: window.showToast
             };

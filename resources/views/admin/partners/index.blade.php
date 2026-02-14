@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Management')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPartnersController as apc">
+<div ng-app="ipayApp" ng-controller="AdminPartnersController as apc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pg Partners']
@@ -240,7 +240,7 @@
                                 <select class="form-select" ng-model="apc.form.organization_name">
                                     <option value="">Select Organization</option>
                                     <option ng-repeat="org in apc.uniqueOrganizations" value="@{{ org }}">@{{ org }}</option>
-                                    <option value="Badilicash">Badilicash</option>
+                                    <option value="Ipay">Ipay</option>
                                 </select>
                             </div>
                             <div class="col-md-12">
@@ -453,7 +453,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPartnersController', ['$http', function ($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
@@ -597,7 +597,7 @@
                         email: '',
                         team_name: '',
                         team_type: 'partner',
-                        organization_name: 'Badilicash',
+                        organization_name: 'Ipay',
                         phone: '',
                         is_approved: 'true',
                         is_internal: 'false',

@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             
             // File model directive for file input
             app.directive('fileModel', ['$parse', function ($parse) {

@@ -4,7 +4,7 @@
 @section('page-title', 'Refund Details')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminRefundsController as arc">
+<div ng-app="ipayApp" ng-controller="AdminRefundsController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Refund Details']
@@ -368,7 +368,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminRefundsController', ['$http', function($http) {
                 var vm = this;
                 vm.refunds = [];

@@ -4,7 +4,7 @@
 @section('page-title', 'Bank Code Success Rate')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminBankCodeSuccessRateController as bcsr">
+<div ng-app="ipayApp" ng-controller="AdminBankCodeSuccessRateController as bcsr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'BankCode-wise']
@@ -190,7 +190,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminBankCodeSuccessRateController', ['$http', '$scope', function ($http, $scope) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

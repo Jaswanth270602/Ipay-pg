@@ -1,7 +1,7 @@
 <script>
 (function() {
     'use strict';
-    angular.module('badlicashApp').controller('OnboardingController', ['$http', function($http) {
+    angular.module('ipayApp').controller('OnboardingController', ['$http', function($http) {
         var vm = this;
         vm.currentStep = {{ $currentStep }};
         vm.loading = false;

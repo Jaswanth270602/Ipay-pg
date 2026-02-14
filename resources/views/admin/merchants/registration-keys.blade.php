@@ -4,7 +4,7 @@
 @section('page-title', 'Merchant Registration Keys')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminMerchantRegistrationKeysController as mrk">
+<div ng-app="ipayApp" ng-controller="AdminMerchantRegistrationKeysController as mrk">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Merchants'],
@@ -238,7 +238,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminMerchantRegistrationKeysController', ['$http', function ($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

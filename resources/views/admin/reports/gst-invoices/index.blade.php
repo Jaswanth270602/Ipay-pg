@@ -4,7 +4,7 @@
 @section('page-title', 'GST Invoices Report')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminGSTInvoicesController as gst">
+<div ng-app="ipayApp" ng-controller="AdminGSTInvoicesController as gst">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']
@@ -338,7 +338,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminGSTInvoicesController', ['$http', function ($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

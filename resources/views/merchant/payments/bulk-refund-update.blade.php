@@ -4,7 +4,7 @@
 @section('page-title', 'Bulk Update Refund Status')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantBulkRefundUpdateController as mbruc">
+<div ng-app="ipayApp" ng-controller="MerchantBulkRefundUpdateController as mbruc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Bulk Upload for refund Status']
@@ -233,7 +233,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantBulkRefundUpdateController', ['$http', function($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

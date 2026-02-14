@@ -4,7 +4,7 @@
 @section('page-title','Disputes')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantDisputesController as mdc">
+<div ng-app="ipayApp" ng-controller="MerchantDisputesController as mdc">
     <div class="stat-card mb-3">
         <div class="row g-3">
             <div class="col-md-4">

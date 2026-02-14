@@ -753,7 +753,7 @@ class CashFreeAcquirerAdapter implements AcquirerInterface
         // Payment links are handled by our system
         return [
             'success' => false,
-            'message' => 'Payment links are handled by BadliCash system',
+            'message' => 'Payment links are handled by Ipay system',
         ];
     }
 

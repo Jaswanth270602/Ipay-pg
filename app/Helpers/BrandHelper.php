@@ -20,15 +20,13 @@ if (!function_exists('logo_path')) {
      * 
      * Priority order:
      * 1. Try APP_NAME-based logos (multiple case variations)
-     * 2. Fallback to existing "Badilicash_logo.png" (if exists)
+     * 2. Fallback to existing "Ipay_logo.png" (if exists)
      * 3. Fallback to generic "logo.png"
      * 4. Return dynamic path (file might be added later)
      *
-     * Example: If APP_NAME="BadiliCash", will try:
-     * - BadiliCash_logo.png
-     * - badilicash_logo.png
-     * - Badilicash_logo.png
-     * - Badilicash_logo.png (existing file as fallback)
+     * Example: If APP_NAME="Ipay", will try:
+     * - Ipay_logo.png
+     * - ipay_logo.png
      * - logo.png (generic fallback)
      *
      * @return string
@@ -58,9 +56,9 @@ if (!function_exists('logo_path')) {
         
         // Try multiple naming variations based on APP_NAME
         $variations = [
-            $sanitizedName . '_logo.png',              // Original case: "BadiliCash_logo.png"
-            strtolower($sanitizedName) . '_logo.png',  // Lowercase: "badilicash_logo.png"
-            ucfirst(strtolower($sanitizedName)) . '_logo.png', // First capital: "Badilicash_logo.png"
+            $sanitizedName . '_logo.png',              // Original case: "Ipay_logo.png"
+            strtolower($sanitizedName) . '_logo.png',  // Lowercase: "ipay_logo.png"
+            ucfirst(strtolower($sanitizedName)) . '_logo.png', // First capital: "Ipay_logo.png"
         ];
         
         // Try each APP_NAME variation
@@ -79,8 +77,8 @@ if (!function_exists('logo_path')) {
             }
         }
         
-        // Fallback to existing Badilicash logo if it exists (for backward compatibility)
-        $existingLogo = 'images/logo/Badilicash_logo.png';
+        // Fallback to existing Ipay logo if it exists (for backward compatibility)
+        $existingLogo = 'images/logo/ipay_logo.png';
         if (file_exists(public_path($existingLogo))) {
             return $existingLogo;
         }

@@ -4,7 +4,7 @@
 @section('page-title','Risk Management')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminRiskController as arc">
+<div ng-app="ipayApp" ng-controller="AdminRiskController as arc">
     <!-- Stats Cards -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">

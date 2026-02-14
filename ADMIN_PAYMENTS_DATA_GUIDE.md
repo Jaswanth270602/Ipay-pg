@@ -278,7 +278,7 @@ Refund::with(['merchant', 'transaction'])->latest()->paginate()
 **URL:** `http://127.0.0.1:8000/login`
 
 **Credentials:**
-- Email: `admin@badlicash.com` (or your admin email)
+- Email: `admin@ipay.test` (or your admin email)
 - Password: `password` (or your admin password)
 
 **If you don't have admin login:**

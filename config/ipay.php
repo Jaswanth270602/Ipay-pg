@@ -23,7 +23,7 @@ return [
     | LIVE = Payment aggregator: use acquirer adapters (Razorpay, Cashfree, etc.).
     |        Same library per acquirer; test vs live keys only (e.g. Razorpay Test
     |        and Razorpay Live both use the same Razorpay adapter).
-    | Set BADLICASH_MODE=live to enable acquirers.
+    | Set APP_PAYMENT_MODE=live to enable acquirers.
     |
     */
     // Prefer APP_PAYMENT_MODE; fall back to legacy BADLICASH_MODE for backwards compatibility
@@ -141,5 +141,21 @@ return [
         'batch_size' => 100,
         'min_amount' => 10.00,
     ],
-];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Production Bank API (optional)
+    |--------------------------------------------------------------------------
+    */
+    'production_api_key' => env('BADLICASH_PRODUCTION_API_KEY'),
+    'production_api_secret' => env('BADLICASH_PRODUCTION_API_SECRET'),
+    'production_bank_name' => env('BADLICASH_PRODUCTION_BANK_NAME'),
+    'bank_api_base_url' => env('BANK_API_BASE_URL', 'https://api.example.com'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Webhook Secret (for signature verification in integration docs)
+    |--------------------------------------------------------------------------
+    */
+    'webhook_secret' => env('WEBHOOK_SECRET'),
+];

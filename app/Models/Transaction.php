@@ -182,8 +182,8 @@ class Transaction extends Model
             return $this->merchant->calculateFee($this->amount);
         }
 
-        $percentageFee = ($this->amount * config('badlicash.fee.percentage', 2.5)) / 100;
-        return round($percentageFee + config('badlicash.fee.flat', 0.30), 2);
+        $percentageFee = ($this->amount * config('ipay.fee.percentage', 2.5)) / 100;
+        return round($percentageFee + config('ipay.fee.flat', 0.30), 2);
     }
 
     /**

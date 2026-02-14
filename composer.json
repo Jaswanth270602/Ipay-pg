@@ -1,8 +1,8 @@
 {
-    "name": "badlicash/payment-gateway",
+    "name": "ipay/payment-gateway",
     "type": "project",
-    "description": "BadliCash - A production-ready payment gateway MVP",
-    "keywords": ["laravel", "payment gateway", "fintech", "badlicash"],
+    "description": "Ipay - A production-ready payment gateway MVP",
+    "keywords": ["laravel", "payment gateway", "fintech", "ipay"],
     "license": "MIT",
     "require": {
         "php": "^8.1",

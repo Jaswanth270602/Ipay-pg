@@ -4,7 +4,7 @@
 @section('page-title', 'Webhooks')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="WebhooksController as whc">
+<div ng-app="ipayApp" ng-controller="WebhooksController as whc">
     <div class="row mb-4">
         <div class="col-md-8">
             <h3 class="fw-bold">Webhooks</h3>
@@ -48,7 +48,7 @@
                 <div class="col-md-8">
                     <div class="mb-3">
                         <label class="form-label">Webhook URL</label>
-                        <input type="url" class="form-control" ng-model="whc.webhookUrl" placeholder="https://example.com/webhooks/badlicash" required>
+                        <input type="url" class="form-control" ng-model="whc.webhookUrl" placeholder="https://example.com/webhooks/ipay" required>
                         <small class="text-muted">URL where webhook events will be sent</small>
                     </div>
                 </div>

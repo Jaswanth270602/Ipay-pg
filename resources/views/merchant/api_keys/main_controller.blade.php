@@ -1,7 +1,7 @@
 <script>
 (function() {
     'use strict';
-    angular.module('badlicashApp').controller('ApiKeysController', ['$http', '$window', function($http, $window) {
+    angular.module('ipayApp').controller('ApiKeysController', ['$http', '$window', function($http, $window) {
         var vm = this;
         vm.apiKeys = [];
         vm.pagination = {current_page: 1, per_page: 20, total: 0, last_page: 1};

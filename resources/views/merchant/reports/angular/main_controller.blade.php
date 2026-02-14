@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('ReportsController', ['$http', function($http) {
         var vm = this;
         vm.filters = { from_date: '', to_date: '' };

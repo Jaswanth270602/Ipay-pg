@@ -4,7 +4,7 @@
 @section('page-title', 'Partner TDR Management')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPartnerTDRController as tdr">
+<div ng-app="ipayApp" ng-controller="AdminPartnerTDRController as tdr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pg Partners','url'=>route('admin.partners.index')],
@@ -357,7 +357,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPartnerTDRController', ['$http', '$timeout', function ($http, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

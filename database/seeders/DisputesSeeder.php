@@ -20,11 +20,11 @@ class DisputesSeeder extends Seeder
         $transactionIds = Transaction::limit(5)->pluck('id')->all();
 
         $payloads = [
-            [ 'reason' => 'Chargeback - customer dispute', 'status' => 'open', 'amount' => 499.00, 'notes' => 'Customer claims no recognition' ],
-            [ 'reason' => 'Duplicate charge', 'status' => 'needs_evidence', 'amount' => 999.00, 'notes' => 'Provide invoice and logs' ],
-            [ 'reason' => 'Product not delivered', 'status' => 'open', 'amount' => 1299.00, 'notes' => 'Courier issue' ],
-            [ 'reason' => 'Fraudulent transaction', 'status' => 'open', 'amount' => 2599.00, 'notes' => 'High-risk flagged' ],
-            [ 'reason' => 'Incorrect amount charged', 'status' => 'open', 'amount' => 149.00, 'notes' => 'Billing mismatch' ],
+            [ 'reason' => 'Chargeback - customer dispute', 'status' => 'action_required', 'amount' => 499.00, 'notes' => 'Customer claims no recognition' ],
+            [ 'reason' => 'Duplicate charge', 'status' => 'under_review', 'amount' => 999.00, 'notes' => 'Provide invoice and logs' ],
+            [ 'reason' => 'Product not delivered', 'status' => 'action_required', 'amount' => 1299.00, 'notes' => 'Courier issue' ],
+            [ 'reason' => 'Fraudulent transaction', 'status' => 'insufficient_evidence', 'amount' => 2599.00, 'notes' => 'High-risk flagged' ],
+            [ 'reason' => 'Incorrect amount charged', 'status' => 'action_required', 'amount' => 149.00, 'notes' => 'Billing mismatch' ],
         ];
 
         foreach ($payloads as $index => $data) {
@@ -34,8 +34,12 @@ class DisputesSeeder extends Seeder
                 'reason' => $data['reason'],
                 'status' => $data['status'],
                 'amount' => $data['amount'],
-                'evidence_url' => null,
-                'notes' => $data['notes'],
+                'currency' => 'INR',
+                'internal_notes' => $data['notes'],
+                'due_by' => now()->addDays(7),
+                'evidence_submitted' => false,
+                'dispute_fee' => 0,
+                'frozen_amount' => $data['amount'],
             ]);
         }
     }

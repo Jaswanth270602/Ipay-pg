@@ -1,4 +1,4 @@
-# 🚀 Badlicash Merchant Test App - Setup Guide
+# 🚀 Ipay Merchant Test App - Setup Guide
 
 ## ✅ Congratulations! Your Test App is Ready
 
@@ -10,7 +10,7 @@ Your beautiful merchant test application has been created and pre-configured wit
 
 ### Step 1: Start Your Laravel Backend
 
-Make sure your Badlicash Payment Gateway is running:
+Make sure your Ipay Payment Gateway is running:
 
 ```bash
 # In your main project directory
@@ -55,7 +55,7 @@ Your test app is already configured with these credentials:
 ### Test Merchant Details
 - **Merchant ID:** 1
 - **Company Name:** Acme Corp
-- **Email:** merchant1@badlicash.test
+- **Email:** merchant1@ipay.test
 - **Password:** Password123!
 - **Status:** Active
 - **Test Mode:** Enabled
@@ -182,12 +182,12 @@ merchant-test-app/
 Your gateway has multiple test merchants. Here are the available ones:
 
 ### Merchant 1 (Currently Configured) ✅
-- **Email:** merchant1@badlicash.test
+- **Email:** merchant1@ipay.test
 - **Company:** Acme Corp
 - **API Key:** pk_test_88tdbeR269j8EKABtx0dA34vV4foXzBp
 
 ### Merchant 2 (Alternative)
-- **Email:** merchant2@badlicash.test  
+- **Email:** merchant2@ipay.test  
 - **Company:** Beta Services Inc
 - **API Key:** pk_test_0ZgYUOQru48kS38zPGyRWw5y8PRtlsiK
 - **Secret:** sk_test_xdmpqToDqvEq6i871TzPcXA5MrtHNTg4

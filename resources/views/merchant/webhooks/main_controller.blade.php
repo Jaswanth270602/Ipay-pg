@@ -1,7 +1,7 @@
 <script>
 (function() {
     'use strict';
-    angular.module('badlicashApp').controller('WebhooksController', ['$http', function($http) {
+    angular.module('ipayApp').controller('WebhooksController', ['$http', function($http) {
         var vm = this;
         vm.webhooks = [];
         vm.stats = {total: 0, successful: 0, failed: 0, pending: 0};

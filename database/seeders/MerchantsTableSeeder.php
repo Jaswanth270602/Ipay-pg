@@ -16,11 +16,11 @@ class MerchantsTableSeeder extends Seeder
         $merchants = [
             [
                 'name' => 'Test Merchant A',
-                'email' => 'merchant.a@badlicash.test',
+                'email' => 'merchant.a@ipay.test',
                 'company_name' => 'Acme Corp',
                 'status' => 'active',
                 'default_currency' => 'INR',
-                'webhook_url' => 'https://acme.com/webhooks/badlicash',
+                'webhook_url' => 'https://acme.com/webhooks/ipay',
                 'webhook_secret' => Str::random(32),
                 'test_mode' => true,
                 'fee_percentage' => 2.50,
@@ -33,7 +33,7 @@ class MerchantsTableSeeder extends Seeder
             ],
             [
                 'name' => 'Test Merchant B',
-                'email' => 'merchant.b@badlicash.test',
+                'email' => 'merchant.b@ipay.test',
                 'company_name' => 'Beta Services Inc',
                 'status' => 'active',
                 'default_currency' => 'INR',
@@ -50,7 +50,7 @@ class MerchantsTableSeeder extends Seeder
             ],
             [
                 'name' => 'Live Merchant Demo',
-                'email' => 'live.merchant@badlicash.test',
+                'email' => 'live.merchant@ipay.test',
                 'company_name' => 'Live Commerce Ltd',
                 'status' => 'active',
                 'default_currency' => 'INR',

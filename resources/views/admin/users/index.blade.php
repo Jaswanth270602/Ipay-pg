@@ -90,7 +90,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminUsersController as auc">
+<div ng-app="ipayApp" ng-controller="AdminUsersController as auc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'User Settings'],
@@ -445,7 +445,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminUsersController', ['$http', '$scope', '$timeout', function($http, $scope, $timeout) {
                 var vm = this;
                 // CSRF token for all state-changing admin user requests

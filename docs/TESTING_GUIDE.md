@@ -1,4 +1,4 @@
-# BadliCash Payment Gateway - Testing Guide
+# Ipay Payment Gateway - Testing Guide
 
 ## 📋 Table of Contents
 1. [Overview](#overview)
@@ -14,7 +14,7 @@
 
 ## Overview
 
-This guide provides comprehensive instructions for testing the BadliCash Payment Gateway in both TEST and LIVE modes. The system enforces strict separation between test and live data to ensure security and data integrity.
+This guide provides comprehensive instructions for testing the Ipay Payment Gateway in both TEST and LIVE modes. The system enforces strict separation between test and live data to ensure security and data integrity.
 
 ---
 
@@ -473,7 +473,7 @@ Create a Postman collection with the following environment variables:
 
 - Check logs: `storage/logs/laravel.log`
 - Review API documentation: `docs/API.md`
-- Contact support: support@badlicash.com
+- Contact support: support@ipay.com
 
 ---
 

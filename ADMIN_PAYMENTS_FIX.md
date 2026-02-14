@@ -151,11 +151,11 @@ php artisan tinker
 
 Then run:
 ```php
-$user = \App\Models\User::where('email', 'admin@badlicash.com')->first();
+$user = \App\Models\User::where('email', 'admin@ipay.test')->first();
 if (!$user) {
     $user = \App\Models\User::create([
         'name' => 'Admin User',
-        'email' => 'admin@badlicash.com',
+        'email' => 'admin@ipay.test',
         'password' => bcrypt('password'),
         'email_verified_at' => now(),
     ]);
@@ -168,7 +168,7 @@ $adminRole = \App\Models\Role::firstOrCreate(
 );
 $user->roles()->syncWithoutDetaching([$adminRole->id]);
 
-echo "Admin created: admin@badlicash.com / password\n";
+echo "Admin created: admin@ipay.test / password\n";
 exit;
 ```
 

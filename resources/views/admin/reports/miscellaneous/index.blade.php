@@ -4,7 +4,7 @@
 @section('page-title', 'Miscellaneous Reports List')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdhocReportController as ar">
+<div ng-app="ipayApp" ng-controller="AdhocReportController as ar">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Adhoc Report List']
@@ -228,7 +228,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdhocReportController', ['$http', '$scope', '$timeout', function ($http, $scope, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

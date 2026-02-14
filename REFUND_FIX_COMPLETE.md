@@ -113,7 +113,7 @@ Type: Full Refund
 - ✅ Your reason displayed
 
 #### Admin Dashboard:
-1. **Login as admin** (admin@badlicash.com / password)
+1. **Login as admin** (admin@ipay.test / password)
 2. Go to **Payments → Refunds**
 3. ✅ Same refund should appear
 4. ✅ Shows merchant info

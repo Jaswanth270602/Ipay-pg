@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminMerchantAccountsController', ['$http', '$scope', function($http, $scope) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

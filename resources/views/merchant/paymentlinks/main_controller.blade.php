@@ -1,7 +1,7 @@
 <script>
 (function() {
     'use strict';
-    var app = angular.module('badlicashApp', []);
+    var app = angular.module('ipayApp', []);
     app.controller('PaymentLinksController', ['$http', '$window', function($http, $window){
         var vm = this;
         vm.paymentLinks=[]; vm.pagination={current_page:1,per_page:10,total:0,last_page:1}; vm.perPage=10; vm.filters={status:'all',search:''}; vm.loading=false; vm.creating=false;

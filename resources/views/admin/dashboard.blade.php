@@ -130,7 +130,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminDashboardController as adc">
+<div ng-app="ipayApp" ng-controller="AdminDashboardController as adc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard']
     ]" />
@@ -265,7 +265,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminDashboardController', ['$http', '$scope', '$timeout', function($http, $scope, $timeout) {
                 var vm = this;
                 

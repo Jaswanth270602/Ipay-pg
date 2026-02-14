@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sign up – BadliCash Merchant Account</title>
+    <title>Sign up – Ipay Merchant Account</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -453,7 +453,7 @@
                                     @error('contact_email')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
-                                    <label class="su-label">Login Email (for BadliCash) <span class="text-danger">*</span></label>
+                                    <label class="su-label">Login Email (for Ipay) <span class="text-danger">*</span></label>
                                     <input type="email" name="login_name" value="{{ old('login_name') }}" class="su-input @error('login_name') is-invalid @enderror" required>
                                     @error('login_name')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
@@ -472,7 +472,7 @@
                                 </div>
                                 <div style="grid-column: 1 / -1;">
                                     <p style="font-size:12px;color:var(--su-text-muted);margin-top:8px;margin-bottom:0;">
-                                        By signing up, you’ll start in the BadliCash sandbox. Our team will review your details and
+                                        By signing up, you’ll start in the Ipay sandbox. Our team will review your details and
                                         enable live money flow once compliance checks are complete.
                                     </p>
                                 </div>

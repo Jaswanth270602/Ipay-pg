@@ -111,7 +111,7 @@ class RefundController extends Controller
         $merchant = $request->get('api_merchant');
         $apiKeyMode = $request->get('api_key_mode');
 
-        $perPage = min($request->get('per_page', 10), config('badlicash.pagination.max_per_page'));
+        $perPage = min($request->get('per_page', 10), config('ipay.pagination.max_per_page'));
         $status = $request->get('status');
 
         // Filter refunds by test_mode through transaction relationship

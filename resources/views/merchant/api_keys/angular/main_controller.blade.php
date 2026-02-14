@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('ApiKeysController', ['$http', '$window', function($http, $window) {
         var vm = this;
         vm.apiKeys = [];

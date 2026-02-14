@@ -4,7 +4,7 @@
 @section('page-title', 'Fund Transfer')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminFundTransferController as aftc">
+<div ng-app="ipayApp" ng-controller="AdminFundTransferController as aftc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Fund Transfer']
@@ -230,7 +230,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminFundTransferController', ['$http', function($http) {
                 var vm = this;
                 vm.transfers = [];

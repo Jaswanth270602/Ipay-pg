@@ -4,7 +4,7 @@
 @section('page-title', 'Datatable Export Files')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="DatatableExportController as de">
+<div ng-app="ipayApp" ng-controller="DatatableExportController as de">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Datatable Export List']
@@ -205,7 +205,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             
             // Add capitalize filter if not exists
             app.filter('capitalize', function() {

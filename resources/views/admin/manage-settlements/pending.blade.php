@@ -4,7 +4,7 @@
 @section('page-title', 'Pending Settlement')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPendingSettlementController as apsc">
+<div ng-app="ipayApp" ng-controller="AdminPendingSettlementController as apsc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pending Settlement']
@@ -319,7 +319,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPendingSettlementController', ['$http', function($http) {
                 var vm = this;
                 vm.settlements = [];

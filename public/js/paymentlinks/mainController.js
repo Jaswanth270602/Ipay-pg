@@ -1,5 +1,5 @@
 /**
- * BadliCash Angular App - Payment Links Controller
+ * Ipay Angular App - Payment Links Controller
  * 
  * This controller manages the payment links view with two-way binding,
  * pagination, filtering, and AJAX calls to the Laravel backend.
@@ -9,7 +9,7 @@
     'use strict';
 
     // Create Angular app
-    var app = angular.module('badlicashApp', []);
+    var app = angular.module('ipayApp', []);
 
     // Payment Links Controller
     app.controller('PaymentLinksController', ['$http', '$window', '$timeout', '$scope', PaymentLinksController]);

@@ -1,8 +1,8 @@
-# 🎨 Badlicash Merchant Test App - Overview
+# 🎨 Ipay Merchant Test App - Overview
 
 ## 📦 What Has Been Created
 
-A complete, production-ready test application to demonstrate and test your Badlicash Payment Gateway integration.
+A complete, production-ready test application to demonstrate and test your Ipay Payment Gateway integration.
 
 ---
 
@@ -79,7 +79,7 @@ Status: Active ✅
 ### ✅ Test Merchant Ready
 ```
 Company: Acme Corp
-Email: merchant1@badlicash.test
+Email: merchant1@ipay.test
 Password: Password123!
 Status: Active ✅
 Test Mode: Enabled ✅
@@ -201,7 +201,7 @@ Response: { success, data }
 1. **Landing** 🏠
    - Beautiful store page loads
    - 3 products displayed
-   - "Powered by Badlicash" badge
+   - "Powered by Ipay" badge
 
 2. **Selection** 🛒
    - User clicks "Pay Now"

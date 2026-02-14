@@ -1,6 +1,6 @@
-# Badlicash Payment Gateway - Merchant Test App
+# Ipay Payment Gateway - Merchant Test App
 
-A beautiful, modern test application to demonstrate and test the Badlicash Payment Gateway integration.
+A beautiful, modern test application to demonstrate and test the Ipay Payment Gateway integration.
 
 ## 🚀 Features
 
@@ -192,9 +192,9 @@ The app displays these webhook events:
 
 ## 📝 License
 
-This is a test application for the Badlicash Payment Gateway.
+This is a test application for the Ipay Payment Gateway.
 
 ## 🤝 Support
 
-For issues or questions, please contact your Badlicash support team.
+For issues or questions, please contact your Ipay support team.
 

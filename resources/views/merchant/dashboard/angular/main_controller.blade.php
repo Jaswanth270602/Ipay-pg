@@ -10,7 +10,7 @@
         }
         
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('DashboardController', ['$http', function($http) {
                 var vm = this;
                 vm.loading = false;

@@ -1,4 +1,4 @@
-# 💰 Commission/Fee Structure - BadliCash Payment Gateway
+# 💰 Commission/Fee Structure - Ipay Payment Gateway
 
 ## 📍 Where Commission is Calculated
 

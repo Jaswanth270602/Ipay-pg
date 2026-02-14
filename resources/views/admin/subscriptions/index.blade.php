@@ -4,7 +4,7 @@
 @section('page-title','Admin Subscriptions')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminSubscriptionsController as asc">
+<div ng-app="ipayApp" ng-controller="AdminSubscriptionsController as asc">
     <div class="row g-4">
         <div class="col-lg-5">
             <div class="stat-card mb-3">

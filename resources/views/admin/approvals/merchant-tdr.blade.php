@@ -4,7 +4,7 @@
 @section('page-title', 'Approval Management')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantTdrApprovalController as mta">
+<div ng-app="ipayApp" ng-controller="MerchantTdrApprovalController as mta">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Approvals']
@@ -270,7 +270,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantTdrApprovalController', ['$http', '$scope', '$timeout', function ($http, $scope, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

@@ -337,11 +337,11 @@
                     <div class="li-accordion-body">
                         <div class="li-cred-item">
                             <div class="li-cred-label">Admin account</div>
-                            <div class="li-cred-value">admin@badlicash.test / Password123!</div>
+                            <div class="li-cred-value">admin@ipay.test / Password123!</div>
                         </div>
                         <div class="li-cred-item">
                             <div class="li-cred-label">Merchant account</div>
-                            <div class="li-cred-value">merchant1@badlicash.test / Password123!</div>
+                            <div class="li-cred-value">merchant1@ipay.test / Password123!</div>
                         </div>
                     </div>
                 </div>

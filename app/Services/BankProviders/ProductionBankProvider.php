@@ -19,9 +19,9 @@ class ProductionBankProvider implements BankProviderInterface
 
     public function __construct(?string $apiKey = null, ?string $apiSecret = null, ?string $bankName = null)
     {
-        $this->apiKey = $apiKey ?? config('badlicash.production_api_key');
-        $this->apiSecret = $apiSecret ?? config('badlicash.production_api_secret');
-        $this->bankName = $bankName ?? config('badlicash.production_bank_name');
+        $this->apiKey = $apiKey ?? config('ipay.production_api_key');
+        $this->apiSecret = $apiSecret ?? config('ipay.production_api_secret');
+        $this->bankName = $bankName ?? config('ipay.production_bank_name');
     }
 
     public function processPayment(array $paymentData): array
@@ -140,7 +140,7 @@ class ProductionBankProvider implements BankProviderInterface
         // Example implementation structure:
         /*
         $client = new \GuzzleHttp\Client([
-            'base_uri' => config('badlicash.bank_api_base_url'),
+            'base_uri' => config('ipay.bank_api_base_url'),
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',

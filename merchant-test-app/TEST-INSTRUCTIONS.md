@@ -58,7 +58,7 @@ http://localhost:8080
 ## 🔑 Pre-Configured Test Credentials
 
 ### Merchant Login
-- **Email:** merchant1@badlicash.test
+- **Email:** merchant1@ipay.test
 - **Password:** Password123!
 
 ### API Keys (Already in config.js)

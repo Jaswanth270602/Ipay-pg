@@ -177,7 +177,7 @@ return [
 
 1. **Login as Admin:**
    - URL: `http://127.0.0.1:8000/login`
-   - Email: `admin@badlicash.com`
+   - Email: `admin@ipay.test`
    - Password: `password` (or your admin password)
 
 2. **Navigate:**

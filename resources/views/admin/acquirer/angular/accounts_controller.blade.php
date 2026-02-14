@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminAcquirerAccountsController', ['$http', '$scope', '$timeout', '$compile', function($http, $scope, $timeout, $compile) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

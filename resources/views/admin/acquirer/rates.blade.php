@@ -40,7 +40,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AcquirerRatesController as arc">
+<div ng-app="ipayApp" ng-controller="AcquirerRatesController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Acquirer Details'],

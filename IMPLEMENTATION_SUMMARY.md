@@ -1,4 +1,4 @@
-# BadliCash Payment Gateway - Implementation Summary
+# Ipay Payment Gateway - Implementation Summary
 
 ## ✅ Completed Features
 
@@ -169,9 +169,9 @@ resources/views/
 Add to `.env`:
 ```env
 APP_PAYMENT_MODE=test
-BADLICASH_PRODUCTION_API_KEY=
-BADLICASH_PRODUCTION_API_SECRET=
-BADLICASH_PRODUCTION_BANK_NAME=
+IPAY_PRODUCTION_API_KEY=
+IPAY_PRODUCTION_API_SECRET=
+IPAY_PRODUCTION_BANK_NAME=
 ```
 
 ### Database Migration

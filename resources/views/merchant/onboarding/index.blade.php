@@ -4,7 +4,7 @@
 @section('page-title', 'Complete Onboarding')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="OnboardingController as oc">
+<div ng-app="ipayApp" ng-controller="OnboardingController as oc">
     <div class="row mb-4">
         <div class="col-md-12">
             <h3 class="fw-bold">Complete Your Onboarding</h3>

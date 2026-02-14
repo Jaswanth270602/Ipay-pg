@@ -4,7 +4,7 @@
 @section('page-title', 'Download MIS Report')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminMISReportController as amrc">
+<div ng-app="ipayApp" ng-controller="AdminMISReportController as amrc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Download MIS Report']
@@ -87,7 +87,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminMISReportController', ['$http', function($http) {
                 var vm = this;
                 vm.merchants = [];

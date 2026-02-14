@@ -96,7 +96,7 @@ Admin Dashboard:
 ### Sidebar (Admin):
 ```
 ┌─────────────┐
-│ BadliCash   │
+│ Ipay   │
 │             │
 │ [TEST MODE] │ ← Yellow badge
 │             │
@@ -126,7 +126,7 @@ Admin Dashboard:
 ### Step 1: Login as Admin
 ```
 URL: http://127.0.0.1:8000/login
-Email: admin@badlicash.com
+Email: admin@ipay.test
 Password: password
 ```
 

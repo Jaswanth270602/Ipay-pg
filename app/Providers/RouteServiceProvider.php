@@ -25,7 +25,7 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(config('badlicash.rate_limit.per_minute', 60))
+            return Limit::perMinute(config('ipay.rate_limit.per_minute', 60))
                 ->by($request->user()?->id ?: $request->ip())
                 ->response(function () {
                     return response()->json([

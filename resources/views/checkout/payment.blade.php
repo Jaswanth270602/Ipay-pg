@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
-    <title>Payment - {{ $paymentLink->title }} - BadliCash</title>
+    <title>Payment - {{ $paymentLink->title }} - Ipay</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -520,7 +520,7 @@
 
                 <div class="secured-by">
                     <i class="bi bi-shield-check" style="font-size: 22px;"></i>
-                    <span>Secured by <strong>BadliCash</strong></span>
+                    <span>Secured by <strong>Ipay</strong></span>
                 </div>
             </div>
 

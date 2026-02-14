@@ -19,13 +19,13 @@ class UsersTableSeeder extends Seeder
         $merchantRole = Role::where('name', 'merchant')->first();
         $userRole = Role::where('name', 'user')->first();
 
-        $merchantA = Merchant::where('email', 'merchant.a@badlicash.test')->first();
-        $merchantB = Merchant::where('email', 'merchant.b@badlicash.test')->first();
+        $merchantA = Merchant::where('email', 'merchant.a@ipay.test')->first();
+        $merchantB = Merchant::where('email', 'merchant.b@ipay.test')->first();
 
         $users = [
             [
                 'name' => 'Admin User',
-                'email' => 'admin@badlicash.test',
+                'email' => 'admin@ipay.test',
                 'password' => Hash::make('Password123!'),
                 'role_id' => $adminRole->id,
                 'merchant_id' => null,
@@ -34,7 +34,7 @@ class UsersTableSeeder extends Seeder
             ],
             [
                 'name' => 'Merchant A User',
-                'email' => 'merchant1@badlicash.test',
+                'email' => 'merchant1@ipay.test',
                 'password' => Hash::make('Password123!'),
                 'role_id' => $merchantRole->id,
                 'merchant_id' => $merchantA->id,
@@ -43,7 +43,7 @@ class UsersTableSeeder extends Seeder
             ],
             [
                 'name' => 'Merchant B User',
-                'email' => 'merchant2@badlicash.test',
+                'email' => 'merchant2@ipay.test',
                 'password' => Hash::make('Password123!'),
                 'role_id' => $merchantRole->id,
                 'merchant_id' => $merchantB->id,
@@ -62,9 +62,9 @@ class UsersTableSeeder extends Seeder
         $this->command->info('Users seeded successfully.');
         $this->command->info('');
         $this->command->info('=== Test User Credentials ===');
-        $this->command->info('Admin: admin@badlicash.test / Password123!');
-        $this->command->info('Merchant 1: merchant1@badlicash.test / Password123!');
-        $this->command->info('Merchant 2: merchant2@badlicash.test / Password123!');
+        $this->command->info('Admin: admin@ipay.test / Password123!');
+        $this->command->info('Merchant 1: merchant1@ipay.test / Password123!');
+        $this->command->info('Merchant 2: merchant2@ipay.test / Password123!');
         $this->command->info('============================');
     }
 }

@@ -1,4 +1,4 @@
-# 💸 Refund Testing Guide - BadliCash Payment Gateway
+# 💸 Refund Testing Guide - Ipay Payment Gateway
 
 ## 📋 Overview
 

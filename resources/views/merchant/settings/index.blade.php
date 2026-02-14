@@ -41,7 +41,7 @@
                 @csrf
                 <div class="mb-3">
                     <label class="form-label">Webhook URL</label>
-                    <input type="url" name="webhook_url" class="form-control" value="{{ old('webhook_url',$merchant->webhook_url) }}" placeholder="https://example.com/webhooks/badlicash">
+                    <input type="url" name="webhook_url" class="form-control" value="{{ old('webhook_url',$merchant->webhook_url) }}" placeholder="https://example.com/webhooks/ipay">
                 </div>
                 <button class="btn btn-primary">Save</button>
             </form>

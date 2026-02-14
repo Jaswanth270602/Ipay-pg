@@ -5,7 +5,7 @@
     function registerController() {
         if (typeof angular === 'undefined') { setTimeout(registerController, 50); return; }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminSubscriptionsController', ['$http', function($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

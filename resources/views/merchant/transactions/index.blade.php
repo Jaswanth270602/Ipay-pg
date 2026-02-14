@@ -4,7 +4,7 @@
 @section('page-title', 'Transactions Details')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantTransactionsController as mtc">
+<div ng-app="ipayApp" ng-controller="MerchantTransactionsController as mtc">
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Transactions Details</h2>
@@ -462,7 +462,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantTransactionsController', ['$http', function($http) {
                 var vm = this;
                 vm.transactions = [];

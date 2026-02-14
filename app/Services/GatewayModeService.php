@@ -15,18 +15,18 @@ namespace App\Services;
  *   Same library per acquirer; test vs live keys only (e.g. Razorpay Test and
  *   Razorpay Live both use the same Razorpay adapter).
  *
- * Uses config('badlicash.mode') from APP_PAYMENT_MODE env (test | live).
+ * Uses config('ipay.mode') from APP_PAYMENT_MODE env (test | live).
  */
 class GatewayModeService
 {
     /**
      * Whether the gateway is in LIVE mode (acquirers allowed).
      *
-     * @return bool True only when config badlicash.mode === 'live'
+     * @return bool True only when config ipay.mode === 'live'
      */
     public static function isLive(): bool
     {
-        return strtolower((string) config('badlicash.mode', 'test')) === 'live';
+        return strtolower((string) config('ipay.mode', 'test')) === 'live';
     }
 
     /**
@@ -46,6 +46,6 @@ class GatewayModeService
      */
     public static function mode(): string
     {
-        return strtolower((string) config('badlicash.mode', 'test'));
+        return strtolower((string) config('ipay.mode', 'test'));
     }
 }

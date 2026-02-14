@@ -4,7 +4,7 @@
 @section('page-title', 'Federal Direct VPA Payments')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantFederalVPAController as mfvc">
+<div ng-app="ipayApp" ng-controller="MerchantFederalVPAController as mfvc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Federal Direct VPA Payments']
@@ -175,7 +175,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantFederalVPAController', ['$http', function($http) {
                 var vm = this;
                 vm.payments = [];

@@ -5,7 +5,7 @@
 @section('page-title','Payment Links')
 
 @section('content')
-<div id="paymentLinksApp" ng-app="badlicashApp" ng-controller="PaymentLinksController as plc">
+<div id="paymentLinksApp" ng-app="ipayApp" ng-controller="PaymentLinksController as plc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('dashboard')],
         ['label'=>'Payment Links']

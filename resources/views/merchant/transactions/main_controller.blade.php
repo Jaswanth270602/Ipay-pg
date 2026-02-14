@@ -1,5 +1,5 @@
 <script>
-angular.module('badlicashApp', [])
+angular.module('ipayApp', [])
     .controller('TransactionsController', ['$http', '$timeout', function($http, $timeout){
         var vm = this;
         vm.transactions = [];

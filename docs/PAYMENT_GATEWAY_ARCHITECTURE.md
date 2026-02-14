@@ -2,7 +2,7 @@
 
 ## Overview
 
-BadliCash uses a clean, factory-based architecture to route payments to different acquirer accounts (CashFree, Razorpay, PayU, etc.) based on merchant configuration. This ensures complete isolation between different payment gateways.
+Ipay uses a clean, factory-based architecture to route payments to different acquirer accounts (CashFree, Razorpay, PayU, etc.) based on merchant configuration. This ensures complete isolation between different payment gateways.
 
 ## Architecture Components
 

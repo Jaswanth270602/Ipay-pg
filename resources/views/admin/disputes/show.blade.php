@@ -156,7 +156,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="DisputeDetailController as ddc">
+<div ng-app="ipayApp" ng-controller="DisputeDetailController as ddc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Disputes','url'=>route('admin.disputes.index')],
@@ -392,7 +392,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('DisputeDetailController', ['$http', '$scope', '$timeout', function($http, $scope, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

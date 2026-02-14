@@ -4,7 +4,7 @@
 @section('page-title', 'Base Rates Configuration')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="BaseRatesController as brc">
+<div ng-app="ipayApp" ng-controller="BaseRatesController as brc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Base Rates']
@@ -496,7 +496,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('BaseRatesController', ['$http', '$scope', function($http, $scope) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

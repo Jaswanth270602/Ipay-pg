@@ -24,7 +24,7 @@ class TransactionController extends Controller
         $merchant = $request->get('api_merchant');
         $apiKeyMode = $request->get('api_key_mode');
 
-        $perPage = min($request->get('per_page', 10), config('badlicash.pagination.max_per_page'));
+        $perPage = min($request->get('per_page', 10), config('ipay.pagination.max_per_page'));
         $status = $request->get('status');
         $paymentMethod = $request->get('payment_method');
         $fromDate = $request->get('from_date');

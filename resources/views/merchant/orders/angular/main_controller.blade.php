@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('OrdersController', ['$http', '$timeout', function($http, $timeout) {
         var vm = this;
         vm.orders = [];

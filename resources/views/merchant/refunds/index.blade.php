@@ -4,7 +4,7 @@
 @section('page-title','Refunds')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="RefundsController as rc">
+<div ng-app="ipayApp" ng-controller="RefundsController as rc">
     <div class="row mb-3">
         <div class="col-md-12 text-end">
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRefundModal">

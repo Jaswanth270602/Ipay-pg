@@ -4,7 +4,7 @@
 @section('page-title', 'All Orders')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminOrdersController as aoc">
+<div ng-app="ipayApp" ng-controller="AdminOrdersController as aoc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('admin.dashboard')],
         ['label'=>'All Orders']
@@ -169,7 +169,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminOrdersController', ['$http', '$timeout', function($http, $timeout) {
                 var vm = this;
                 vm.orders = [];

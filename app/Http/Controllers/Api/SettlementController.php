@@ -32,7 +32,7 @@ class SettlementController extends Controller
                 'data' => [],
                 'pagination' => [
                     'current_page' => 1,
-                    'per_page' => (int) $request->get('per_page', config('badlicash.pagination.default_per_page')),
+                    'per_page' => (int) $request->get('per_page', config('ipay.pagination.default_per_page')),
                     'total' => 0,
                     'last_page' => 1,
                     'from' => null,
@@ -43,8 +43,8 @@ class SettlementController extends Controller
         }
 
         $perPage = min(
-            (int) $request->get('per_page', config('badlicash.pagination.default_per_page')),
-            config('badlicash.pagination.max_per_page')
+            (int) $request->get('per_page', config('ipay.pagination.default_per_page')),
+            config('ipay.pagination.max_per_page')
         );
 
         $status = $request->get('status');

@@ -26,7 +26,14 @@ class AdminDashboardController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
-            $this->logInfo('Admin dashboard data requested', ['user_id' => auth()->id()]);
+            // Get admin's viewing mode from session
+            $adminViewMode = session('admin_view_mode', 'test');
+            $isTestMode = $adminViewMode === 'test';
+            
+            $this->logInfo('Admin dashboard data requested', [
+                'user_id' => auth()->id(),
+                'admin_view_mode' => $adminViewMode
+            ]);
             
             // Get date range (default to last 10 days)
             $startDate = $request->get('start_date', Carbon::now()->subDays(10)->format('Y-m-d'));
@@ -39,22 +46,32 @@ class AdminDashboardController extends Controller
             $daysDiff = $startDateTime->diffInDays($endDateTime) + 1;
             
             // Total GTV (Gross Transaction Value) - sum of successful transaction amounts
+            // Filter by admin's viewing mode (test/live)
             $totalGTV = Transaction::where('status', 'success')
+                ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->sum('amount');
             
             // Successful Transactions count
+            // Filter by admin's viewing mode (test/live)
             $successfulTransactions = Transaction::where('status', 'success')
+                ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->count();
             
-            // Amount Refunded
+            // Amount Refunded - filter through transaction relationship
             $amountRefunded = Refund::where('status', 'completed')
+                ->whereHas('transaction', function($q) use ($isTestMode) {
+                    $q->where('test_mode', $isTestMode);
+                })
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->sum('amount');
             
-            // ChargeBack Amount (from Disputes)
-            $chargebackAmount = Dispute::whereBetween('created_at', [$startDateTime, $endDateTime])
+            // ChargeBack Amount (from Disputes) - filter through transaction relationship
+            $chargebackAmount = Dispute::whereHas('transaction', function($q) use ($isTestMode) {
+                    $q->where('test_mode', $isTestMode);
+                })
+                ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->sum('amount');
             
             // Chart Data: Gross Transaction Value and Transaction Count (Last 10 days)
@@ -67,10 +84,12 @@ class AdminDashboardController extends Controller
                 $dayEnd = $currentDate->copy()->endOfDay();
                 
                 $dayGTV = Transaction::where('status', 'success')
+                    ->where('test_mode', $isTestMode)
                     ->whereBetween('created_at', [$dayStart, $dayEnd])
                     ->sum('amount');
                 
                 $dayCount = Transaction::where('status', 'success')
+                    ->where('test_mode', $isTestMode)
                     ->whereBetween('created_at', [$dayStart, $dayEnd])
                     ->count();
                 
@@ -87,8 +106,9 @@ class AdminDashboardController extends Controller
                 $currentDate->addDay();
             }
             
-            // Payment Mode Distribution
+            // Payment Mode Distribution - filter by admin's viewing mode
             $paymentModeDistribution = Transaction::where('status', 'success')
+                ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total_amount')
                 ->groupBy('payment_method')
@@ -101,8 +121,9 @@ class AdminDashboardController extends Controller
                     ];
                 });
             
-            // Device Distribution (from user_agent)
+            // Device Distribution (from user_agent) - filter by admin's viewing mode
             $deviceDistribution = Transaction::where('status', 'success')
+                ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->whereNotNull('user_agent')
                 ->get()
@@ -142,8 +163,10 @@ class AdminDashboardController extends Controller
             $stats = [
                 'total_merchants' => Merchant::count(),
                 'active_merchants' => Merchant::where('status', 'active')->count(),
-                'total_transactions' => Transaction::count(),
-                'total_volume' => Transaction::where('status', 'success')->sum('amount'),
+                'total_transactions' => Transaction::where('test_mode', $isTestMode)->count(),
+                'total_volume' => Transaction::where('status', 'success')
+                    ->where('test_mode', $isTestMode)
+                    ->sum('amount'),
                 'total_gtv' => $totalGTV,
                 'successful_transactions' => $successfulTransactions,
                 'amount_refunded' => $amountRefunded,

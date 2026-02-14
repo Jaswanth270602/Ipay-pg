@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Settlement Details')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPartnerSettlementsDetailsController as psd">
+<div ng-app="ipayApp" ng-controller="AdminPartnerSettlementsDetailsController as psd">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Partner Settlement Details']
@@ -221,7 +221,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPartnerSettlementsDetailsController', ['$http', function ($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

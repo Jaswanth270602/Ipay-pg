@@ -41,7 +41,7 @@ class WebhookService
             'webhook_url' => $merchant->webhook_url,
             'delivered' => false,
             'attempt_count' => 0,
-            'max_attempts' => config('badlicash.webhook.max_retry_attempts', 5),
+            'max_attempts' => config('ipay.webhook.max_retry_attempts', 5),
             'next_retry_at' => now(),
         ]);
 

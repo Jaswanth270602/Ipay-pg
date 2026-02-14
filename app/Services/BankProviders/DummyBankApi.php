@@ -20,9 +20,9 @@ class DummyBankApi implements BankProviderInterface
 
     public function __construct()
     {
-        $this->baseUrl = config('badlicash.bank_provider.live_url');
-        $this->apiKey = config('badlicash.bank_provider.api_key');
-        $this->apiSecret = config('badlicash.bank_provider.api_secret');
+        $this->baseUrl = config('ipay.bank_provider.live_url');
+        $this->apiKey = config('ipay.bank_provider.api_key');
+        $this->apiSecret = config('ipay.bank_provider.api_secret');
     }
 
     /**

@@ -4,7 +4,7 @@
 @section('page-title', 'Settlement Details')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantSettlementDetailsController as msdc">
+<div ng-app="ipayApp" ng-controller="MerchantSettlementDetailsController as msdc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Settlement Details']
@@ -231,7 +231,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantSettlementDetailsController', ['$http', function($http) {
                 var vm = this;
                 vm.details = [];

@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Team Profit Report')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminPartnerTeamProfitController as ptp">
+<div ng-app="ipayApp" ng-controller="AdminPartnerTeamProfitController as ptp">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']
@@ -285,7 +285,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminPartnerTeamProfitController', ['$http', '$scope', function ($http, $scope) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

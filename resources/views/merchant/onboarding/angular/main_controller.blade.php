@@ -8,7 +8,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('OnboardingController', ['$http', function($http) {
         var vm = this;
         vm.currentStep = {{ $currentStep }};

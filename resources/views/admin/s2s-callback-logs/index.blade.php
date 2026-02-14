@@ -8,7 +8,7 @@
 @endpush
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="S2SCallbackLogController as s2s">
+<div ng-app="ipayApp" ng-controller="S2SCallbackLogController as s2s">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Server To Server Call Back Logs']
@@ -255,7 +255,7 @@
 
     function registerController() {
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('S2SCallbackLogController', ['$http', '$scope', function ($http, $scope) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;

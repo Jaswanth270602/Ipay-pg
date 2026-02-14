@@ -4,7 +4,7 @@
 @section('page-title', 'Chargebacks')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="MerchantChargebacksController as mcc">
+<div ng-app="ipayApp" ng-controller="MerchantChargebacksController as mcc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Chargebacks']
@@ -185,7 +185,7 @@
             return;
         }
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('MerchantChargebacksController', ['$http', function($http) {
                 var vm = this;
                 vm.chargebacks = [];

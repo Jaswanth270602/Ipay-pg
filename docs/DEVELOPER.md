@@ -1,4 +1,4 @@
-# BadliCash Developer Guide
+# Ipay Developer Guide
 
 ## Modes: Test vs Live
 - Test uses `SandboxBankProvider`
@@ -9,11 +9,11 @@
 Include SDK in your page:
 
 ```html
-<script src="/sdk/badlicash.js"></script>
+<script src="/sdk/ipay.js"></script>
 <button id="pay">Pay</button>
 <script>
 document.getElementById('pay').onclick=function(){
-  var checkout = new BadliCash.Checkout({
+  var checkout = new Ipay.Checkout({
     key: 'pk_test_xxxxx',
     amount: 50000,
     currency: 'INR',
@@ -46,4 +46,4 @@ Response contains `link_token`; open `/pay/{link_token}`.
 
 ## Webhooks
 - Configure in Settings
-- Verify `X-BadliCash-Signature` using HMAC with your webhook secret
+- Verify `X-Ipay-Signature` using HMAC with your webhook secret

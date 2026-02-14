@@ -1,7 +1,7 @@
 <script>
 (function() {
     'use strict';
-    angular.module('badlicashApp').controller('IntegrationController', ['$http', function($http) {
+    angular.module('ipayApp').controller('IntegrationController', ['$http', function($http) {
         var vm = this;
         vm.apiKeys = [];
         vm.selectedApiKey = '';
