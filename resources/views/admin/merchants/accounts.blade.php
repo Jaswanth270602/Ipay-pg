@@ -74,7 +74,7 @@
                     <ul class="dropdown-menu">
                         <li ng-repeat="(key, col) in amac.visibleColumns">
                             <a class="dropdown-item" href="#" ng-click="amac.toggleColumn(key)">
-                                <i class="bi" ng-class="col ? 'bi-check-square' : 'bi-square'"></i> @{{ col.label }}
+                                <i class="bi" ng-class="col.visible ? 'bi-check-square' : 'bi-square'"></i> @{{ col.label }}
                             </a>
                         </li>
                     </ul>
@@ -114,33 +114,55 @@
                                     <span>Merchant ID.</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="amac.sortBy('id')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_id" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_id"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.merchant_unique_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Unique ID</span>
                                 </div>
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_merchant_unique_id"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Name</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="amac.sortBy('name')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_name" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       style="font-weight: 500;"
+                                       placeholder="Enter merchant name and press Enter..."
+                                       ng-model="amac.filters.filter_name"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.email.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Email</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="amac.sortBy('email')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_email" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_email"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.phone.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Phone</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="amac.sortBy('phone')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_phone" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_phone"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.status.visible">
                                 <div class="d-flex align-items-center gap-2">
@@ -169,19 +191,29 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Partner Names</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_partner" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_partner"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.organization.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Organization Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_organization" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_organization"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.category.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Category</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="amac.filters.filter_category" ng-change="amac.applyFilters()">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="amac.filters.filter_category"
+                                        ng-change="amac.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="B2B">B2B</option>
                                     <option value="Education">Education</option>
@@ -203,19 +235,33 @@
                                 </select>
                             </th>
                             <th ng-show="amac.visibleColumns.acquirer.visible">
-                                <span>Acquirer</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Acquirer</span>
+                                </div>
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter by acquirer..."
+                                       ng-model="amac.filters.filter_acquirer"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.registration_date.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Registration Date</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="MM/DD/YYYY" ng-model="amac.filters.filter_registration_date" ng-change="amac.applyFilters()">
+                                <input type="date"
+                                       class="form-control form-control-sm mt-1"
+                                       ng-model="amac.filters.filter_registration_date"
+                                       ng-change="amac.applyFilters()">
                             </th>
                             <th ng-show="amac.visibleColumns.challan_urn.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Challan URN</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="amac.filters.filter_challan_urn" ng-change="amac.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="amac.filters.filter_challan_urn"
+                                       ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
                             <th>Action</th>
                         </tr>
@@ -281,7 +327,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (amac.pagination.current_page - 1) * amac.pagination.per_page + 1 }} to @{{ Math.min(amac.pagination.current_page * amac.pagination.per_page, amac.pagination.total) }} of @{{ amac.pagination.total }} entries
+                    Showing @{{ amac.pagination.from || 0 }} to @{{ amac.pagination.to || 0 }} of @{{ amac.pagination.total || 0 }} entries
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 

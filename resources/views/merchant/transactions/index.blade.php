@@ -94,43 +94,68 @@
                                     <span>Transaction Initiation Time</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="mtc.sortBy('created_at')"></i>
                                 </div>
-                                <input type="date" class="form-control form-control-sm mt-1" ng-model="mtc.filters.filter_transaction_initiation_time" ng-change="mtc.applyFilters()">
+                                <input type="date"
+                                       class="form-control form-control-sm mt-1"
+                                       ng-model="mtc.filters.filter_transaction_initiation_time"
+                                       ng-blur="mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.transaction_sequence_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Sequence Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_transaction_sequence_id" ng-change="mtc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="mtc.filters.filter_transaction_sequence_id"
+                                       ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.transaction_order_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Order Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_order_id" ng-change="mtc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="mtc.filters.filter_order_id"
+                                       ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.transaction_datetime.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction DateTime</span>
                                 </div>
-                                <input type="date" class="form-control form-control-sm mt-1" ng-model="mtc.filters.filter_transaction_datetime" ng-change="mtc.applyFilters()">
+                                <input type="date"
+                                       class="form-control form-control-sm mt-1"
+                                       ng-model="mtc.filters.filter_transaction_datetime"
+                                       ng-blur="mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.transaction_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_transaction_id" ng-change="mtc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="mtc.filters.filter_transaction_id"
+                                       ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Amount Paid By Customer</span>
                                 </div>
-                                <input type="number" step="0.01" class="form-control form-control-sm mt-1" placeholder="Amount..." ng-model="mtc.filters.filter_amount_paid" ng-change="mtc.applyFilters()">
+                                <input type="number"
+                                       step="0.01"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Amount..."
+                                       ng-model="mtc.filters.filter_amount_paid"
+                                       ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.payment_status.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Status</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_payment_status" ng-change="mtc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="mtc.filters.filter_payment_status"
+                                        ng-change="mtc.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="success">Success</option>
                                     <option value="failed">Failed</option>
@@ -141,7 +166,9 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Mode</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_payment_mode" ng-change="mtc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="mtc.filters.filter_payment_mode"
+                                        ng-change="mtc.applyFilters()">
                                     <option value="">All</option>
                                     <option value="card">Card</option>
                                     <option value="netbanking">Netbanking</option>
@@ -154,13 +181,13 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Channel</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_payment_channel" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_payment_channel">
                             </th>
                             <th ng-show="mtc.visibleColumns.merc_approved.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merc Approved</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_merc_approved" ng-change="mtc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_merc_approved">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -170,55 +197,55 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Currency Code</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_currency_code" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_currency_code">
                             </th>
                             <th ng-show="mtc.visibleColumns.bank_reference_number.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Bank Reference Number</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_bank_reference_number" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_bank_reference_number">
                             </th>
                             <th ng-show="mtc.visibleColumns.acq_payment_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Payment Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_payment_id" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_payment_id">
                             </th>
                             <th ng-show="mtc.visibleColumns.acq_transaction_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Transaction Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_transaction_id" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_transaction_id">
                             </th>
                             <th ng-show="mtc.visibleColumns.provider_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Provider Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_provider_name" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_provider_name">
                             </th>
                             <th ng-show="mtc.visibleColumns.account_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Account ID</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_account_id" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_account_id">
                             </th>
                             <th ng-show="mtc.visibleColumns.tdr_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_amount" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_amount">
                             </th>
                             <th ng-show="mtc.visibleColumns.is_updated_by_recon.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Is Updated By Recon</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_is_updated_by_recon" ng-change="mtc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_is_updated_by_recon">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -228,49 +255,49 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_merchant" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_merchant">
                             </th>
                             <th ng-show="mtc.visibleColumns.tdr_amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_customer" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_customer">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_merchant.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Paid By Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_merchant" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_merchant">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Paid By Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_customer" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_customer">
                             </th>
                             <th ng-show="mtc.visibleColumns.net_settlements_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Net Settlements Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount">
                             </th>
                             <th ng-show="mtc.visibleColumns.card_holder_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Holder Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_holder_name" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_holder_name">
                             </th>
                             <th ng-show="mtc.visibleColumns.card_number.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Number</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_number" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_number">
                             </th>
                             <th ng-show="mtc.visibleColumns.customer_ip_address.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Customer IP Address</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_customer_ip_address" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_customer_ip_address">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf1.visible">
                                 <div class="d-flex align-items-center gap-2">
@@ -315,7 +342,7 @@
                         <tr ng-if="mtc.transactions.length === 0">
                             <td colspan="35" class="text-center text-danger py-4">No matching records found</td>
                         </tr>
-                        <tr ng-repeat="transaction in mtc.transactions track by $index">
+                        <tr ng-repeat="transaction in mtc.transactions | filter:mtc.dateMatches track by $index">
                             <td ng-show="mtc.visibleColumns.transaction_initiation_time.visible">@{{ transaction.transaction_initiation_time }}</td>
                             <td ng-show="mtc.visibleColumns.transaction_sequence_id.visible">@{{ transaction.transaction_sequence_id }}</td>
                             <td ng-show="mtc.visibleColumns.transaction_order_id.visible">@{{ transaction.transaction_order_id }}</td>
@@ -361,7 +388,9 @@
                             <td ng-show="mtc.visibleColumns.udf5.visible">@{{ transaction.udf5 }}</td>
                             <td ng-show="mtc.visibleColumns.upi_id.visible">@{{ transaction.upi_id }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" ng-click="mtc.viewTransaction(transaction)">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        ng-click="mtc.viewTransaction(transaction)"
+                                        title="View full transaction details">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </td>
@@ -373,7 +402,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (mtc.pagination.current_page - 1) * mtc.pagination.per_page + 1 }} to @{{ Math.min(mtc.pagination.current_page * mtc.pagination.per_page, mtc.pagination.total) }} of @{{ mtc.pagination.total }} entries
+                    Showing @{{ mtc.pagination.from || 0 }} to @{{ mtc.pagination.to || 0 }} of @{{ mtc.pagination.total || 0 }} entries
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 
@@ -523,8 +552,12 @@
                             params[key] = vm.filters[key];
                         }
                     });
+
+                    // Let backend ignore date; handle on client so it always works
+                    params.filter_transaction_datetime = '';
+                    params.filter_transaction_initiation_time = '';
                     
-                    console.log('Making API call with params:', params);
+                    console.log('Making API call with params (dates handled client-side):', params);
                     $http.get('/merchant/transactions/data', { params: params }).then(function(response) {
                         console.log('Merchant Transactions API Response:', response.data);
                         console.log('Response pagination:', response.data.pagination);
@@ -533,7 +566,9 @@
                             current_page: response.data.pagination.current_page,
                             last_page: response.data.pagination.last_page,
                             total: response.data.pagination.total,
-                            per_page: response.data.pagination.per_page
+                            per_page: response.data.pagination.per_page,
+                            from: response.data.pagination.from,
+                            to: response.data.pagination.to
                         };
                         vm.loading = false;
                         console.log('Transactions loaded:', vm.transactions.length, 'Total:', vm.pagination.total);
@@ -554,6 +589,55 @@
                 vm.applyFilters = function() {
                     vm.pagination.current_page = 1;
                     vm.loadTransactions();
+                };
+
+                // Client-side date filtering so UI always matches what user picks
+                vm.dateMatches = function(transaction) {
+                    var dtFilter = vm.filters.filter_transaction_datetime;
+                    var initFilter = vm.filters.filter_transaction_initiation_time;
+
+                    // No date filters at all
+                    if (!dtFilter && !initFilter) return true;
+
+                    var dtValue = (transaction.transaction_datetime || '').toString();           // e.g. "17-03-2026 08:05:00"
+                    var initValue = (transaction.transaction_initiation_time || '').toString(); // e.g. "17-03-2026 08:05:00"
+
+                    var dtOk = true;
+                    var initOk = true;
+
+                    // date input model can be a Date object or "yyyy-mm-dd" string,
+                    // while we DISPLAY "dd-mm-yyyy ...". Normalize filter to "dd-mm-yyyy".
+                    function normalizeFilterDate(val) {
+                        if (!val) return '';
+
+                        // If it's a Date object from the date picker
+                        if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
+                            var y = val.getFullYear();
+                            var m = ('0' + (val.getMonth() + 1)).slice(-2);
+                            var d = ('0' + val.getDate()).slice(-2);
+                            // we display dd-mm-yyyy
+                            return d + '-' + m + '-' + y;
+                        }
+
+                        var s = val.toString().trim();
+                        // Already dd-mm-yyyy
+                        if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+                        // yyyy-mm-dd
+                        var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                        if (m) return m[3] + '-' + m[2] + '-' + m[1];
+                        return s;
+                    }
+
+                    var dtFilterNorm = normalizeFilterDate(dtFilter);
+                    var initFilterNorm = normalizeFilterDate(initFilter);
+
+                    if (dtFilterNorm) {
+                        dtOk = dtValue.indexOf(dtFilterNorm) === 0;
+                    }
+                    if (initFilterNorm) {
+                        initOk = initValue.indexOf(initFilterNorm) === 0;
+                    }
+                    return dtOk && initOk;
                 };
 
                 vm.setStatus = function(status) {

@@ -23,6 +23,13 @@
                     internal_notes: '' 
                 };
                 vm.creating = false;
+                vm.updating = false;
+                vm.updateForm = {
+                    id: null,
+                    status: '',
+                    notes: '',
+                    transaction_label: ''
+                };
 
                 vm.load = function(page) {
                     var params = { status: vm.filters.status || '' };
@@ -64,9 +71,16 @@
                             var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             modal.hide();
                             vm.load();
-                            alert('Dispute created successfully!');
+                            if (typeof showToast === 'function') {
+                                showToast('Dispute created successfully!', 'success');
+                            }
                         } else {
-                            alert('Failed to create dispute: ' + (response.data.message || 'Unknown error'));
+                            var msg = 'Failed to create dispute: ' + (response.data.message || 'Unknown error');
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'error');
+                            } else {
+                                console.error(msg);
+                            }
                         }
                     }, function(error) {
                         vm.creating = false;
@@ -80,7 +94,68 @@
                             }
                             errorMsg = errors.join('\n');
                         }
-                        alert(errorMsg);
+                        if (typeof showToast === 'function') {
+                            showToast(errorMsg, 'error');
+                        } else {
+                            console.error(errorMsg);
+                        }
+                    });
+                };
+
+                vm.openUpdateStatus = function(dispute) {
+                    vm.updateForm.id = dispute.id;
+                    vm.updateForm.status = dispute.status;
+                    vm.updateForm.notes = '';
+                    vm.updateForm.transaction_label = dispute.transaction_id || dispute.order_id || ('Dispute #' + dispute.id);
+
+                    var modalEl = document.getElementById('updateDisputeStatusModal');
+                    var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                };
+
+                vm.updateStatus = function() {
+                    if (!vm.updateForm.id || !vm.updateForm.status) {
+                        if (typeof showToast === 'function') {
+                            showToast('Please select a status.', 'error');
+                        }
+                        return;
+                    }
+
+                    vm.updating = true;
+                    var csrf = document.querySelector('meta[name="csrf-token"]').content;
+                    $http.post('/merchant/disputes/' + vm.updateForm.id + '/status', {
+                        status: vm.updateForm.status,
+                        notes: vm.updateForm.notes
+                    }, {
+                        headers: { 'X-CSRF-TOKEN': csrf }
+                    }).then(function(response) {
+                        vm.updating = false;
+                        if (response.data && response.data.success) {
+                            var modalEl = document.getElementById('updateDisputeStatusModal');
+                            var modal = bootstrap.Modal.getInstance(modalEl);
+                            if (modal) modal.hide();
+                            vm.load();
+                            if (typeof showToast === 'function') {
+                                showToast('Dispute status updated successfully.', 'success');
+                            }
+                        } else {
+                            if (typeof showToast === 'function') {
+                                showToast('Failed to update status.', 'error');
+                            } else {
+                                console.error('Failed to update status.');
+                            }
+                        }
+                    }, function(error) {
+                        vm.updating = false;
+                        var msg = 'Failed to update status';
+                        if (error.data && error.data.message) {
+                            msg = error.data.message;
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        } else {
+                            console.error(msg);
+                        }
                     });
                 };
 

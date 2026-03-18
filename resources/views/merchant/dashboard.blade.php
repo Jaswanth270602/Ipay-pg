@@ -59,6 +59,14 @@
         background: linear-gradient(90deg, #7c3aed, #ec4899);
     }
     
+    /* Ensure large numbers don't overflow cards */
+    .stat-card h3.fw-bold {
+        font-size: 24px;
+        line-height: 1.2;
+        word-break: break-word;
+        white-space: normal;
+    }
+
     .stat-card.card-transactions:hover,
     .stat-card.card-volume:hover,
     .stat-card.card-refunds:hover,
@@ -105,6 +113,12 @@
     .quick-action-card small,
     .quick-action-card i {
         color: #ffffff;
+    }
+
+    /* Recent transactions header styling */
+    .recent-transactions-table thead {
+        background: #ffe4e0 !important; /* light brownish red */
+        color: #7c2d12 !important;
     }
 </style>
 @endpush
@@ -248,44 +262,140 @@
     <!-- Recent Transactions -->
     <div class="row mt-4">
         <div class="col-md-12">
-            <div class="stat-card">
+            <div class="stat-card" style="border-radius: 16px; border: 1px solid #e5e7eb;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Transactions</h5>
-                    <a href="{{ route('merchant.transactions.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-clock-history me-2" style="color:#7c2d12;"></i>
+                        Recent Transactions
+                    </h5>
+                    <a href="{{ route('merchant.transactions.index') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
                 </div>
+
                 <div ng-show="dc.loading" class="text-center py-5">
-                    <div class="spinner-violet"></div>
+                    <div class="spinner-violet mb-2"></div>
+                    <p class="text-muted mb-0">Loading your latest payments...</p>
                 </div>
-                <div ng-hide="dc.loading" class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Txn ID</th>
-                                <th>Amount</th>
-                                <th>Method</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr ng-repeat="txn in dc.recentTransactions">
-                                <td><code>@{{ txn.txn_id }}</code></td>
-                                <td><strong>@{{ txn.currency }} @{{ txn.amount | number:2 }}</strong></td>
-                                <td><span class="badge bg-secondary">@{{ txn.payment_method | uppercase }}</span></td>
-                                <td>
-                                    <span class="badge" ng-class="{
-                                        'bg-success': txn.status === 'success',
-                                        'bg-danger': txn.status === 'failed',
-                                        'bg-warning': txn.status === 'pending'
-                                    }">@{{ txn.status | uppercase }}</span>
-                                </td>
-                                <td>@{{ txn.created_at | date:'MMM d, y HH:mm' }}</td>
-                            </tr>
-                            <tr ng-if="dc.recentTransactions.length === 0">
-                                <td colspan="5" class="text-center text-muted py-4">No recent transactions</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div ng-hide="dc.loading">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 recent-transactions-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 28%;">TXN ID</th>
+                                    <th style="width: 18%;">Amount</th>
+                                    <th style="width: 14%;">Method</th>
+                                    <th style="width: 14%;">Status</th>
+                                    <th style="width: 18%;">Date</th>
+                                    <th style="width: 8%; text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="txn in dc.recentTransactions" class="align-middle">
+                                    <td>
+                                        <a href="{{ route('merchant.transactions.index') }}"
+                                           class="text-decoration-none"
+                                           style="color:#e11d48; font-weight:500;">
+                                            @{{ txn.txn_id }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold" style="color:#111827;">
+                                            @{{ txn.currency }} @{{ txn.amount | number:2 }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill"
+                                              style="background:#16a34a; color:#ffffff; min-width:64px;">
+                                            @{{ txn.payment_method | uppercase }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill"
+                                              ng-class="{
+                                                'bg-success': txn.status === 'success',
+                                                'bg-danger': txn.status === 'failed',
+                                                'bg-warning text-dark': txn.status === 'pending'
+                                              }">
+                                            @{{ txn.status | uppercase }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted">
+                                        @{{ txn.created_at | date:'dd-MM-yyyy HH:mm:ss' }}
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                ng-click="dc.viewTransaction(txn)"
+                                                title="View transaction details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr ng-if="dc.recentTransactions.length === 0">
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        No recent transactions
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transaction Details Modal -->
+    <div class="modal fade" id="recentTransactionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" ng-if="dc.selectedTransaction">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-receipt me-2"></i>
+                        Transaction Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Transaction ID</strong>
+                            <div class="text-monospace small text-wrap">@{{ dc.selectedTransaction.txn_id }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Amount</strong>
+                            <div class="fw-semibold">@{{ dc.selectedTransaction.currency }} @{{ dc.selectedTransaction.amount | number:2 }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Method</strong>
+                            <div>
+                                <span class="badge rounded-pill" style="background:#111827; color:#ffffff;">
+                                    @{{ dc.selectedTransaction.payment_method | uppercase }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Status</strong>
+                            <div>
+                                <span class="badge rounded-pill"
+                                      ng-class="{
+                                        'bg-success': dc.selectedTransaction.status === 'success',
+                                        'bg-danger': dc.selectedTransaction.status === 'failed',
+                                        'bg-warning text-dark': dc.selectedTransaction.status === 'pending'
+                                      }">
+                                    @{{ dc.selectedTransaction.status | uppercase }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Date</strong>
+                            <div class="text-muted">@{{ dc.selectedTransaction.created_at | date:'dd-MM-yyyy HH:mm:ss' }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

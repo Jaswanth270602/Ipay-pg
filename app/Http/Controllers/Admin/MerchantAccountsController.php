@@ -54,6 +54,9 @@ class MerchantAccountsController extends Controller
             if ($request->has('filter_id') && $request->get('filter_id')) {
                 $query->where('id', 'like', "%{$request->get('filter_id')}%");
             }
+            if ($request->has('filter_merchant_unique_id') && $request->get('filter_merchant_unique_id')) {
+                $query->where('merchant_unique_id', 'like', "%{$request->get('filter_merchant_unique_id')}%");
+            }
             if ($request->has('filter_name') && $request->get('filter_name')) {
                 $query->where(function($q) use ($request) {
                     $q->where('name', 'like', "%{$request->get('filter_name')}%")
@@ -78,8 +81,21 @@ class MerchantAccountsController extends Controller
             if ($request->has('filter_category') && $request->get('filter_category') !== 'all') {
                 $query->where('merchant_category', $request->get('filter_category'));
             }
+            if ($request->has('filter_acquirer') && $request->get('filter_acquirer')) {
+                $search = $request->get('filter_acquirer');
+                $query->whereHas('acquirerAccount', function ($q) use ($search) {
+                    $q->where('acquirer_name', 'like', "%{$search}%")
+                      ->orWhere('mode', 'like', "%{$search}%");
+                });
+            }
+            // Registration date filter (single date from calendar)
             if ($request->has('filter_registration_date') && $request->get('filter_registration_date')) {
-                $query->whereDate('registration_date', $request->get('filter_registration_date'));
+                try {
+                    $date = \Carbon\Carbon::parse($request->get('filter_registration_date'))->toDateString();
+                    $query->whereDate('registration_date', $date);
+                } catch (\Exception $e) {
+                    // Ignore invalid date
+                }
             }
             if ($request->has('filter_challan_urn') && $request->get('filter_challan_urn')) {
                 $query->where('challan_urn', 'like', "%{$request->get('filter_challan_urn')}%");
@@ -88,7 +104,7 @@ class MerchantAccountsController extends Controller
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
             $sortDirection = $request->get('sort_direction', 'desc');
-            if (in_array($sortBy, ['id', 'name', 'email', 'phone', 'approval_status', 'partner_name', 'organization_name', 'merchant_category', 'registration_date', 'challan_urn'])) {
+            if (in_array($sortBy, ['id', 'merchant_unique_id', 'name', 'email', 'phone', 'approval_status', 'partner_name', 'organization_name', 'merchant_category', 'registration_date', 'challan_urn'])) {
                 $query->orderBy($sortBy, $sortDirection);
             } else {
                 $query->latest();
@@ -106,9 +122,11 @@ class MerchantAccountsController extends Controller
                 'data' => $merchants->items(),
                 'pagination' => [
                     'current_page' => $merchants->currentPage(),
-                    'per_page' => $merchants->perPage(),
+                    'per_page' => $merchants->PerPage(),
                     'total' => $merchants->total(),
                     'last_page' => $merchants->lastPage(),
+                    'from' => $merchants->firstItem(),
+                    'to' => $merchants->lastItem(),
                 ],
             ]);
         } catch (\Exception $e) {

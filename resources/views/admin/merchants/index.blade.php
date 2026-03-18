@@ -20,7 +20,11 @@
     <div class="stat-card mb-4">
         <div class="row g-3 mb-3">
             <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Search merchants..." ng-model="amc.filters.search" ng-change="amc.applyFilters()">
+                <input type="text"
+                       class="form-control"
+                       placeholder="Search by merchant name, email, ID or acquirer type..."
+                       ng-model="amc.filters.search"
+                       ng-change="amc.applyFilters()">
             </div>
             <div class="col-md-3">
                 <select class="form-select" ng-model="amc.filters.status" ng-change="amc.applyFilters()">

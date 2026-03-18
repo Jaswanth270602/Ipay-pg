@@ -68,6 +68,7 @@
                     <th>Currency</th>
                     <th>Status</th>
                     <th>Created At</th>
+                    <th>Action</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -81,6 +82,13 @@
                         <span class="badge" ng-class="{'bg-success': order.status==='completed', 'bg-danger': order.status==='failed', 'bg-warning': order.status==='pending', 'bg-info': order.status==='created', 'bg-secondary': order.status==='cancelled'}">@{{ order.status | uppercase }}</span>
                     </td>
                     <td>@{{ order.created_at | date:'MMM d, y HH:mm' }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                                ng-click="oc.viewOrder(order)"
+                                title="View order details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
                 </tr>
                 <tr ng-if="oc.orders.length===0 && !oc.loading">
                     <td colspan="7" class="text-center text-muted py-4">
@@ -98,6 +106,77 @@
                 <a href="#" class="page-link" ng-if="oc.pagination.current_page > 1" ng-click="oc.loadPage(oc.pagination.current_page - 1)">Previous</a>
                 <a href="#" class="page-link" ng-repeat="page in oc.getPaginationPages() track by page" ng-class="{'active': page === oc.pagination.current_page}" ng-click="oc.loadPage(page)">@{{ page }}</a>
                 <a href="#" class="page-link" ng-if="oc.pagination.current_page < oc.pagination.last_page" ng-click="oc.loadPage(oc.pagination.current_page + 1)">Next</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order details modal -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true" ng-if="oc.selectedOrder">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderDetailsModalLabel">
+                        Order Details – @{{ oc.selectedOrder.order_id }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-2">
+                            <div class="text-uppercase text-muted small">Status</div>
+                            <span class="badge" ng-class="{
+                                'bg-success': oc.selectedOrder.status==='completed',
+                                'bg-danger': oc.selectedOrder.status==='failed',
+                                'bg-warning text-dark': oc.selectedOrder.status==='pending',
+                                'bg-info': oc.selectedOrder.status==='processing',
+                                'bg-secondary': oc.selectedOrder.status==='created'
+                            }">
+                                @{{ oc.selectedOrder.status | uppercase }}
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="text-uppercase text-muted small">Amount</div>
+                            <div class="fw-semibold">
+                                @{{ oc.selectedOrder.currency || 'INR' }} @{{ oc.selectedOrder.amount | number:2 }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="text-uppercase text-muted small">Description</div>
+                            <div>@{{ oc.selectedOrder.description || '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Created At</div>
+                            <div>@{{ oc.selectedOrder.created_at }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Updated At</div>
+                            <div>@{{ oc.selectedOrder.updated_at }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-1" ng-if="oc.selectedOrder.customer_details">
+                        <div class="col-md-12">
+                            <div class="text-uppercase text-muted small">Customer</div>
+                            <div class="fw-semibold">@{{ oc.selectedOrder.customer_details.name || '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="row" ng-if="oc.selectedOrder.customer_details">
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Email</div>
+                            <div class="text-muted">@{{ oc.selectedOrder.customer_details.email || '-' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Phone</div>
+                            <div class="text-muted">@{{ oc.selectedOrder.customer_details.phone || '-' }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

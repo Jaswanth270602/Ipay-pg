@@ -200,12 +200,25 @@
                 <a href="{{ route('contact.page') }}">Contact</a>
             </nav>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('login') }}" class="btn btn-sm site-btn-login">
-                    <i class="bi bi-person-circle me-1"></i> Login
-                </a>
-                <a href="{{ route('signup') }}" class="btn btn-sm site-btn-signup">
-                    Create account
-                </a>
+                @guest
+                    <a href="{{ route('login') }}" class="btn btn-sm site-btn-login">
+                        <i class="bi bi-person-circle me-1"></i> Login
+                    </a>
+                    <a href="{{ route('signup') }}" class="btn btn-sm site-btn-signup">
+                        Create account
+                    </a>
+                @else
+                    @php $user = auth()->user(); @endphp
+                    @if(method_exists($user, 'isAdmin') && $user->isAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-sm site-btn-login">
+                            <i class="bi bi-speedometer2 me-1"></i> Admin Dashboard
+                        </a>
+                    @else
+                        <a href="{{ route('dashboard') }}" class="btn btn-sm site-btn-login">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    @endif
+                @endguest
             </div>
         </div>
     </header>

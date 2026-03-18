@@ -72,10 +72,18 @@
     }
     
     .dashboard-card .card-value {
-        font-size: 32px;
+        font-size: 26px;
         font-weight: 700;
         margin-bottom: 8px;
         line-height: 1.2;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-card .card-value {
+            font-size: 22px;
+        }
     }
     
     .dashboard-card .card-label {

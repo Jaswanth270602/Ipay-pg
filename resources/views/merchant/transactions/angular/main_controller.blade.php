@@ -15,7 +15,22 @@
         vm.loading = false;
         vm.perPage = 10;
         vm.pagination = { current_page: 1, last_page: 1, total: 0, from: 0, to: 0, per_page: 10 };
-        vm.filters = { status: '', payment_method: '', from_date: '', to_date: '', search: '' };
+        vm.filters = {
+            status: '',
+            payment_method: '',
+            from_date: '',
+            to_date: '',
+            search: '',
+            // column filters (match backend expectations)
+            filter_transaction_id: '',
+            filter_order_id: '',
+            filter_payment_status: 'all',
+            filter_amount_paid: '',
+            filter_payment_mode: '',
+            filter_transaction_datetime: '',
+            filter_transaction_initiation_time: '',
+            filter_transaction_sequence_id: ''
+        };
 
         vm.loadTransactions = function() {
             vm.loading = true;
@@ -26,7 +41,16 @@
                 payment_method: vm.filters.payment_method || '',
                 from_date: vm.filters.from_date || '',
                 to_date: vm.filters.to_date || '',
-                search: vm.filters.search || ''
+                search: vm.filters.search || '',
+                filter_transaction_id: vm.filters.filter_transaction_id || '',
+                filter_order_id: vm.filters.filter_order_id || '',
+                filter_payment_status: vm.filters.filter_payment_status || '',
+                filter_amount_paid: vm.filters.filter_amount_paid || '',
+                filter_payment_mode: vm.filters.filter_payment_mode || '',
+                // Let backend ignore date; handle on client so it always works
+                filter_transaction_datetime: '',
+                filter_transaction_initiation_time: '',
+                filter_transaction_sequence_id: vm.filters.filter_transaction_sequence_id || ''
             };
             
             $http.get('/merchant/transactions/data', { params: params }).then(function(response) {
@@ -60,8 +84,71 @@
             }, 300);
         };
 
+        // Client-side date filtering so UI always matches what user types/picks
+        vm.dateMatches = function(transaction) {
+            var dtFilter = vm.filters.filter_transaction_datetime;
+            var initFilter = vm.filters.filter_transaction_initiation_time;
+
+            // No date filters at all
+            if (!dtFilter && !initFilter) return true;
+
+            var dtValue = (transaction.transaction_datetime || '').toString();           // e.g. "17-03-2026 08:05:00"
+            var initValue = (transaction.transaction_initiation_time || '').toString(); // e.g. "17-03-2026 08:05:00"
+
+            var dtOk = true;
+            var initOk = true;
+
+            // date input model can be a Date object or "yyyy-mm-dd" string,
+            // while we DISPLAY "dd-mm-yyyy ...". Normalize filter to "dd-mm-yyyy".
+            function normalizeFilterDate(val) {
+                if (!val) return '';
+
+                // If it's a Date object from the date picker
+                if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
+                    var y = val.getFullYear();
+                    var m = ('0' + (val.getMonth() + 1)).slice(-2);
+                    var d = ('0' + val.getDate()).slice(-2);
+                    // we display dd-mm-yyyy
+                    return d + '-' + m + '-' + y;
+                }
+
+                var s = val.toString().trim();
+                // Already dd-mm-yyyy
+                if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+                // yyyy-mm-dd
+                var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (m) return m[3] + '-' + m[2] + '-' + m[1];
+                return s;
+            }
+
+            var dtFilterNorm = normalizeFilterDate(dtFilter);
+            var initFilterNorm = normalizeFilterDate(initFilter);
+
+            if (dtFilterNorm) {
+                dtOk = dtValue.indexOf(dtFilterNorm) === 0;
+            }
+            if (initFilterNorm) {
+                initOk = initValue.indexOf(initFilterNorm) === 0;
+            }
+            return dtOk && initOk;
+        };
+
         vm.clearFilters = function() {
-            vm.filters = { status: '', payment_method: '', from_date: '', to_date: '', search: '' };
+            vm.filters = {
+                status: '',
+                payment_method: '',
+                from_date: '',
+                to_date: '',
+                search: '',
+                filter_transaction_id: '',
+                filter_order_id: '',
+                filter_payment_status: 'all',
+                filter_amount_paid: '',
+                filter_payment_mode: '',
+                filter_transaction_datetime: '',
+                filter_transaction_initiation_time: '',
+                filter_transaction_sequence_id: ''
+            };
             vm.pagination.current_page = 1;
             vm.loadTransactions();
         };

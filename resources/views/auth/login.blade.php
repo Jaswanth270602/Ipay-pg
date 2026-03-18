@@ -162,6 +162,15 @@
             box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
         }
 
+        .li-primary-btn:disabled,
+        .li-primary-btn[disabled] {
+            background: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.8;
+        }
+
         .li-footer-text {
             font-size: 12px;
             color: var(--li-text-muted);
@@ -289,6 +298,7 @@
                         name="email"
                         value="{{ old('email') }}"
                         placeholder="you@example.com"
+                        maxlength="60"
                         required
                         autofocus
                     >
@@ -302,6 +312,7 @@
                         id="password"
                         name="password"
                         placeholder="Enter your password"
+                        maxlength="50"
                         required
                     >
                 </div>
@@ -314,7 +325,7 @@
                     <a href="#" class="li-link-muted">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="li-primary-btn">
+                <button type="submit" class="li-primary-btn" id="login-submit" disabled>
                     <i class="bi bi-box-arrow-in-right"></i>
                     <span>Sign in</span>
                 </button>
@@ -351,6 +362,110 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (function () {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const submitButton = document.getElementById('login-submit');
+
+            if (!emailInput || !passwordInput || !submitButton) {
+                return;
+            }
+
+            // Client-side max lengths (match backend rules)
+            const MAX_EMAIL = 60;
+            const MAX_PASSWORD = 50;
+
+            // Inline validation messages
+            const emailError = document.createElement('div');
+            emailError.style.color = '#dc2626';
+            emailError.style.fontSize = '12px';
+            emailError.style.marginTop = '4px';
+            emailError.style.display = 'none';
+            emailInput.parentNode.appendChild(emailError);
+
+            const passwordError = document.createElement('div');
+            passwordError.style.color = '#dc2626';
+            passwordError.style.fontSize = '12px';
+            passwordError.style.marginTop = '4px';
+            passwordError.style.display = 'none';
+            passwordInput.parentNode.appendChild(passwordError);
+
+            function validateFields() {
+                let emailVal = emailInput.value;
+                let passwordVal = passwordInput.value;
+
+                // Hard‑enforce max lengths on the client by trimming extra characters
+                if (emailVal.length > MAX_EMAIL) {
+                    emailVal = emailVal.substring(0, MAX_EMAIL);
+                    emailInput.value = emailVal;
+                }
+                if (passwordVal.length > MAX_PASSWORD) {
+                    passwordVal = passwordVal.substring(0, MAX_PASSWORD);
+                    passwordInput.value = passwordVal;
+                }
+
+                emailVal = emailVal.trim();
+                passwordVal = passwordVal.trim();
+
+                let emailOk = emailVal.length > 0;
+                let passwordOk = passwordVal.length > 0;
+
+                if (emailVal.length === MAX_EMAIL) {
+                    emailOk = false;
+                    emailError.textContent = `Email must be at most ${MAX_EMAIL} characters.`;
+                    emailError.style.display = 'block';
+                } else {
+                    emailError.textContent = '';
+                    emailError.style.display = 'none';
+                }
+
+                if (passwordVal.length === MAX_PASSWORD) {
+                    passwordOk = false;
+                    passwordError.textContent = `Password must be at most ${MAX_PASSWORD} characters.`;
+                    passwordError.style.display = 'block';
+                } else {
+                    passwordError.textContent = '';
+                    passwordError.style.display = 'none';
+                }
+
+                submitButton.disabled = !(emailOk && passwordOk);
+            }
+
+            emailInput.addEventListener('input', validateFields);
+            passwordInput.addEventListener('input', validateFields);
+
+            validateFields();
+        })();
+
+        // Simple countdown for lockout message (e.g. "Too many login attempts. Please try again in 39 seconds.")
+        (function () {
+            const errorBox = document.querySelector('.li-error-box');
+            if (!errorBox) return;
+
+            const originalText = errorBox.textContent || '';
+            const match = originalText.match(/(\d+)\s*seconds?/i);
+            if (!match) return;
+
+            let remaining = parseInt(match[1], 10);
+            if (isNaN(remaining) || remaining <= 0) return;
+
+            function updateText() {
+                errorBox.textContent = originalText.replace(/(\d+)\s*seconds?/i, remaining + ' seconds');
+            }
+
+            updateText();
+
+            const timer = setInterval(function () {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    errorBox.textContent = 'You can try signing in again now.';
+                    return;
+                }
+                updateText();
+            }, 1000);
+        })();
+
         function liToggleAccordion(header) {
             const content = header.nextElementSibling;
             const isActive = header.classList.contains('active');

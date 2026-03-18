@@ -140,12 +140,19 @@ class DisputesController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:open,needs_evidence,won,lost,closed',
+            // Allow both merchant-facing and internal/admin statuses
+            'status' => 'required|in:action_required,under_review,insufficient_evidence,won,lost,closed,open,needs_evidence',
             'evidence_url' => 'nullable|url',
             'notes' => 'nullable|string',
         ]);
 
-        $dispute = Dispute::findOrFail($id);
+        // If this is called from merchant area, restrict to that merchant's disputes
+        $merchant = $request->user()->merchant ?? null;
+        $disputeQuery = Dispute::query();
+        if ($merchant) {
+            $disputeQuery->where('merchant_id', $merchant->id);
+        }
+        $dispute = $disputeQuery->findOrFail($id);
         $dispute->fill($validated);
         $dispute->save();
 

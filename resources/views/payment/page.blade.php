@@ -362,15 +362,18 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Full Name *</label>
-                            <input type="text" class="form-control" id="customerName" placeholder="John Doe" required>
+                            <input type="text" class="form-control" id="customerName" placeholder="John Doe" maxlength="50" required>
+                            <div id="customerNameError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="customerEmail" placeholder="john@example.com" required>
+                            <input type="email" class="form-control" id="customerEmail" placeholder="john@example.com" maxlength="80" required>
+                            <div id="customerEmailError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Phone *</label>
-                            <input type="tel" class="form-control" id="customerPhone" placeholder="9876543210" maxlength="10" required>
+                            <input type="tel" class="form-control" id="customerPhone" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" required>
+                            <div id="customerPhoneError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                         </div>
                     </div>
                 </div>
@@ -422,6 +425,7 @@
                             <input type="password" class="form-control" id="cvv" placeholder="123" maxlength="3">
                         </div>
                     </div>
+                    <div id="cardError" style="display:none;color:#dc2626;font-size:12px;margin-top:8px;"></div>
                 </div>
 
                 <!-- UPI Form -->
@@ -520,36 +524,160 @@
             validateForm();
         });
 
+        // Track which fields the user has interacted with (to avoid showing errors on first load)
+        const fieldTouched = {
+            customerName: false,
+            customerEmail: false,
+            customerPhone: false,
+            card: false,
+        };
+
         // Real-time validation for all inputs
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => {
             input.addEventListener('input', validateForm);
             input.addEventListener('change', validateForm);
+
+            input.addEventListener('blur', () => {
+                if (input.id === 'customerName') fieldTouched.customerName = true;
+                if (input.id === 'customerEmail') fieldTouched.customerEmail = true;
+                if (input.id === 'customerPhone') fieldTouched.customerPhone = true;
+                if (['cardNumber', 'cardHolder', 'expiryMonth', 'expiryYear', 'cvv'].includes(input.id)) {
+                    fieldTouched.card = true;
+                }
+                validateForm();
+            });
         });
+
+        function validateCardDetails() {
+            const numberEl = document.getElementById('cardNumber');
+            const holderEl = document.getElementById('cardHolder');
+            const monthEl = document.getElementById('expiryMonth');
+            const yearEl = document.getElementById('expiryYear');
+            const cvvEl = document.getElementById('cvv');
+            const errorEl = document.getElementById('cardError');
+
+            if (!numberEl || !holderEl || !monthEl || !yearEl || !cvvEl || !errorEl) {
+                return false;
+            }
+
+            const digits = numberEl.value.replace(/\s/g, '');
+            const holder = holderEl.value.trim();
+            const month = monthEl.value.trim();
+            const year = yearEl.value.trim();
+            const cvv = cvvEl.value.trim();
+            const errors = [];
+
+            if (!/^\d{16}$/.test(digits)) {
+                errors.push('Enter a valid 16-digit card number.');
+            }
+
+            if (!holder) {
+                errors.push('Card holder name is required.');
+            }
+
+            const monthNum = parseInt(month, 10);
+            if (!month || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+                errors.push('Enter a valid expiry month (01-12).');
+            }
+
+            const yearNum = parseInt(year, 10);
+            const currentYear = new Date().getFullYear();
+            if (!year || isNaN(yearNum) || year.length !== 4 || yearNum < currentYear || yearNum > currentYear + 25) {
+                errors.push('Enter a valid expiry year.');
+            }
+
+            if (!/^\d{3}$/.test(cvv)) {
+                errors.push('Enter a valid 3-digit CVV.');
+            }
+
+            if (errors.length > 0) {
+                if (errorEl) {
+                    errorEl.style.display = 'block';
+                    errorEl.textContent = errors[0];
+                }
+                return false;
+            }
+
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+            }
+            return true;
+        }
 
         // Form validation
         function validateForm() {
-            const name = document.getElementById('customerName').value.trim();
-            const email = document.getElementById('customerEmail').value.trim();
-            const phone = document.getElementById('customerPhone').value.trim();
+            const nameEl = document.getElementById('customerName');
+            const emailEl = document.getElementById('customerEmail');
+            const phoneEl = document.getElementById('customerPhone');
+            const name = nameEl.value.trim();
+            const email = emailEl.value.trim();
+            const phone = phoneEl.value.trim();
+
+            const nameErrorEl = document.getElementById('customerNameError');
+            const emailErrorEl = document.getElementById('customerEmailError');
+            const phoneErrorEl = document.getElementById('customerPhoneError');
+
+            if (nameErrorEl) { nameErrorEl.style.display = 'none'; nameErrorEl.textContent = ''; }
+            if (emailErrorEl) { emailErrorEl.style.display = 'none'; emailErrorEl.textContent = ''; }
+            if (phoneErrorEl) { phoneErrorEl.style.display = 'none'; phoneErrorEl.textContent = ''; }
             
-            if (!name || !email || !phone || phone.length !== 10) {
+            let hasError = false;
+
+            if (!name) {
+                if (fieldTouched.customerName && nameErrorEl) {
+                    nameErrorEl.style.display = 'block';
+                    nameErrorEl.textContent = 'Full name is required.';
+                }
+                hasError = true;
+            } else if (name.length > 50) {
+                if (fieldTouched.customerName && nameErrorEl) {
+                    nameErrorEl.style.display = 'block';
+                    nameErrorEl.textContent = 'Full name must be at most 50 characters.';
+                }
+                hasError = true;
+            }
+
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email) {
+                if (fieldTouched.customerEmail && emailErrorEl) {
+                    emailErrorEl.style.display = 'block';
+                    emailErrorEl.textContent = 'Email is required.';
+                }
+                hasError = true;
+            } else if (!emailPattern.test(email)) {
+                if (fieldTouched.customerEmail && emailErrorEl) {
+                    emailErrorEl.style.display = 'block';
+                    emailErrorEl.textContent = 'Enter a valid email address.';
+                }
+                hasError = true;
+            }
+
+            if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+                if (fieldTouched.customerPhone && phoneErrorEl) {
+                    phoneErrorEl.style.display = 'block';
+                    phoneErrorEl.textContent = 'Enter a valid 10-digit phone number.';
+                }
+                hasError = true;
+            }
+            
+            if (hasError) {
                 payButton.disabled = true;
-                payButtonText.textContent = 'Enter customer details';
+                payButtonText.textContent = 'Enter valid customer details';
                 return false;
             }
 
             let methodValid = false;
             
             if (selectedMethod === 'card') {
-                const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
-                const cardHolder = document.getElementById('cardHolder').value.trim();
-                const month = document.getElementById('expiryMonth').value.trim();
-                const year = document.getElementById('expiryYear').value.trim();
-                const cvv = document.getElementById('cvv').value.trim();
-                
-                methodValid = cardNumber.length >= 15 && cardHolder && 
-                             month && year && cvv.length === 3;
+                methodValid = validateCardDetails();
+                // Fallback: if still invalid and no specific message, show a generic one
+                const cardErrorEl = document.getElementById('cardError');
+                if (!methodValid && cardErrorEl && !cardErrorEl.textContent) {
+                    cardErrorEl.style.display = 'block';
+                    cardErrorEl.textContent = 'Please enter valid card details.';
+                }
             } else if (selectedMethod === 'upi') {
                 const upiId = document.getElementById('upiId').value.trim();
                 const upiApp = document.getElementById('upiApp').value;

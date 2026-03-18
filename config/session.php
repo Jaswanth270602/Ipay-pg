@@ -5,7 +5,9 @@ use Illuminate\Support\Str;
 return [
 
     'driver' => env('SESSION_DRIVER', 'file'),
-    'lifetime' => env('SESSION_LIFETIME', 120),
+    // Idle timeout (in minutes) before user is logged out.
+    // Set default to 15 so admin/merchant sessions auto-logout after 15 minutes of inactivity.
+    'lifetime' => env('SESSION_LIFETIME', 15),
     'expire_on_close' => false,
     'encrypt' => false,
     'files' => storage_path('framework/sessions'),

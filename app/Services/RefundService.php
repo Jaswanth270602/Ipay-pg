@@ -49,6 +49,24 @@ class RefundService
                 'is_partial' => $amount < $transaction->amount,
             ]);
 
+            // In TEST mode or when gateway is not live, simulate refund without calling production provider
+            $gatewayIsLive = \App\Services\GatewayModeService::isLive();
+            if ($transaction->test_mode || !$gatewayIsLive) {
+                $refund->update([
+                    'status' => 'completed',
+                    'gateway_response' => [
+                        'success' => true,
+                        'mode' => 'test',
+                        'message' => 'Simulated refund completed in test mode.',
+                    ],
+                    'processed_at' => now(),
+                ]);
+
+                event(new RefundCreated($refund));
+
+                return $refund;
+            }
+
             // Process refund through bank provider
             try {
                 $result = $this->bankProvider->processRefund(

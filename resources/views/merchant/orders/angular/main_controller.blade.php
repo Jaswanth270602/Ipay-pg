@@ -96,6 +96,19 @@
             window.location.href = '/merchant/orders/export?' + queryString;
         };
 
+        vm.selectedOrder = null;
+
+        vm.viewOrder = function(order) {
+            if (!order) return;
+            vm.selectedOrder = order;
+
+            var modalEl = document.getElementById('orderDetailsModal');
+            if (modalEl && window.bootstrap) {
+                var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+        };
+
         vm.loadOrders();
             }]);
         } catch(e) {

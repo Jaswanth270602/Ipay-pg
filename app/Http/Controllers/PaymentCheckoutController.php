@@ -207,8 +207,10 @@ class PaymentCheckoutController extends Controller
                 'amount' => 'nullable|numeric|min:0.01', // Optional custom amount for partial payment
             ]);
             
-            // Additional validation for payment_details when required
-            if ($paymentDetailsRequired) {
+            // Additional validation for payment_details
+            // 1) When a live gateway (e.g. Cashfree) requires full card details
+            // 2) When in internal/simulated mode but card details are still provided (to prevent obviously invalid test data)
+            if ($request->payment_method === 'card' && ($paymentDetailsRequired || $request->filled('payment_details'))) {
                 if (!$request->has('payment_details') || empty($request->payment_details)) {
                     return response()->json([
                         'success' => false,
@@ -216,26 +218,26 @@ class PaymentCheckoutController extends Controller
                         'errors' => ['payment_details' => ['Card details are required']],
                     ], 422);
                 }
-                
+
                 // Sanitize payment details before validation
                 $paymentDetails = $request->payment_details;
-                
+
                 // Remove spaces and non-numeric characters from card number
                 if (isset($paymentDetails['card_number'])) {
                     $paymentDetails['card_number'] = preg_replace('/[^0-9]/', '', $paymentDetails['card_number']);
                 }
-                
+
                 // Remove non-numeric characters from CVV
                 if (isset($paymentDetails['cvv'])) {
                     $paymentDetails['cvv'] = preg_replace('/[^0-9]/', '', $paymentDetails['cvv']);
                 }
-                
+
                 // Ensure expiry month is 2 digits
                 if (isset($paymentDetails['expiry_month'])) {
                     $paymentDetails['expiry_month'] = str_pad(preg_replace('/[^0-9]/', '', $paymentDetails['expiry_month']), 2, '0', STR_PAD_LEFT);
                 }
-                
-                // Ensure expiry year is 4 digits
+
+                // Ensure expiry year is 4 digits and normalised to YYYY
                 if (isset($paymentDetails['expiry_year'])) {
                     $expiryYear = preg_replace('/[^0-9]/', '', $paymentDetails['expiry_year']);
                     if (strlen($expiryYear) == 2) {
@@ -243,26 +245,26 @@ class PaymentCheckoutController extends Controller
                     }
                     $paymentDetails['expiry_year'] = $expiryYear;
                 }
-                
+
                 // Trim card holder name
                 if (isset($paymentDetails['card_holder'])) {
                     $paymentDetails['card_holder'] = trim($paymentDetails['card_holder']);
                 }
-                
+
                 $paymentDetailsValidator = Validator::make($paymentDetails, [
-                    'card_number' => ['required', 'string', 'regex:/^[0-9]{13,19}$/'],
-                    'cvv' => ['required', 'string', 'regex:/^[0-9]{3,4}$/'],
+                    'card_number' => ['required', 'string', 'regex:/^[0-9]{16}$/'],
+                    'cvv' => ['required', 'string', 'regex:/^[0-9]{3}$/'],
                     'expiry_month' => ['required', 'string', 'regex:/^(0[1-9]|1[0-2])$/'],
                     'expiry_year' => ['required', 'string', 'regex:/^[0-9]{4}$/'],
                     'card_holder' => ['required', 'string', 'max:255'],
                 ]);
-                
+
                 if ($paymentDetailsValidator->fails()) {
                     $errorMessages = [];
                     foreach ($paymentDetailsValidator->errors()->all() as $error) {
                         $errorMessages[] = $error;
                     }
-                    
+
                     return response()->json([
                         'success' => false,
                         'message' => 'Card details validation failed: ' . implode(', ', $errorMessages),

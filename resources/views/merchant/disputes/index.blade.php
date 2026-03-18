@@ -20,7 +20,10 @@
                 </select>
             </div>
             <div class="col-md-8 d-flex align-items-end justify-content-end">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDisputeModal">
+                <button class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#newDisputeModal"
+                        title="Create a new dispute for a transaction or order">
                     <i class="bi bi-plus-lg"></i> New Dispute
                 </button>
             </div>
@@ -38,6 +41,7 @@
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Created</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,19 +51,77 @@
                         <td>@{{ d.reason_formatted || d.reason }}</td>
                         <td><strong>@{{ d.currency || 'INR' }} @{{ d.amount || 0 | number:2 }}</strong></td>
                         <td>
-                            <span class="badge" ng-class="{
+                            <span class="badge"
+                                  ng-class="{
                                 'bg-info': d.status === 'action_required',
                                 'bg-primary': d.status === 'under_review',
                                 'bg-warning text-dark': d.status === 'insufficient_evidence',
                                 'bg-success': d.status === 'won',
                                 'bg-danger': d.status === 'lost',
                                 'bg-secondary': d.status === 'closed'
-                            }" ng-bind="d.status_formatted || d.status"></span>
+                            }"
+                                  ng-attr-title="@{{ d.status_formatted || d.status }}"
+                                  ng-bind="d.status_formatted || d.status"></span>
                         </td>
                         <td>@{{ d.created_at | date:'MMM d, y HH:mm' }}</td>
+                        <td>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    ng-click="mdc.openUpdateStatus(d)"
+                                    title="Update dispute status and add notes">
+                                Update
+                            </button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="updateDisputeStatusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Dispute Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        <strong>Transaction:</strong>
+                        <span>@{{ mdc.updateForm.transaction_label }}</span>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" ng-model="mdc.updateForm.status">
+                            <option value="action_required">Action Required</option>
+                            <option value="under_review">Under Review</option>
+                            <option value="insufficient_evidence">Insufficient Evidence</option>
+                            <option value="won">Won</option>
+                            <option value="lost">Lost</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes (optional)</label>
+                        <textarea class="form-control"
+                                  rows="3"
+                                  ng-model="mdc.updateForm.notes"
+                                  placeholder="Add any remarks about this status change"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button"
+                            class="btn btn-primary"
+                            ng-click="mdc.updateStatus()"
+                            ng-disabled="mdc.updating">
+                        <span ng-if="mdc.updating" class="spinner-border spinner-border-sm me-1"></span>
+                        <span ng-if="!mdc.updating">Update</span>
+                        <span ng-if="mdc.updating">Updating...</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -87,16 +87,20 @@ use App\Http\Controllers\CashFreeWebhookController;
 Route::post('/webhooks/cashfree/{token}', [CashFreeWebhookController::class, 'handleWebhook'])->name('webhooks.cashfree');
 Route::post('/pay/{token}/verify-cashfree', [CashFreeWebhookController::class, 'verifyOrder'])->name('payment.verify.cashfree');
 
-// Authentication routes
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-// Public merchant signup
+// Authentication routes (only for guests)
 Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+
+    // Public merchant signup
     Route::get('/signup', [RegistrationController::class, 'showSignup'])->name('signup');
     Route::post('/signup', [RegistrationController::class, 'register'])->name('signup.post');
 });
+
+// Logout route (only when authenticated)
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
@@ -209,6 +213,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.disputes.data');
         Route::post('/disputes', [DisputesController::class, 'store'])
             ->name('merchant.disputes.store');
+        Route::post('/disputes/{id}/status', [DisputesController::class, 'updateStatus'])
+            ->name('merchant.disputes.update-status');
 
         // API Keys
         Route::get('/api-keys', [ApiKeysController::class, 'index'])->name('merchant.api_keys.index');

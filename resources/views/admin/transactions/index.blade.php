@@ -124,7 +124,9 @@
                                 <small class="text-muted">@{{ t.created_at | date:'HH:mm:ss' }}</small>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" ng-click="atc.viewDetails(t)" title="View Details">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        ng-click="atc.viewDetails(t)"
+                                        title="View transaction details">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </td>

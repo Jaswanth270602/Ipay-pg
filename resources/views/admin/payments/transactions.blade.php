@@ -99,56 +99,82 @@
                                     <span>Merchant Id</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="atc.sortBy('merchant_id')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_merchant_id" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_merchant_id">
                             </th>
                             <th ng-show="atc.visibleColumns.transaction_initiation_time.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Initiation Time</span>
                                     <i class="bi bi-arrow-up-down" style="cursor: pointer;" ng-click="atc.sortBy('created_at')"></i>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_transaction_initiation_time" ng-change="atc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="atc.filters.filter_transaction_initiation_time"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.merchant_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merchant Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_merchant_name" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_merchant_name">
                             </th>
                             <th ng-show="atc.visibleColumns.transaction_sequence_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Sequence Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_transaction_sequence_id" ng-change="atc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="atc.filters.filter_transaction_sequence_id"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.transaction_order_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Order Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_order_id" ng-change="atc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="atc.filters.filter_order_id"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.transaction_datetime.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction DateTime</span>
                                 </div>
-                                <input type="date" class="form-control form-control-sm mt-1" ng-model="atc.filters.filter_transaction_datetime" ng-change="atc.applyFilters()">
+                                <input type="date"
+                                       class="form-control form-control-sm mt-1"
+                                       ng-model="atc.filters.filter_transaction_datetime"
+                                       ng-blur="atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.transaction_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Transaction Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_transaction_id" ng-change="atc.applyFilters()">
+                                <input type="text"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Filter..."
+                                       ng-model="atc.filters.filter_transaction_id"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Amount Paid By Customer</span>
                                 </div>
-                                <input type="number" step="0.01" class="form-control form-control-sm mt-1" placeholder="Amount..." ng-model="atc.filters.filter_amount_paid" ng-change="atc.applyFilters()">
+                                <input type="number"
+                                       step="0.01"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Amount..."
+                                       ng-model="atc.filters.filter_amount_paid"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.payment_status.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Status</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_payment_status" ng-change="atc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="atc.filters.filter_payment_status"
+                                        ng-change="atc.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="success">Success</option>
                                     <option value="failed">Failed</option>
@@ -159,7 +185,9 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Mode</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_payment_mode" ng-change="atc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="atc.filters.filter_payment_mode"
+                                        ng-change="atc.applyFilters()">
                                     <option value="">All</option>
                                     <option value="card">Card</option>
                                     <option value="netbanking">Netbanking</option>
@@ -172,13 +200,13 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Channel</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_payment_channel" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_payment_channel">
                             </th>
                             <th ng-show="atc.visibleColumns.merc_approved.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merc Approved</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_merc_approved" ng-change="atc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_merc_approved">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -188,55 +216,55 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Currency Code</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_currency_code" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_currency_code">
                             </th>
                             <th ng-show="atc.visibleColumns.bank_reference_number.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Bank Reference Number</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_bank_reference_number" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_bank_reference_number">
                             </th>
                             <th ng-show="atc.visibleColumns.acq_payment_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Payment Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_acq_payment_id" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_acq_payment_id">
                             </th>
                             <th ng-show="atc.visibleColumns.acq_transaction_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Transaction Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_acq_transaction_id" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_acq_transaction_id">
                             </th>
                             <th ng-show="atc.visibleColumns.provider_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Provider Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_provider_name" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_provider_name">
                             </th>
                             <th ng-show="atc.visibleColumns.account_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Account ID</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_account_id" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_account_id">
                             </th>
                             <th ng-show="atc.visibleColumns.tdr_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount">
                             </th>
                             <th ng-show="atc.visibleColumns.gst_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_amount" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_amount">
                             </th>
                             <th ng-show="atc.visibleColumns.is_updated_by_recon.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Is Updated By Recon</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_is_updated_by_recon" ng-change="atc.applyFilters()">
+                                <select class="form-select form-select-sm mt-1" ng-model="atc.filters.filter_is_updated_by_recon">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -246,37 +274,37 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount_paid_by_merchant" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount_paid_by_merchant">
                             </th>
                             <th ng-show="atc.visibleColumns.tdr_amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount_paid_by_customer" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_tdr_amount_paid_by_customer">
                             </th>
                             <th ng-show="atc.visibleColumns.gst_paid_by_merchant.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Paid By Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_merchant" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_merchant">
                             </th>
                             <th ng-show="atc.visibleColumns.gst_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>GST Paid By Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_customer" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_customer">
                             </th>
                             <th ng-show="atc.visibleColumns.net_settlements_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Net Settlements Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_net_settlements_amount" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_net_settlements_amount">
                             </th>
                             <th ng-show="atc.visibleColumns.card_holder_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Holder Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_card_holder_name" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_card_holder_name">
                             </th>
                             <th ng-show="atc.visibleColumns.card_number.visible">
                                 <div class="d-flex align-items-center gap-2">
@@ -381,7 +409,9 @@
                             <td ng-show="atc.visibleColumns.udf5.visible">@{{ transaction.udf5 }}</td>
                             <td ng-show="atc.visibleColumns.upi_id.visible">@{{ transaction.upi_id }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" ng-click="atc.viewTransaction(transaction)">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        ng-click="atc.viewTransaction(transaction)"
+                                        title="View full transaction details">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </td>
@@ -393,7 +423,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (atc.pagination.current_page - 1) * atc.pagination.per_page + 1 }} to @{{ Math.min(atc.pagination.current_page * atc.pagination.per_page, atc.pagination.total) }} of @{{ atc.pagination.total }} entries
+                    Showing @{{ atc.pagination.from || 0 }} to @{{ atc.pagination.to || 0 }} of @{{ atc.pagination.total || 0 }} entries
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 
@@ -490,7 +520,7 @@
             app.controller('AdminPaymentsTransactionsController', ['$http', function($http) {
                 var vm = this;
                 vm.transactions = [];
-                vm.pagination = { current_page: 1, per_page: 10, total: 0, last_page: 1 };
+                vm.pagination = { current_page: 1, per_page: 10, total: 0, last_page: 1, from: 0, to: 0 };
                 vm.filters = { status: '' }; // Empty = no filter, show all
                 vm.loading = false;
                 vm.sortColumn = 'id';
@@ -559,7 +589,9 @@
                             current_page: response.data.pagination.current_page,
                             last_page: response.data.pagination.last_page,
                             total: response.data.pagination.total,
-                            per_page: response.data.pagination.per_page
+                            per_page: response.data.pagination.per_page,
+                            from: response.data.pagination.from || 0,
+                            to: response.data.pagination.to || 0
                         };
                         vm.loading = false;
                         console.log('Transactions loaded:', vm.transactions.length, 'Total:', vm.pagination.total);

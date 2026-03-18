@@ -34,19 +34,61 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Merchant Name</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.name" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="250"
+                                   placeholder="Max 250 characters"
+                                   ng-class="{'is-invalid': amac.formErrors.name}"
+                                   ng-model="amac.merchantForm.name"
+                                   ng-change="amac.enforceMaxLength('name', 250)"
+                                   ng-blur="amac.validateMerchantName()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.name">
+                                <span ng-repeat="msg in amac.formErrors.name">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Merchant Legal Name</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.legal_name" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="250"
+                                   placeholder="Max 250 characters"
+                                   ng-class="{'is-invalid': amac.formErrors.legal_name}"
+                                   ng-model="amac.merchantForm.legal_name"
+                                   ng-change="amac.enforceMaxLength('legal_name', 250)"
+                                   ng-blur="amac.validateLegalName()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.legal_name">
+                                <span ng-repeat="msg in amac.formErrors.legal_name">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Merchant Email</label>
-                            <input type="email" class="form-control" ng-model="amac.merchantForm.email" required>
+                            <input type="email"
+                                   class="form-control"
+                                   maxlength="120"
+                                   placeholder="Enter valid email address"
+                                   ng-class="{'is-invalid': amac.formErrors.email}"
+                                   ng-model="amac.merchantForm.email"
+                                   ng-blur="amac.validateMerchantEmail()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.email">
+                                <span ng-repeat="msg in amac.formErrors.email">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Merchant Phone</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.phone" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="10"
+                                   placeholder="10 digit mobile number"
+                                   ng-class="{'is-invalid': amac.formErrors.phone}"
+                                   ng-model="amac.merchantForm.phone"
+                                   ng-blur="amac.validateMerchantPhone()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.phone">
+                                <span ng-repeat="msg in amac.formErrors.phone">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Acquirer</label>
@@ -101,7 +143,17 @@
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">* Address Line 1</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.address_line_1" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="250"
+                                   ng-class="{'is-invalid': amac.formErrors.address_line_1}"
+                                   ng-model="amac.merchantForm.address_line_1"
+                                   ng-change="amac.enforceMaxLength('address_line_1', 250)"
+                                   ng-blur="amac.validateAddress1()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.address_line_1">
+                                <span ng-repeat="msg in amac.formErrors.address_line_1">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Address Line 2</label>
@@ -132,7 +184,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Zip Code</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.business_postal_code" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="6"
+                                   ng-model="amac.merchantForm.business_postal_code"
+                                   required>
                         </div>
                     </div>
 
@@ -164,11 +220,28 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">* Contact Name</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.contact_name" required>
+                            <input type="text"
+                                   class="form-control"
+                                   ng-class="{'is-invalid': amac.formErrors.contact_name}"
+                                   ng-model="amac.merchantForm.contact_name"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.contact_name">
+                                <span ng-repeat="msg in amac.formErrors.contact_name">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Contact Mobile</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.contact_mobile" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="10"
+                                   placeholder="10 digit mobile number"
+                                   ng-class="{'is-invalid': amac.formErrors.contact_mobile}"
+                                   ng-model="amac.merchantForm.contact_mobile"
+                                   ng-blur="amac.validateContactMobile()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.contact_mobile">
+                                <span ng-repeat="msg in amac.formErrors.contact_mobile">@{{ msg }}<br></span>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Contact Landline</label>
@@ -176,7 +249,17 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Contact Email</label>
-                            <input type="email" class="form-control" ng-model="amac.merchantForm.contact_email" required>
+                            <input type="email"
+                                   class="form-control"
+                                   maxlength="120"
+                                   placeholder="Enter valid email address"
+                                   ng-class="{'is-invalid': amac.formErrors.contact_email}"
+                                   ng-model="amac.merchantForm.contact_email"
+                                   ng-blur="amac.validateContactEmail()"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.contact_email">
+                                <span ng-repeat="msg in amac.formErrors.contact_email">@{{ msg }}<br></span>
+                            </div>
                         </div>
                     </div>
 
@@ -195,7 +278,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Bank Account Number</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.bank_account_number" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="20"
+                                   ng-model="amac.merchantForm.bank_account_number"
+                                   required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Bank Name</label>
@@ -215,7 +302,16 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* IFSC Code</label>
-                            <input type="text" class="form-control" ng-model="amac.merchantForm.bank_ifsc_code" required>
+                            <input type="text"
+                                   class="form-control"
+                                   maxlength="11"
+                                   placeholder="Ex: HDFC0123456"
+                                   ng-class="{'is-invalid': amac.formErrors.bank_ifsc_code}"
+                                   ng-model="amac.merchantForm.bank_ifsc_code"
+                                   required>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.bank_ifsc_code">
+                                <span ng-repeat="msg in amac.formErrors.bank_ifsc_code">@{{ msg }}<br></span>
+                            </div>
                         </div>
                     </div>
 

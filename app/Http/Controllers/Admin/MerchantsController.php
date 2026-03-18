@@ -35,7 +35,7 @@ class MerchantsController extends Controller
             $status = $request->get('status');
             $search = $request->get('search');
 
-            $query = Merchant::latest();
+            $query = Merchant::with('acquirerAccount')->latest();
 
             // Filter by test_mode based on admin view mode
             // When in live mode, only show merchants with test_mode = false
@@ -50,7 +50,12 @@ class MerchantsController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('id', 'like', "%{$search}%");
+                      ->orWhere('id', 'like', "%{$search}%")
+                      // Search by assigned acquirer type/name as well
+                      ->orWhereHas('acquirerAccount', function ($aq) use ($search) {
+                          $aq->where('acquirer_name', 'like', "%{$search}%")
+                             ->orWhere('mode', 'like', "%{$search}%");
+                      });
                 });
             }
 

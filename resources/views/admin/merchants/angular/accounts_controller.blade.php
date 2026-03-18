@@ -13,11 +13,12 @@
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
                 vm.merchants = [];
-                vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
+                vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1, from: 0, to: 0 };
                 vm.filters = {
                     approval_status: 'all',
                     merchant_type: 'all',
                     filter_id: '',
+                    filter_merchant_unique_id: '',
                     filter_name: '',
                     filter_email: '',
                     filter_phone: '',
@@ -25,6 +26,7 @@
                     filter_partner: '',
                     filter_organization: '',
                     filter_category: 'all',
+                    filter_acquirer: '',
                     filter_registration_date: '',
                     filter_challan_urn: ''
                 };
@@ -53,6 +55,132 @@
 
                 vm.acquirers = [];
                 vm.editingMerchantId = null;
+                vm.formErrors = {};
+
+                // Generic max-length enforcer for text fields
+                vm.enforceMaxLength = function(field, max) {
+                    if (!vm.merchantForm || !field || !max) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    if (current.length > max) {
+                        vm.merchantForm[field] = current.substring(0, max);
+                    }
+                };
+
+                // Per-field validation helpers (used on blur)
+                vm.validateMerchantName = function () {
+                    vm.formErrors.name = [];
+                    var value = (vm.merchantForm.name || '').toString();
+                    if (!value.trim()) {
+                        vm.formErrors.name.push('Merchant name is required.');
+                    } else if (value.length >= 250) {
+                        vm.formErrors.name.push('Merchant name cannot exceed 250 characters.');
+                    }
+                    if (vm.formErrors.name.length === 0) {
+                        delete vm.formErrors.name;
+                    }
+                };
+
+                vm.validateLegalName = function () {
+                    vm.formErrors.legal_name = [];
+                    var value = (vm.merchantForm.legal_name || '').toString();
+                    if (!value.trim()) {
+                        vm.formErrors.legal_name.push('Merchant legal name is required.');
+                    } else if (value.length >= 250) {
+                        vm.formErrors.legal_name.push('Merchant legal name cannot exceed 250 characters.');
+                    }
+                    if (vm.formErrors.legal_name.length === 0) {
+                        delete vm.formErrors.legal_name;
+                    }
+                };
+
+                vm.validateAddress1 = function () {
+                    vm.formErrors.address_line_1 = [];
+                    var value = (vm.merchantForm.address_line_1 || '').toString();
+                    if (!value.trim()) {
+                        vm.formErrors.address_line_1.push('Address Line 1 is required.');
+                    } else if (value.length >= 250) {
+                        vm.formErrors.address_line_1.push('Address Line 1 cannot exceed 250 characters.');
+                    }
+                    if (vm.formErrors.address_line_1.length === 0) {
+                        delete vm.formErrors.address_line_1;
+                    }
+                };
+
+                vm.validateMerchantEmail = function () {
+                    vm.formErrors.email = [];
+                    var value = (vm.merchantForm.email || '').trim();
+                    if (!value) {
+                        vm.formErrors.email.push('Merchant email is required.');
+                    } else {
+                        if (value.length > 120) {
+                            vm.formErrors.email.push('Merchant email cannot exceed 120 characters.');
+                        }
+                        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(value)) {
+                            vm.formErrors.email.push('Please enter a valid email ID.');
+                        } else {
+                            // basic duplicate check against already loaded merchants list
+                            var lower = value.toLowerCase();
+                            var exists = vm.merchants.some(function(m) {
+                                return m && m.email && m.email.toLowerCase() === lower;
+                            });
+                            if (exists) {
+                                vm.formErrors.email.push('Email already exists.');
+                            }
+                        }
+                    }
+                    if (vm.formErrors.email.length === 0) {
+                        delete vm.formErrors.email;
+                    }
+                };
+
+                vm.validateMerchantPhone = function () {
+                    vm.formErrors.phone = [];
+                    var value = (vm.merchantForm.phone || '').trim();
+                    if (!value) {
+                        vm.formErrors.phone.push('Merchant phone is required.');
+                    } else if (!/^\d{10}$/.test(value)) {
+                        vm.formErrors.phone.push('Enter valid 10 digit mobile number.');
+                    }
+                    if (vm.formErrors.phone.length === 0) {
+                        delete vm.formErrors.phone;
+                    }
+                };
+
+                vm.validateContactEmail = function () {
+                    vm.formErrors.contact_email = [];
+                    var value = (vm.merchantForm.contact_email || '').trim();
+                    if (!value) {
+                        vm.formErrors.contact_email.push('Contact email is required.');
+                    } else {
+                        if (value.length > 120) {
+                            vm.formErrors.contact_email.push('Contact email cannot exceed 120 characters.');
+                        }
+                        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(value)) {
+                            vm.formErrors.contact_email.push('Please enter a valid email ID.');
+                        }
+                    }
+                    if (vm.formErrors.contact_email.length === 0) {
+                        delete vm.formErrors.contact_email;
+                    }
+                };
+
+                vm.validateContactMobile = function () {
+                    vm.formErrors.contact_mobile = [];
+                    var value = (vm.merchantForm.contact_mobile || '').trim();
+                    if (!value) {
+                        vm.formErrors.contact_mobile.push('Contact mobile is required.');
+                    } else if (!/^\d{10}$/.test(value)) {
+                        vm.formErrors.contact_mobile.push('Enter valid 10 digit mobile number.');
+                    }
+                    if (vm.formErrors.contact_mobile.length === 0) {
+                        delete vm.formErrors.contact_mobile;
+                    }
+                };
 
                 // Merchant form
                 vm.merchantForm = {
@@ -131,7 +259,9 @@
                             current_page: response.data.pagination.current_page,
                             last_page: response.data.pagination.last_page,
                             total: response.data.pagination.total,
-                            per_page: response.data.pagination.per_page
+                            per_page: response.data.pagination.per_page,
+                            from: response.data.pagination.from,
+                            to: response.data.pagination.to
                         };
                         vm.loading = false;
                     }, function(error) {
@@ -162,6 +292,7 @@
                         approval_status: 'all',
                         merchant_type: 'all',
                         filter_id: '',
+                        filter_merchant_unique_id: '',
                         filter_name: '',
                         filter_email: '',
                         filter_phone: '',
@@ -169,6 +300,7 @@
                         filter_partner: '',
                         filter_organization: '',
                         filter_category: 'all',
+                        filter_acquirer: '',
                         filter_registration_date: '',
                         filter_challan_urn: ''
                     };
@@ -348,25 +480,76 @@
                 };
 
                 vm.submitMerchant = function() {
-                    if (!vm.merchantForm.name || !vm.merchantForm.legal_name || !vm.merchantForm.email || !vm.merchantForm.phone) {
-                        alert('Please fill in all required fields');
-                        return;
+                    vm.formErrors = {};
+
+                    // Basic front-end required checks
+                    function addError(field, message) {
+                        if (!vm.formErrors[field]) {
+                            vm.formErrors[field] = [];
+                        }
+                        vm.formErrors[field].push(message);
                     }
 
-                    if (!vm.editingMerchantId && vm.merchantForm.create_user_login) {
-                        if (!vm.merchantForm.login_name || !vm.merchantForm.password || !vm.merchantForm.retype_password) {
-                            alert('Please fill in all user login fields');
-                            return;
+                    if (!vm.merchantForm.name) {
+                        addError('name', 'Merchant name is required.');
+                    } else if (vm.merchantForm.name.length > 250) {
+                        addError('name', 'Merchant name cannot exceed 250 characters.');
+                    }
+                    if (!vm.merchantForm.legal_name) {
+                        addError('legal_name', 'Merchant legal name is required.');
+                    } else if (vm.merchantForm.legal_name.length > 250) {
+                        addError('legal_name', 'Merchant legal name cannot exceed 250 characters.');
+                    }
+                    if (!vm.merchantForm.email) {
+                        addError('email', 'Merchant email is required.');
+                    } else {
+                        if (vm.merchantForm.email.length > 120) {
+                            addError('email', 'Merchant email cannot exceed 120 characters.');
                         }
-                        if (vm.merchantForm.password !== vm.merchantForm.retype_password) {
-                            alert('Passwords do not match');
-                            return;
+                        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(vm.merchantForm.email)) {
+                            addError('email', 'Please enter a valid email ID.');
                         }
-                        var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$/;
-                        if (!passwordRegex.test(vm.merchantForm.password)) {
-                            alert('Password must have minimum 12 characters and should include at least 1 uppercase, 1 lowercase, 1 numeric and 1 special character.');
-                            return;
+                    }
+                    if (!vm.merchantForm.phone) {
+                        addError('phone', 'Merchant phone is required.');
+                    } else if (!/^\d{10}$/.test(vm.merchantForm.phone)) {
+                        addError('phone', 'Enter valid 10 digit mobile number.');
+                    }
+                    if (!vm.merchantForm.contact_name) {
+                        addError('contact_name', 'Contact name is required.');
+                    }
+                    if (!vm.merchantForm.contact_mobile) {
+                        addError('contact_mobile', 'Contact mobile is required.');
+                    } else if (!/^\d{10}$/.test(vm.merchantForm.contact_mobile)) {
+                        addError('contact_mobile', 'Enter valid 10 digit mobile number.');
+                    }
+                    if (!vm.merchantForm.contact_email) {
+                        addError('contact_email', 'Contact email is required.');
+                    } else {
+                        if (vm.merchantForm.contact_email.length > 120) {
+                            addError('contact_email', 'Contact email cannot exceed 120 characters.');
                         }
+                        var cEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!cEmailRegex.test(vm.merchantForm.contact_email)) {
+                            addError('contact_email', 'Please enter a valid email ID.');
+                        }
+                    }
+                    if (!vm.merchantForm.bank_ifsc_code) {
+                        addError('bank_ifsc_code', 'IFSC code is required.');
+                    } else {
+                        // Standard IFSC pattern: 4 letters + 0 + 6 alphanumeric
+                        var ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
+                        if (!ifscRegex.test(vm.merchantForm.bank_ifsc_code)) {
+                            addError('bank_ifsc_code', 'Please enter a valid IFSC code (e.g. HDFC0123456).');
+                        }
+                    }
+
+                    if (Object.keys(vm.formErrors).length > 0) {
+                        if (typeof showToast === 'function') {
+                            showToast('Please correct the highlighted errors in the form.', 'error');
+                        }
+                        return;
                     }
 
                     if (!vm.merchantForm.merchant_type || !['merchant', 'vendor_merchant'].includes(vm.merchantForm.merchant_type)) {
@@ -385,26 +568,117 @@
                             var modal = bootstrap.Modal.getInstance(document.getElementById('newMerchantModal'));
                             modal.hide();
                             vm.editingMerchantId = null;
-                            alert(isEdit ? 'Merchant updated successfully' : 'Merchant account created successfully');
+                            if (typeof showToast === 'function') {
+                                showToast(isEdit ? 'Merchant updated successfully.' : 'Merchant account created successfully.', 'success');
+                            }
                             vm.loadMerchants();
                         } else {
-                            var errorMsg = response.data.message || (isEdit ? 'Failed to update merchant' : 'Failed to create merchant account');
-                            if (response.data.errors) {
-                                var errors = Object.values(response.data.errors).flat();
-                                errorMsg = errors.join(', ');
+                            vm.formErrors = response.data.errors || {};
+
+                            var msgText = (response.data.message || '').toString().toLowerCase();
+                            var hasDuplicate =
+                                msgText.indexOf('already exists') !== -1 ||
+                                msgText.indexOf('has already been taken') !== -1;
+
+                            // Normalize duplicate email error message (merchant email or login_name)
+                            ['email', 'login_name'].forEach(function(field) {
+                                if (vm.formErrors[field] && vm.formErrors[field].length) {
+                                    vm.formErrors[field] = vm.formErrors[field].map(function(msg) {
+                                        var lower = msg && msg.toString().toLowerCase();
+                                        if (lower && (lower.indexOf('has already been taken') !== -1 || lower.indexOf('already exists') !== -1)) {
+                                            hasDuplicate = true;
+                                            return 'Email already exists.';
+                                        }
+                                        return msg;
+                                    });
+                                }
+                            });
+
+                            if (hasDuplicate && (!vm.formErrors.email || !vm.formErrors.email.length)) {
+                                vm.formErrors.email = ['Email already exists.'];
                             }
-                            alert(errorMsg);
+
+                            // Build a user-friendly first validation error if available
+                            var firstError = null;
+                            if (vm.formErrors && Object.keys(vm.formErrors).length) {
+                                Object.keys(vm.formErrors).some(function(key) {
+                                    var arr = vm.formErrors[key];
+                                    if (Array.isArray(arr) && arr.length) {
+                                        firstError = arr[0];
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                            }
+
+                            var errorMsg;
+                            if (hasDuplicate) {
+                                errorMsg = 'Email already exists.';
+                            } else if (firstError) {
+                                errorMsg = firstError;
+                            } else {
+                                errorMsg = response.data.message || (isEdit ? 'Failed to update merchant' : 'Failed to create merchant account');
+                            }
+
+                            if (typeof showToast === 'function') {
+                                showToast(errorMsg, 'error');
+                            }
                         }
                     }, function(error) {
                         vm.submitting = false;
-                        var errorMsg = isEdit ? 'Failed to update merchant' : 'Failed to create merchant account';
-                        if (error.data && error.data.errors) {
-                            var errors = Object.values(error.data.errors).flat();
-                            if (errors.length > 0) errorMsg = errors.join(', ');
-                        } else if (error.data && error.data.message) {
-                            errorMsg = error.data.message;
+                        vm.formErrors = (error.data && error.data.errors) || {};
+
+                        var msgText = (error.data && error.data.message ? error.data.message : '').toString().toLowerCase();
+                        var hasDuplicate =
+                            msgText.indexOf('already exists') !== -1 ||
+                            msgText.indexOf('has already been taken') !== -1;
+
+                        // Normalize duplicate email error message (merchant email or login_name)
+                        ['email', 'login_name'].forEach(function(field) {
+                            if (vm.formErrors[field] && vm.formErrors[field].length) {
+                                vm.formErrors[field] = vm.formErrors[field].map(function(msg) {
+                                    var lower = msg && msg.toString().toLowerCase();
+                                    if (lower && (lower.indexOf('has already been taken') !== -1 || lower.indexOf('already exists') !== -1)) {
+                                        hasDuplicate = true;
+                                        return 'Email already exists.';
+                                    }
+                                    return msg;
+                                });
+                            }
+                        });
+
+                        if (hasDuplicate && (!vm.formErrors.email || !vm.formErrors.email.length)) {
+                            vm.formErrors.email = ['Email already exists.'];
                         }
-                        alert(errorMsg);
+
+                        // Build a user-friendly first validation error if available
+                        var firstError = null;
+                        if (vm.formErrors && Object.keys(vm.formErrors).length) {
+                            Object.keys(vm.formErrors).some(function(key) {
+                                var arr = vm.formErrors[key];
+                                if (Array.isArray(arr) && arr.length) {
+                                    firstError = arr[0];
+                                    return true;
+                                }
+                                return false;
+                            });
+                        }
+
+                        var errorMsg;
+                        if (hasDuplicate) {
+                            errorMsg = 'Email already exists.';
+                        } else if (firstError) {
+                            errorMsg = firstError;
+                        } else {
+                            errorMsg = isEdit ? 'Failed to update merchant' : 'Failed to create merchant account';
+                            if (error.data && error.data.message) {
+                                errorMsg = error.data.message;
+                            }
+                        }
+
+                        if (typeof showToast === 'function') {
+                            showToast(errorMsg, 'error');
+                        }
                     });
                 };
 
@@ -453,15 +727,35 @@
                             'X-CSRF-TOKEN': csrf
                         }
                     }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Approval status updated successfully to: ' + merchant.approval_status.replace(/_/g, ' ').toUpperCase());
+                        if (response.data && response.data.success) {
+                            var label = merchant.approval_status
+                                ? merchant.approval_status.replace(/_/g, ' ').toUpperCase()
+                                : 'UPDATED';
+                            var msg = 'Approval status updated to ' + label + '.';
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'success');
+                            } else {
+                                console.log(msg);
+                            }
                         } else {
-                            alert('Failed to update approval status: ' + (response.data.message || 'Unknown error'));
+                            var err = 'Failed to update approval status: ' + ((response.data && response.data.message) || 'Unknown error');
+                            if (typeof showToast === 'function') {
+                                showToast(err, 'error');
+                            } else {
+                                console.error(err);
+                            }
                             vm.loadMerchants(); // Reload to reset dropdown
                         }
                     }, function(error) {
-                        alert('Failed to update approval status');
-                        console.error('Error:', error);
+                        var err = 'Failed to update approval status';
+                        if (error && error.data && error.data.message) {
+                            err = error.data.message;
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast(err, 'error');
+                        } else {
+                            console.error(err);
+                        }
                         vm.loadMerchants(); // Reload to reset dropdown
                     });
                 };
@@ -480,14 +774,28 @@
                         }
                     }).then(function(response) {
                         if (response.data.success) {
-                            alert('Account status updated successfully to: ' + merchant.status.toUpperCase());
+                            if (typeof showToast === 'function') {
+                                showToast('Account status updated to ' + merchant.status.toUpperCase() + '.', 'success');
+                            }
                         } else {
-                            alert('Failed to update account status: ' + (response.data.message || 'Unknown error'));
+                            var msg = 'Failed to update account status: ' + (response.data.message || 'Unknown error');
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'error');
+                            } else {
+                                console.error(msg);
+                            }
                             vm.loadMerchants(); // Reload to reset dropdown
                         }
                     }, function(error) {
-                        alert('Failed to update account status');
-                        console.error('Error:', error);
+                        var msg = 'Failed to update account status';
+                        if (error && error.data && error.data.message) {
+                            msg = error.data.message;
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        } else {
+                            console.error(msg);
+                        }
                         vm.loadMerchants(); // Reload to reset dropdown
                     });
                 };

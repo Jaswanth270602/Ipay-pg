@@ -61,6 +61,7 @@
                             <th>Status</th>
                             <th>Transactions</th>
                             <th>Created At</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -131,6 +132,13 @@
                                 <div style="font-size: 13px;">@{{ o.created_at | date:'MMM d, y' }}</div>
                                 <small class="text-muted">@{{ o.created_at | date:'HH:mm:ss' }}</small>
                             </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        ng-click="aoc.viewOrder(o)"
+                                        title="View order details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -153,6 +161,77 @@
                         </li>
                     </ul>
                 </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin order details modal -->
+    <div class="modal fade" id="adminOrderDetailsModal" tabindex="-1" aria-labelledby="adminOrderDetailsModalLabel" aria-hidden="true" ng-if="aoc.selectedOrder">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminOrderDetailsModalLabel">
+                        Order Details – @{{ aoc.selectedOrder.order_id }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-2">
+                            <div class="text-uppercase text-muted small">Status</div>
+                            <span class="badge" ng-class="{
+                                'bg-success': aoc.selectedOrder.status==='completed',
+                                'bg-danger': aoc.selectedOrder.status==='failed',
+                                'bg-warning text-dark': aoc.selectedOrder.status==='pending',
+                                'bg-info': aoc.selectedOrder.status==='processing',
+                                'bg-secondary': aoc.selectedOrder.status==='created'
+                            }">
+                                @{{ aoc.selectedOrder.status | uppercase }}
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="text-uppercase text-muted small">Amount</div>
+                            <div class="fw-semibold">
+                                @{{ aoc.selectedOrder.currency || 'INR' }} @{{ aoc.selectedOrder.amount | number:2 }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="text-uppercase text-muted small">Description</div>
+                            <div>@{{ aoc.selectedOrder.description || '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Created At</div>
+                            <div>@{{ aoc.selectedOrder.created_at }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Updated At</div>
+                            <div>@{{ aoc.selectedOrder.updated_at }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-1" ng-if="aoc.selectedOrder.customer_details">
+                        <div class="col-md-12">
+                            <div class="text-uppercase text-muted small">Customer</div>
+                            <div class="fw-semibold">@{{ aoc.selectedOrder.customer_details.name || '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="row" ng-if="aoc.selectedOrder.customer_details">
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Email</div>
+                            <div class="text-muted">@{{ aoc.selectedOrder.customer_details.email || '-' }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-uppercase text-muted small">Phone</div>
+                            <div class="text-muted">@{{ aoc.selectedOrder.customer_details.phone || '-' }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -209,7 +288,7 @@
                 };
 
                 vm.clearFilters = function() {
-                    vm.filters = { status: 'all', merchant_id: '', search: '' };
+                vm.filters = { status: 'all', merchant_id: '', search: '' };
                     vm.pagination.current_page = 1;
                     vm.load();
                 };
@@ -229,6 +308,18 @@
                         pages.push(i);
                     }
                     return pages;
+                };
+
+                vm.selectedOrder = null;
+
+                vm.viewOrder = function(order) {
+                    if (!order) return;
+                    vm.selectedOrder = order;
+                    var modalEl = document.getElementById('adminOrderDetailsModal');
+                    if (modalEl && window.bootstrap) {
+                        var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
                 };
 
                 vm.load();

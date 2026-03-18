@@ -15,6 +15,7 @@
                 var vm = this;
                 vm.loading = false;
                 vm.recentTransactions = [];
+                vm.selectedTransaction = null;
 
                 vm.loadRecentTransactions = function() {
                     vm.loading = true;
@@ -42,6 +43,12 @@
                         console.error('Error loading recent transactions:', error);
                         vm.recentTransactions = [];
                     });
+                };
+
+                vm.viewTransaction = function (txn) {
+                    vm.selectedTransaction = txn;
+                    var modal = new bootstrap.Modal(document.getElementById('recentTransactionModal'));
+                    modal.show();
                 };
 
                 vm.loadRecentTransactions();

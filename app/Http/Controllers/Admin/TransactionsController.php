@@ -84,8 +84,12 @@ class TransactionsController extends Controller
                 $query->where('payment_method', 'like', "%{$request->get('filter_payment_mode')}%");
             }
             if ($request->has('filter_transaction_datetime') && $request->get('filter_transaction_datetime')) {
-                $date = $request->get('filter_transaction_datetime');
-                $query->whereDate('created_at', $date);
+                try {
+                    $date = \Carbon\Carbon::parse($request->get('filter_transaction_datetime'))->toDateString();
+                    $query->whereDate('created_at', $date);
+                } catch (\Exception $e) {
+                    // ignore invalid date
+                }
             }
 
             // Sorting
@@ -133,11 +137,11 @@ class TransactionsController extends Controller
                     return [
                     'id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
-                    'transaction_initiation_time' => $transaction->created_at->format('Y-m-d H:i:s'),
+                    'transaction_initiation_time' => $transaction->created_at->format('d-m-Y H:i:s'),
                     'merchant_name' => $transaction->merchant->name ?? '-',
                     'transaction_sequence_id' => $transaction->id,
                     'transaction_order_id' => $transaction->order_id ?? '-',
-                    'transaction_datetime' => $transaction->created_at->format('Y-m-d H:i:s'),
+                    'transaction_datetime' => $transaction->created_at->format('d-m-Y H:i:s'),
                     'transaction_id' => $transaction->txn_id,
                     'amount_paid_by_customer' => number_format($transaction->amount, 2),
                     'payment_status' => $transaction->status,
@@ -194,6 +198,8 @@ class TransactionsController extends Controller
                     'per_page' => $transactions->perPage(),
                     'total' => $transactions->total(),
                     'last_page' => $transactions->lastPage(),
+                    'from' => $transactions->firstItem(),
+                    'to' => $transactions->lastItem(),
                 ],
             ]);
         } catch (\Exception $e) {

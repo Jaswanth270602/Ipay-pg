@@ -594,15 +594,18 @@
                         <div class="row g-3 mb-3">
                             <div class="col-12">
                                 <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="customerName" name="customerName" autocomplete="off" placeholder="John Doe" required>
+                                <input type="text" class="form-control" id="customerName" name="customerName" autocomplete="off" placeholder="John Doe" maxlength="50" required>
+                                <div id="customerNameError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="customerEmail" name="customerEmail" autocomplete="off" placeholder="john@example.com" required>
+                                <input type="email" class="form-control" id="customerEmail" name="customerEmail" autocomplete="off" placeholder="john@example.com" maxlength="80" required>
+                                <div id="customerEmailError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Phone <span class="text-danger">*</span></label>
                                 <input type="tel" class="form-control" id="customerPhone" name="customerPhone" autocomplete="off" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" required>
+                                <div id="customerPhoneError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                         </div>
                     </form>
@@ -661,6 +664,7 @@
                             </div>
                         </div>
                     </form>
+                    <div id="cardError" style="display:none;color:#dc2626;font-size:12px;margin-top:8px;"></div>
                 </div>
 
                 <!-- UPI FORM -->
@@ -1133,10 +1137,28 @@
             });
         }
 
+        // Track which fields the user has interacted with (to avoid showing errors on first load)
+        const fieldTouched = {
+            customerName: false,
+            customerEmail: false,
+            customerPhone: false,
+            card: false,
+        };
+
         // Real-time validation (debounced)
         document.querySelectorAll('input, select').forEach(input => {
             input.addEventListener('input', () => validateForm(true)); // Silent validation on input
             input.addEventListener('change', () => validateForm(false)); // Log on change
+
+            input.addEventListener('blur', () => {
+                if (input.id === 'customerName') fieldTouched.customerName = true;
+                if (input.id === 'customerEmail') fieldTouched.customerEmail = true;
+                if (input.id === 'customerPhone') fieldTouched.customerPhone = true;
+                if (['cardNumber', 'cardHolder', 'expiryMonth', 'expiryYear', 'cvv'].includes(input.id)) {
+                    fieldTouched.card = true;
+                }
+                validateForm(false);
+            });
         });
 
         // Update pay button text and validate amount in real-time (for partial payments)
@@ -1252,6 +1274,63 @@
         @if($paymentLink->allow_partial_payment)
         const paymentLinkRemainingBalance = {{ $paymentLink->getRemainingBalance() }};
         @endif
+
+        function validateCardDetails(showErrors) {
+            const numberEl = document.getElementById('cardNumber');
+            const holderEl = document.getElementById('cardHolder');
+            const monthEl = document.getElementById('expiryMonth');
+            const yearEl = document.getElementById('expiryYear');
+            const cvvEl = document.getElementById('cvv');
+            const errorEl = document.getElementById('cardError');
+
+            if (!numberEl || !holderEl || !monthEl || !yearEl || !cvvEl || !errorEl) {
+                return false;
+            }
+
+            const digits = numberEl.value.replace(/\s/g, '');
+            const holder = holderEl.value.trim();
+            const month = monthEl.value.trim();
+            const year = yearEl.value.trim();
+            const cvv = cvvEl.value.trim();
+            const errors = [];
+
+            if (!/^\d{16}$/.test(digits)) {
+                errors.push('Enter a valid 16-digit card number.');
+            }
+
+            if (!holder) {
+                errors.push('Card holder name is required.');
+            }
+
+            const monthNum = parseInt(month, 10);
+            if (!month || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+                errors.push('Enter a valid expiry month (01-12).');
+            }
+
+            const yearNum = parseInt(year, 10);
+            const currentYear = new Date().getFullYear();
+            if (!year || isNaN(yearNum) || year.length !== 4 || yearNum < currentYear || yearNum > currentYear + 25) {
+                errors.push('Enter a valid expiry year.');
+            }
+
+            if (!/^\d{3}$/.test(cvv)) {
+                errors.push('Enter a valid 3-digit CVV.');
+            }
+
+            if (errors.length > 0) {
+                if (errorEl) {
+                    errorEl.style.display = 'block';
+                    errorEl.textContent = errors[0];
+                }
+                return false;
+            }
+
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+            }
+            return true;
+        }
         
         function validateForm(silent = false) {
             // Clear any pending validation
@@ -1261,9 +1340,12 @@
             
             // Debounce validation - only run after 200ms of no changes
             validationTimeout = setTimeout(() => {
-                const name = document.getElementById('customerName')?.value.trim() || '';
-                const email = document.getElementById('customerEmail')?.value.trim() || '';
-                const phone = document.getElementById('customerPhone')?.value.trim() || '';
+                const nameEl = document.getElementById('customerName');
+                const emailEl = document.getElementById('customerEmail');
+                const phoneEl = document.getElementById('customerPhone');
+                const name = nameEl?.value.trim() || '';
+                const email = emailEl?.value.trim() || '';
+                const phone = phoneEl?.value.trim() || '';
                 
                 if (!silent) {
                     console.log('Validating form:', { 
@@ -1279,19 +1361,59 @@
                 const nameTrimmed = (name || '').trim();
                 const emailTrimmed = (email || '').trim();
                 const phoneTrimmed = (phone || '').trim();
+
+                const nameErrorEl = document.getElementById('customerNameError');
+                const emailErrorEl = document.getElementById('customerEmailError');
+                const phoneErrorEl = document.getElementById('customerPhoneError');
+
+                if (nameErrorEl) { nameErrorEl.style.display = 'none'; nameErrorEl.textContent = ''; }
+                if (emailErrorEl) { emailErrorEl.style.display = 'none'; emailErrorEl.textContent = ''; }
+                if (phoneErrorEl) { phoneErrorEl.style.display = 'none'; phoneErrorEl.textContent = ''; }
                 
-                if (!nameTrimmed || !emailTrimmed || !phoneTrimmed || phoneTrimmed.length !== 10) {
-                    // Build list of missing fields
-                    let missingFields = [];
-                    if (!nameTrimmed) missingFields.push('Name');
-                    if (!emailTrimmed) missingFields.push('Email');
-                    if (!phoneTrimmed || phoneTrimmed.length !== 10) missingFields.push('Phone (10 digits)');
+                let hasError = false;
+
+                if (!nameTrimmed) {
+                    if (fieldTouched.customerName && nameErrorEl) {
+                        nameErrorEl.style.display = 'block';
+                        nameErrorEl.textContent = 'Full name is required.';
+                    }
+                    hasError = true;
+                } else if (nameTrimmed.length > 50) {
+                    if (fieldTouched.customerName && nameErrorEl) {
+                        nameErrorEl.style.display = 'block';
+                        nameErrorEl.textContent = 'Full name must be at most 50 characters.';
+                    }
+                    hasError = true;
+                }
+
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailTrimmed) {
+                    if (fieldTouched.customerEmail && emailErrorEl) {
+                        emailErrorEl.style.display = 'block';
+                        emailErrorEl.textContent = 'Email is required.';
+                    }
+                    hasError = true;
+                } else if (!emailPattern.test(emailTrimmed)) {
+                    if (fieldTouched.customerEmail && emailErrorEl) {
+                        emailErrorEl.style.display = 'block';
+                        emailErrorEl.textContent = 'Enter a valid email address.';
+                    }
+                    hasError = true;
+                }
+
+                if (!phoneTrimmed || phoneTrimmed.length !== 10 || !/^\d{10}$/.test(phoneTrimmed)) {
+                    if (fieldTouched.customerPhone && phoneErrorEl) {
+                        phoneErrorEl.style.display = 'block';
+                        phoneErrorEl.textContent = 'Enter a valid 10-digit phone number.';
+                    }
+                    hasError = true;
+                }
+                
+                if (hasError) {
                     
-                    if (payButton) {
+                    if (payButton && payButtonText) {
                         payButton.disabled = true;
-                        if (payButtonText) {
-                            payButtonText.textContent = `Enter ${missingFields.join(', ')}`;
-                        }
+                        payButtonText.textContent = 'Enter valid customer details';
                     }
                     if (!silent) {
                         console.log('Validation failed: Customer details incomplete', {
@@ -1307,12 +1429,15 @@
                 let methodValid = false;
                 
                 if (selectedMethod === 'card') {
-                    // For card payments, backend will decide if Razorpay Checkout.js should be used
-                    // If Razorpay is configured, we don't need card details here
-                    // Button is enabled if customer details are filled (already validated above)
-                    methodValid = true;
+                    methodValid = validateCardDetails(true);
+                    // Fallback: if still invalid and no specific message, show a generic one
+                    const cardErrorEl = document.getElementById('cardError');
+                    if (!methodValid && cardErrorEl && !cardErrorEl.textContent) {
+                        cardErrorEl.style.display = 'block';
+                        cardErrorEl.textContent = 'Please enter valid card details.';
+                    }
                     if (!silent) {
-                        console.log('✅ Card payment selected - button enabled (backend/Razorpay will handle card validation)');
+                        console.log('Card validation result:', { methodValid });
                     }
                 } else if (selectedMethod === 'upi') {
                     const upiId = document.getElementById('upiId')?.value.trim();
@@ -1375,6 +1500,13 @@
                 return false;
             }
             
+            // Basic network check before starting payment
+            if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
+                errorAlert.style.display = 'flex';
+                errorMessage.textContent = 'No internet connection. Please connect to the internet and try again.';
+                return;
+            }
+
             payButton.dataset.processing = 'true';
             successAlert.style.display = 'none';
             errorAlert.style.display = 'none';

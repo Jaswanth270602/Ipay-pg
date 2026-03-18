@@ -367,10 +367,16 @@ class Merchant extends Model
                 $merchant->merchant_unique_id = static::generateMerchantUniqueId();
             }
         });
+
+        static::deleting(function (Merchant $merchant) {
+            if ($merchant->isActive()) {
+                throw new \RuntimeException('Cannot delete an active merchant. Please deactivate the merchant before deletion.');
+            }
+        });
     }
 
     /**
-     * Generate the next unique merchant ID in format BC_MID_000001.
+     * Generate the next unique merchant ID in format IPAY_MID_000001.
      *
      * @return string
      */
@@ -378,7 +384,7 @@ class Merchant extends Model
     {
         // Get all existing merchant_unique_ids
         $existingIds = static::whereNotNull('merchant_unique_id')
-            ->where('merchant_unique_id', 'like', 'BC_MID_%')
+            ->where('merchant_unique_id', 'like', 'IPAY_MID_%')
             ->pluck('merchant_unique_id')
             ->toArray();
 
@@ -389,7 +395,7 @@ class Merchant extends Model
             // Extract all numbers and find the maximum
             $numbers = [];
             foreach ($existingIds as $id) {
-                $numberPart = substr($id, 7); // Remove 'BC_MID_' prefix (7 characters)
+                $numberPart = substr($id, 9); // Remove 'IPAY_MID_' prefix (9 characters)
                 if (is_numeric($numberPart)) {
                     $numbers[] = (int) $numberPart;
                 }
@@ -402,8 +408,8 @@ class Merchant extends Model
             }
         }
 
-        // Format as BC_MID_000001 (6 digits with leading zeros)
-        return 'BC_MID_' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        // Format as IPAY_MID_000001 (6 digits with leading zeros)
+        return 'IPAY_MID_' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
     }
 
     /**

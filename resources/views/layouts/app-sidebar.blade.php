@@ -1288,7 +1288,7 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        <form action="{{ route('logout') }}" method="POST" class="d-inline w-100">
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline w-100 logout-form">
                             @csrf
                             <button type="submit" class="dropdown-item profile-menu-item logout-item">
                                 <i class="bi bi-box-arrow-right"></i> Logout
@@ -1330,7 +1330,7 @@
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        <form action="{{ route('logout') }}" method="POST" class="d-inline w-100">
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline w-100 logout-form">
                             @csrf
                             <button type="submit" class="dropdown-item profile-menu-item logout-item">
                                 <i class="bi bi-box-arrow-right"></i> Logout
@@ -1722,6 +1722,122 @@ document.addEventListener('click', function(event) {
 </script>
 
 @stack('scripts')
+
+    <!-- Logout confirmation modal -->
+    @auth
+    <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logoutConfirmLabel">Confirm Logout</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to log out?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="logoutConfirmBtn">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            try {
+                var IDLE_MINUTES = 15;              // auto-logout after 15 minutes of no user activity
+                var WARNING_MINUTES_BEFORE = 1;     // show warning 1 minute before logout
+                var idleTimeout = null;
+                var warningShown = false;
+
+                function doLogout() {
+                    try {
+                        var logoutForms = document.querySelectorAll('form[action="{{ route('logout') }}"]');
+                        if (logoutForms.length > 0) {
+                            logoutForms[0].submit();
+                        } else {
+                            window.location.href = '{{ route('logout') }}';
+                        }
+                    } catch (e) {
+                        console.error('Idle logout error', e);
+                    }
+                }
+
+                function scheduleIdleLogout() {
+                    if (idleTimeout) {
+                        clearTimeout(idleTimeout);
+                    }
+
+                    var totalMs = IDLE_MINUTES * 60 * 1000;
+                    var warningMs = Math.max(0, (IDLE_MINUTES - WARNING_MINUTES_BEFORE) * 60 * 1000);
+
+                    warningShown = false;
+
+                    idleTimeout = setTimeout(function () {
+                        // Show warning first (only once)
+                        if (!warningShown && typeof window.showToast === 'function') {
+                            warningShown = true;
+                            window.showToast('You have been inactive for a while. You will be logged out in 1 minute unless you continue working.', 'warning');
+
+                            // After warning delay, perform logout if still idle
+                            setTimeout(doLogout, WARNING_MINUTES_BEFORE * 60 * 1000);
+                        } else {
+                            doLogout();
+                        }
+                    }, warningMs || totalMs);
+                }
+
+                ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(function (evt) {
+                    window.addEventListener(evt, scheduleIdleLogout, { passive: true });
+                });
+
+                // Start timer on page load
+                scheduleIdleLogout();
+
+                // Intercept manual logout clicks to show confirmation modal
+                var pendingLogoutForm = null;
+                document.addEventListener('click', function (e) {
+                    var target = e.target;
+                    if (!target) return;
+
+                    // Find closest logout button
+                    var btn = target.closest('.logout-item');
+                    if (!btn) return;
+
+                    var form = btn.closest('form.logout-form');
+                    if (!form) return;
+
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    pendingLogoutForm = form;
+
+                    var modalEl = document.getElementById('logoutConfirmModal');
+                    if (modalEl) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    } else {
+                        // Fallback if modal is missing
+                        form.submit();
+                    }
+                }, true);
+
+                var confirmBtn = document.getElementById('logoutConfirmBtn');
+                if (confirmBtn) {
+                    confirmBtn.addEventListener('click', function () {
+                        if (pendingLogoutForm) {
+                            pendingLogoutForm.submit();
+                            pendingLogoutForm = null;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Idle timeout init error', e);
+            }
+        })();
+    </script>
+    @endauth
 </body>
 </html>
  
