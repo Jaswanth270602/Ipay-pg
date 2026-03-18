@@ -1699,6 +1699,7 @@
                     // IMPORTANT: Only use Razorpay Checkout.js if gateway is explicitly 'razorpay'
                     // CashFree and other gateways should NOT trigger Razorpay logic
                     if (result.gateway === 'razorpay' && result.use_razorpay_checkout && result.razorpay_key && result.razorpay_order_id) {
+                        const transactionIdForRazorpay = result.transaction_id || '';
                         console.log('✅ All conditions met - Opening Razorpay Checkout.js', {
                             key: result.razorpay_key,
                             order_id: result.razorpay_order_id,
@@ -1915,7 +1916,26 @@
                                     if (payButton) {
                                         payButton.dataset.razorpayOpened = '';
                                     }
-                                    // User closed the Razorpay checkout
+                                    // User closed the Razorpay checkout - record failure so it appears in tables
+                                    (async function () {
+                                        try {
+                                            await fetch(`/pay/${linkTokenForVerification}/razorpay-failed`, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                                },
+                                                body: JSON.stringify({
+                                                    transaction_id: transactionIdForRazorpay,
+                                                    razorpay_order_id: result.razorpay_order_id,
+                                                    reason: 'Payment cancelled by user',
+                                                }),
+                                            });
+                                        } catch (e) {
+                                            console.warn('Failed to record Razorpay cancellation', e);
+                                        }
+                                    })();
+
                                     payButton.disabled = false;
                                     @if($paymentLink->allow_partial_payment)
                                     const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
@@ -1987,6 +2007,31 @@
                             @else
                             payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
                             @endif
+
+                            // Record failure and redirect to failure page with transaction_id
+                            (async function () {
+                                try {
+                                    await fetch(`/pay/${linkTokenForVerification}/razorpay-failed`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        },
+                                        body: JSON.stringify({
+                                            transaction_id: transactionIdForRazorpay,
+                                            razorpay_order_id: response?.error?.metadata?.order_id || result.razorpay_order_id,
+                                            reason: response?.error?.description || response?.error?.reason || 'Payment failed in Razorpay',
+                                        }),
+                                    });
+                                } catch (e) {
+                                    console.warn('Failed to record Razorpay failure', e);
+                                }
+
+                                setTimeout(() => {
+                                    const baseUrl = window.location.origin;
+                                    window.location.href = `${baseUrl}/failure-simple.html?transaction_id=${encodeURIComponent(transactionIdForRazorpay || '')}`;
+                                }, 1200);
+                            })();
                         });
                         
                         // CRITICAL: Open Razorpay Checkout.js IMMEDIATELY

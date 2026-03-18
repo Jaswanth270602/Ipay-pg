@@ -357,6 +357,129 @@
             gap: 16px;
         }
 
+        /* Notifications (bell dropdown) */
+        .notif-dropdown-toggle {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            background: #fff;
+            color: #111827;
+            box-shadow: 0 1px 0 rgba(17, 24, 39, 0.03);
+        }
+        .notif-dropdown-toggle:hover {
+            background: #f9fafb;
+        }
+        .notif-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            line-height: 18px;
+            font-weight: 700;
+            text-align: center;
+            border: 2px solid #fff;
+        }
+        .notif-menu {
+            width: 360px;
+            max-width: 92vw;
+            padding: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            box-shadow: 0 18px 35px rgba(17, 24, 39, 0.18);
+            border: 1px solid rgba(17, 24, 39, 0.08);
+        }
+        .notif-menu-header {
+            padding: 12px 14px;
+            background: linear-gradient(90deg, rgba(124, 58, 237, 0.10), rgba(236, 72, 153, 0.10));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .notif-menu-header .title {
+            font-weight: 800;
+            color: #111827;
+        }
+        .notif-menu-header .muted {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .notif-list {
+            max-height: 340px;
+            overflow-y: auto;
+            background: #fff;
+        }
+        .notif-item {
+            padding: 12px 14px;
+            border-top: 1px solid rgba(17, 24, 39, 0.06);
+            display: flex;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .notif-item:hover {
+            background: #f9fafb;
+        }
+        .notif-item.unread {
+            background: rgba(225, 6, 0, 0.06);
+        }
+        .notif-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            background: rgba(124, 58, 237, 0.12);
+            color: #7c3aed;
+        }
+        .notif-icon.success { background: rgba(22, 163, 74, 0.14); color: #16a34a; }
+        .notif-icon.failed { background: rgba(239, 68, 68, 0.14); color: #ef4444; }
+        .notif-body {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+        .notif-message {
+            font-size: 13px;
+            color: #111827;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .notif-time {
+            margin-top: 2px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .notif-actions {
+            margin-top: 6px;
+            display: flex;
+            gap: 10px;
+        }
+        .notif-actions a {
+            font-size: 12px;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .notif-actions a:hover { text-decoration: underline; }
+        .notif-empty {
+            padding: 18px 14px;
+            color: #6b7280;
+            text-align: center;
+            background: #fff;
+        }
+
         /* Mode Toggle */
         .mode-toggle {
             display: flex;
@@ -1254,6 +1377,26 @@
                 </button>
             </div>
             @endif
+
+            <!-- Notifications -->
+            <div class="dropdown">
+                <button class="notif-dropdown-toggle dropdown-toggle" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                    <i class="bi bi-bell" style="font-size: 18px;"></i>
+                    <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-menu" aria-labelledby="notifDropdown">
+                    <div class="notif-menu-header">
+                        <div>
+                            <div class="title">Notifications</div>
+                            <div class="muted">Latest updates</div>
+                        </div>
+                        <div class="muted"><span id="notifUnreadText">0</span> unread</div>
+                    </div>
+                    <div id="notifList" class="notif-list">
+                        <div class="notif-empty">No new notifications</div>
+                    </div>
+                </div>
+            </div>
             
             @if(auth()->user()->merchant)
             <!-- Merchant Profile Dropdown -->
@@ -1718,6 +1861,170 @@ document.addEventListener('click', function(event) {
             };
         });
     }
+})();
+</script>
+
+<script>
+(function () {
+    'use strict';
+
+    function qs(sel) { return document.querySelector(sel); }
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    var badgeEl = qs('#notifBadge');
+    var listEl = qs('#notifList');
+    var unreadTextEl = qs('#notifUnreadText');
+    var dropdownBtn = qs('#notifDropdown');
+
+    if (!badgeEl || !listEl || !unreadTextEl || !dropdownBtn) {
+        return;
+    }
+
+    function csrfToken() {
+        var el = document.querySelector('meta[name=csrf-token]');
+        return el ? el.content : '';
+    }
+
+    function iconFor(status) {
+        if (status === 'success') return { cls: 'success', icon: 'bi-check-circle' };
+        if (status === 'failed') return { cls: 'failed', icon: 'bi-x-circle' };
+        return { cls: '', icon: 'bi-clock' };
+    }
+
+    function setBadge(count) {
+        var c = Number(count || 0);
+        unreadTextEl.textContent = String(c);
+        if (c > 0) {
+            badgeEl.style.display = '';
+            badgeEl.textContent = c > 99 ? '99+' : String(c);
+        } else {
+            badgeEl.style.display = 'none';
+            badgeEl.textContent = '0';
+        }
+    }
+
+    function renderList(items) {
+        if (!Array.isArray(items) || items.length === 0) {
+            listEl.innerHTML = '<div class="notif-empty">No new notifications</div>';
+            return;
+        }
+
+        listEl.innerHTML = items.map(function (n) {
+            var status = n && n.meta ? n.meta.status : null;
+            var ic = iconFor(status);
+            var unreadClass = n && n.is_read ? '' : ' unread';
+            var msg = escapeHtml(n.message || '');
+            var time = escapeHtml(n.created_at_human || '');
+            var url = n.url || '';
+            var orderUrl = n.order_url || '';
+
+            var actionsHtml = '';
+            if (orderUrl) {
+                actionsHtml = '<div class="notif-actions">' +
+                    '<a href="' + escapeHtml(orderUrl) + '" class="text-primary" onclick="event.stopPropagation();">View Order</a>' +
+                '</div>';
+            }
+
+            // Default click redirect: Transactions page (n.url)
+            return (
+                '<div class="notif-item' + unreadClass + '" data-id="' + String(n.id) + '" data-url="' + escapeHtml(url) + '">' +
+                    '<div class="notif-icon ' + ic.cls + '"><i class="bi ' + ic.icon + '"></i></div>' +
+                    '<div class="notif-body">' +
+                        '<div class="notif-message" title="' + msg + '">' + msg + '</div>' +
+                        '<div class="notif-time">' + time + '</div>' +
+                        actionsHtml +
+                    '</div>' +
+                '</div>'
+            );
+        }).join('');
+    }
+
+    function getJSON(url) {
+        return fetch(url, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        }).then(function (r) {
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        });
+    }
+
+    function postJSON(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body || {})
+        }).then(function (r) {
+            if (!r.ok) throw new Error('Request failed');
+            return r.json();
+        });
+    }
+
+    var lastItems = [];
+    function refreshNotifications() {
+        return Promise.all([
+            getJSON('{{ route('notifications.unread-count') }}'),
+            getJSON('{{ route('notifications.index') }}')
+        ]).then(function (res) {
+            var countRes = res[0] || {};
+            var listRes = res[1] || {};
+            setBadge(countRes.count || 0);
+            lastItems = listRes.data || [];
+            renderList(lastItems);
+        }).catch(function () {
+            // Fail gracefully: keep current UI, no alerts
+        });
+    }
+
+    // Clicking an item redirects to transactions and marks it read
+    listEl.addEventListener('click', function (e) {
+        var item = e.target && e.target.closest ? e.target.closest('.notif-item') : null;
+        if (!item) return;
+        var id = item.getAttribute('data-id');
+        var url = item.getAttribute('data-url');
+        if (id) {
+            postJSON('{{ route('notifications.mark-as-read') }}', { ids: [Number(id)] })
+                .then(function () { refreshNotifications(); })
+                .catch(function () {});
+        }
+        if (url) {
+            window.location.href = url;
+        }
+    });
+
+    // When dropdown opens, mark visible unread as read (bulk)
+    dropdownBtn.addEventListener('show.bs.dropdown', function () {
+        refreshNotifications().then(function () {
+            var unreadIds = (lastItems || []).filter(function (n) { return n && !n.is_read; })
+                .map(function (n) { return Number(n.id); })
+                .filter(function (x) { return !!x; });
+            if (unreadIds.length) {
+                postJSON('{{ route('notifications.mark-as-read') }}', { ids: unreadIds })
+                    .then(function () { refreshNotifications(); })
+                    .catch(function () {});
+            }
+        });
+    });
+
+    // Initial + polling (7s)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', refreshNotifications);
+    } else {
+        refreshNotifications();
+    }
+    setInterval(refreshNotifications, 7000);
 })();
 </script>
 

@@ -46,6 +46,7 @@ use App\Http\Controllers\Admin\MISReportController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\DisputesController;
 use App\Http\Controllers\PaymentCheckoutController;
+use App\Http\Controllers\NotificationsController;
 use App\Http\Controllers\Admin\SubscriptionsController;
 use App\Http\Controllers\Admin\RiskManagementController;
 use App\Http\Controllers\Admin\UsersController;
@@ -77,6 +78,7 @@ Route::view('/terms', 'terms')->name('terms.page');
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');
 Route::post('/pay/{token}', [PaymentCheckoutController::class, 'process'])->name('payment.process');
 Route::post('/pay/{token}/verify-razorpay', [PaymentCheckoutController::class, 'verifyRazorpay'])->name('payment.verify.razorpay');
+Route::post('/pay/{token}/razorpay-failed', [PaymentCheckoutController::class, 'markRazorpayFailed'])->name('payment.razorpay.failed');
 Route::get('/pay/{token}/callback', [PaymentCheckoutController::class, 'handleEmbeddedCallback'])->name('payment.embedded.callback');
 Route::get('/payment/success/{token}', [PaymentCheckoutController::class, 'success'])->name('payment.success');
 Route::get('/payment/failed/{token}', [PaymentCheckoutController::class, 'failed'])->name('payment.failed');
@@ -105,6 +107,11 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Notifications (shared for admin + merchant)
+    Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationsController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/mark-as-read', [NotificationsController::class, 'markAsRead'])->name('notifications.mark-as-read');
 
     // Merchant routes
     Route::middleware(['merchant'])->prefix('merchant')->group(function () {

@@ -21,13 +21,16 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\PaymentCreated::class => [
             \App\Listeners\SendPaymentWebhook::class,
             \App\Listeners\LogPaymentCreated::class,
+            \App\Listeners\CreatePaymentNotifications::class,
         ],
         \App\Events\PaymentSuccess::class => [
             \App\Listeners\SendPaymentWebhook::class,
             \App\Listeners\CreateSettlementEntry::class,
+            \App\Listeners\CreatePaymentNotifications::class,
         ],
         \App\Events\PaymentFailed::class => [
             \App\Listeners\SendPaymentWebhook::class,
+            \App\Listeners\CreatePaymentNotifications::class,
         ],
         \App\Events\PaymentCharged::class => [
             \App\Listeners\SendGenericWebhook::class . '@handlePaymentCharged',

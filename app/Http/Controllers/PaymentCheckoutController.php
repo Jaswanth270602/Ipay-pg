@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\PaymentLink;
 use App\Models\Order;
 use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -136,7 +137,16 @@ class PaymentCheckoutController extends Controller
             // Gateway TEST = internal only. Merchant TEST = internal only (no Razorpay even if gateway is live).
             $gatewayModeIsLive = GatewayModeService::isLive();
             $merchantIsLive = !$merchant->test_mode;
-            $useAcquirerGateway = $hasAcquirerAccount && !$useYapilySandbox && !$isYapilyAcquirer && $gatewayModeIsLive && $merchantIsLive;
+            // If frontend is explicitly simulating (test buttons), force internal simulation
+            // so failed/success simulations always create transactions + notifications.
+            $isSimulationRequest = (bool) $request->input('payment_details.simulate', false);
+
+            $useAcquirerGateway = $hasAcquirerAccount
+                && !$useYapilySandbox
+                && !$isYapilyAcquirer
+                && $gatewayModeIsLive
+                && $merchantIsLive
+                && !$isSimulationRequest;
 
             if ($hasAcquirerAccount && $gatewayModeIsLive && !$merchantIsLive) {
                 $this->logInfo('Merchant is in Test mode – using internal simulation only (acquirer not called). Switch merchant to Live to use Razorpay/Cashfree.', [
@@ -210,7 +220,14 @@ class PaymentCheckoutController extends Controller
             // Additional validation for payment_details
             // 1) When a live gateway (e.g. Cashfree) requires full card details
             // 2) When in internal/simulated mode but card details are still provided (to prevent obviously invalid test data)
-            if ($request->payment_method === 'card' && ($paymentDetailsRequired || $request->filled('payment_details'))) {
+            //
+            // IMPORTANT: When frontend explicitly requests a simulation (test buttons),
+            // allow `payment_details` to contain only `{simulate: true, simulate_result: ...}`
+            // without requiring card fields.
+            if ($request->payment_method === 'card'
+                && ($paymentDetailsRequired || $request->filled('payment_details'))
+                && !(bool) $request->input('payment_details.simulate', false)
+            ) {
                 if (!$request->has('payment_details') || empty($request->payment_details)) {
                     return response()->json([
                         'success' => false,
@@ -297,7 +314,7 @@ class PaymentCheckoutController extends Controller
                 $paymentDetails = $request->payment_details ?? [];
                 
                 // For Razorpay Checkout.js or simulation mode, payment_details can be empty
-                if ($paymentMethod === 'card' && ($isRazorpayCard || !$hasAcquirerAccount)) {
+                if ($paymentMethod === 'card' && ($isRazorpayCard || !$hasAcquirerAccount) && !$isSimulationRequest) {
                     // Razorpay will collect card details securely on the frontend
                     // Simulation service doesn't require real card details
                     $paymentDetails = [];
@@ -481,6 +498,42 @@ class PaymentCheckoutController extends Controller
                         // Razorpay: Return order details for Checkout.js
                         $order->gateway_order_id = $gatewayResult['razorpay_order_id'] ?? null;
                         $order->save();
+
+                        // IMPORTANT: Create a pending transaction BEFORE opening Razorpay Checkout.
+                        // Otherwise, Razorpay failures/cancellations won't be recorded.
+                        $baseRateService = app(\App\Services\BaseRateService::class);
+                        $bank = $merchant->bank ?? null;
+                        $feeCalculation = $baseRateService->calculateFee(
+                            $merchant,
+                            $order->amount,
+                            $paymentMethod,
+                            $bank,
+                            \App\Models\BaseRate::SERVICE_TYPE_PAYMENT,
+                            \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
+                        );
+
+                        $transaction = Transaction::create([
+                            'order_id' => $order->id,
+                            'merchant_id' => $order->merchant_id,
+                            'txn_id' => Transaction::generateTxnId(),
+                            'amount' => $order->amount,
+                            'fee_amount' => $feeCalculation['fee_amount'],
+                            'gst_amount' => $feeCalculation['gst_amount'] ?? 0,
+                            'net_amount' => $order->amount - ($feeCalculation['total_fee'] ?? 0),
+                            'currency' => $order->currency,
+                            'payment_method' => $paymentMethod,
+                            'status' => 'pending',
+                            // Store Razorpay order id so verifyRazorpay can update this record
+                            'gateway_txn_id' => $order->gateway_order_id,
+                            'gateway_response' => [
+                                'gateway' => 'razorpay',
+                                'gateway_order_id' => $order->gateway_order_id,
+                                'order_id' => $order->gateway_order_id,
+                            ],
+                            'test_mode' => $order->test_mode,
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent(),
+                        ]);
                         
                         return response()->json([
                             'success' => true,
@@ -489,6 +542,7 @@ class PaymentCheckoutController extends Controller
                             'razorpay_key' => $gatewayResult['razorpay_key'] ?? null,
                             'razorpay_order_id' => $gatewayResult['razorpay_order_id'] ?? null,
                             'order_id' => $order->order_id,
+                            'transaction_id' => $transaction->txn_id,
                             'amount' => $gatewayResult['amount'] ?? ($paymentAmount * 100),
                             'currency' => $paymentLink->currency,
                             'customer_details' => $request->customer_details,
@@ -844,6 +898,94 @@ class PaymentCheckoutController extends Controller
                 'success' => false,
                 'message' => 'Payment verification failed',
                 'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark Razorpay transaction as failed/cancelled (called from frontend when Razorpay modal fails or is dismissed).
+     */
+    public function markRazorpayFailed(Request $request, string $token)
+    {
+        try {
+            $paymentLink = PaymentLink::where('link_token', $token)->firstOrFail();
+            $merchant = $paymentLink->merchant;
+
+            $validator = Validator::make($request->all(), [
+                'transaction_id' => 'nullable|string',
+                'razorpay_order_id' => 'nullable|string',
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid failure payload',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $txnId = $request->get('transaction_id');
+            $rzpOrderId = $request->get('razorpay_order_id');
+            $reason = $request->get('reason') ?: 'Payment cancelled/failed in Razorpay Checkout';
+
+            $query = Transaction::query()
+                ->where('merchant_id', $merchant->id);
+
+            if ($txnId) {
+                $query->where('txn_id', $txnId);
+            } elseif ($rzpOrderId) {
+                $query->where(function ($q) use ($rzpOrderId) {
+                    $q->where('gateway_txn_id', $rzpOrderId)
+                      ->orWhereJsonContains('gateway_response->gateway_order_id', $rzpOrderId)
+                      ->orWhereJsonContains('gateway_response->order_id', $rzpOrderId);
+                });
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing transaction reference',
+                ], 422);
+            }
+
+            $transaction = $query->latest()->first();
+            if (!$transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found',
+                ], 404);
+            }
+
+            // Only downgrade if not already success
+            if ($transaction->status !== 'success') {
+                $transaction->status = 'failed';
+                $transaction->failure_reason = $reason;
+                $transaction->gateway_response = array_merge($transaction->gateway_response ?? [], [
+                    'failure' => [
+                        'reason' => $reason,
+                        'at' => now()->toIso8601String(),
+                    ],
+                ]);
+                $transaction->save();
+
+                if ($transaction->order) {
+                    $transaction->order->update(['status' => 'failed']);
+                }
+
+                event(new \App\Events\PaymentFailed($transaction));
+            }
+
+            return response()->json([
+                'success' => true,
+                'transaction_id' => $transaction->txn_id,
+            ]);
+        } catch (\Exception $e) {
+            $this->logError('Razorpay mark failed error', [
+                'token' => $token,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record payment failure',
             ], 500);
         }
     }
