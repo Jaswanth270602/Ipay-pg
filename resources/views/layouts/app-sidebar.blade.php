@@ -1029,6 +1029,10 @@
             <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
         </div>
         <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.merchants.*') || request()->routeIs('admin.merchant-accounts.*') || request()->routeIs('admin.merchant-registration-keys.*') || request()->routeIs('admin.merchant-vendors.*') || request()->routeIs('admin.base-rates.*') ? 'block' : 'none' }};">
+            <a href="{{ route('admin.merchants.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.merchants.*') ? 'active' : '' }}" style="padding-left: 50px;">
+                <i class="bi bi-list-ul"></i>
+                <span>Merchants List</span>
+            </a>
             <a href="{{ route('admin.merchant-accounts.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.merchant-accounts.*') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-person-badge"></i>
                 <span>Merchant Accounts</span>

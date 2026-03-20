@@ -278,6 +278,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchants.index');
         Route::get('/merchants/data', [MerchantsController::class, 'getData'])
             ->name('admin.merchants.data');
+        Route::post('/merchants/bulk-approve', [MerchantsController::class, 'bulkApprove'])
+            ->name('admin.merchants.bulk-approve');
+        Route::post('/merchants/bulk-reject', [MerchantsController::class, 'bulkReject'])
+            ->name('admin.merchants.bulk-reject');
+        Route::post('/merchants/bulk-delete', [MerchantsController::class, 'bulkDelete'])
+            ->name('admin.merchants.bulk-delete');
 
         // Merchant Accounts
         Route::get('/merchant-accounts', [MerchantAccountsController::class, 'index'])

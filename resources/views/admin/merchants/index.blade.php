@@ -43,6 +43,29 @@
     </div>
 
     <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <button class="btn btn-sm btn-success me-2"
+                        ng-click="amc.openBulkConfirm('approve')"
+                        ng-disabled="!amc.hasSelection()">
+                    Bulk Approve
+                </button>
+                <button class="btn btn-sm btn-warning me-2"
+                        ng-click="amc.openBulkConfirm('reject')"
+                        ng-disabled="!amc.hasSelection()">
+                    Bulk Reject
+                </button>
+                <button class="btn btn-sm btn-danger"
+                        ng-click="amc.openBulkConfirm('delete')"
+                        ng-disabled="!amc.hasSelection()">
+                    Bulk Delete
+                </button>
+            </div>
+            <div class="text-muted small" ng-if="amc.selectedIds.length">
+                @{{ amc.selectedIds.length }} selected
+            </div>
+        </div>
+
         <div ng-show="amc.loading" class="loader-overlay position-relative" style="min-height: 400px;">
             <div class="position-absolute top-50 start-50 translate-middle">
                 <div class="spinner-violet"></div>
@@ -55,6 +78,9 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>
+                                <input type="checkbox" ng-model="amc.selectAll" ng-change="amc.toggleSelectAll()">
+                            </th>
                             <th>S.No</th>
                             <th>Merchant ID</th>
                             <th>Name</th>
@@ -70,6 +96,11 @@
                             <td colspan="8" class="text-center text-muted py-4">No merchants found</td>
                         </tr>
                         <tr ng-repeat="merchant in amc.merchants track by $index">
+                            <td>
+                                <input type="checkbox"
+                                       ng-model="amc.selected[merchant.id]"
+                                       ng-change="amc.syncSelection()">
+                            </td>
                             <td>@{{ (amc.pagination.current_page - 1) * amc.pagination.per_page + $index + 1 }}</td>
                             <td><code>@{{ merchant.id }}</code></td>
                             <td><strong>@{{ merchant.name }}</strong></td>
@@ -107,6 +138,34 @@
                         <a class="page-link" href="#" ng-click="amc.changePage(amc.pagination.current_page + 1)">Next</a>
                     </li>
                 </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk action confirmation modal (inside controller scope) -->
+    <div class="modal fade" id="bulkConfirmModal" tabindex="-1" aria-labelledby="bulkConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkConfirmLabel">@{{ amc.bulkConfirmTitle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-1">@{{ amc.bulkConfirmMessage }}</p>
+                    <p class="text-muted small mb-0" ng-if="amc.selectedIds.length">
+                        @{{ amc.selectedIds.length }} merchant(s) selected.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button"
+                            class="btn btn-sm"
+                            ng-class="amc.bulkConfirmBtnClass"
+                            data-bs-dismiss="modal"
+                            ng-click="amc.confirmBulk()">
+                        @{{ amc.bulkConfirmButtonLabel }}
+                    </button>
+                </div>
             </div>
         </div>
     </div>

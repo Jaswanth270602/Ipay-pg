@@ -88,5 +88,80 @@ class MerchantsController extends Controller
             ], 500);
         }
     }
+
+    public function bulkApprove(Request $request): JsonResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        $ids = array_filter($ids, static function ($id) {
+            return is_numeric($id);
+        });
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No merchants selected',
+            ], 422);
+        }
+
+        $updated = Merchant::whereIn('id', $ids)->update(['status' => 'active']);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Approved {$updated} merchants.",
+        ]);
+    }
+
+    public function bulkReject(Request $request): JsonResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        $ids = array_filter($ids, static function ($id) {
+            return is_numeric($id);
+        });
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No merchants selected',
+            ], 422);
+        }
+
+        $updated = Merchant::whereIn('id', $ids)->update(['status' => 'inactive']);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Rejected {$updated} merchants.",
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $ids = (array) $request->input('ids', []);
+        $ids = array_filter($ids, static function ($id) {
+            return is_numeric($id);
+        });
+
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No merchants selected',
+            ], 422);
+        }
+
+        // Safety: prevent deleting active merchants
+        $activeCount = Merchant::whereIn('id', $ids)->where('status', 'active')->count();
+        if ($activeCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete active merchants. Please deactivate them first.',
+            ], 422);
+        }
+
+        $deleted = Merchant::whereIn('id', $ids)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Deleted {$deleted} merchants.",
+        ]);
+    }
 }
 
