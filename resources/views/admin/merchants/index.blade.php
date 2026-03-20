@@ -46,14 +46,14 @@
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div>
                 <button class="btn btn-sm btn-success me-2"
-                        ng-click="amc.openBulkConfirm('approve')"
+                        ng-click="amc.openBulkConfirm('activate')"
                         ng-disabled="!amc.hasSelection()">
-                    Bulk Approve
+                    Bulk Activate
                 </button>
                 <button class="btn btn-sm btn-warning me-2"
-                        ng-click="amc.openBulkConfirm('reject')"
+                        ng-click="amc.openBulkConfirm('deactivate')"
                         ng-disabled="!amc.hasSelection()">
-                    Bulk Reject
+                    Bulk Deactivate
                 </button>
                 <button class="btn btn-sm btn-danger"
                         ng-click="amc.openBulkConfirm('delete')"

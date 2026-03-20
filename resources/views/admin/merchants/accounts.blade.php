@@ -292,7 +292,7 @@
                                     <option value="approved">Approved</option>
                                     <option value="test_approved">Test Approved</option>
                                     <option value="not_approved">Not Approved</option>
-                                    <option value="rejected">Rejected</option>
+                                    <option value="rejected" ng-if="merchant.approval_status !== 'approved'">Rejected</option>
                                 </select>
                             </td>
                             <td>

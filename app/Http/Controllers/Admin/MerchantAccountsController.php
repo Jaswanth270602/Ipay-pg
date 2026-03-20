@@ -473,7 +473,18 @@ class MerchantAccountsController extends Controller
             
             // Update approval_status if provided
             if ($request->has('approval_status')) {
-                $merchant->approval_status = $request->input('approval_status');
+                $newApprovalStatus = $request->input('approval_status');
+                $currentApprovalStatus = $merchant->approval_status;
+
+                // TC_169: approved merchant cannot be rejected
+                if ($currentApprovalStatus === 'approved' && $newApprovalStatus === 'rejected') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Approved merchants cannot be rejected.',
+                    ], 422);
+                }
+
+                $merchant->approval_status = $newApprovalStatus;
             }
             
             // Update status (active/inactive) if provided

@@ -156,11 +156,18 @@ class MerchantsController extends Controller
             ], 422);
         }
 
-        $deleted = Merchant::whereIn('id', $ids)->delete();
+        $deletedCount = Merchant::whereIn('id', $ids)->delete();
+
+        if ($deletedCount === 0) {
+            return response()->json([
+                'success' => true,
+                'message' => 'No merchants found or already deleted',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "Deleted {$deleted} merchants.",
+            'message' => "{$deletedCount} merchant(s) deleted successfully",
         ]);
     }
 }

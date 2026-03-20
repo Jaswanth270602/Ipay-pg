@@ -99,20 +99,26 @@
                     return vm.selectedIds.length > 0;
                 };
 
+                vm.getSelectedMerchants = function () {
+                    return vm.merchants.filter(function (m) {
+                        return vm.selectedIds.indexOf(parseInt(m.id, 10)) !== -1;
+                    });
+                };
+
                 vm._bulkApprove = function () {
                     if (!vm.hasSelection()) { return; }
 
                     $http.post('/admin/merchants/bulk-approve', { ids: vm.selectedIds }).then(function (response) {
                         if (typeof showToast === 'function') {
-                            showToast(response.data.message || 'Selected merchants bulk approved', 'success');
+                            showToast(response.data.message || 'Selected merchants bulk activated', 'success');
                         }
                         vm.loadMerchants();
                     }, function (error) {
                         console.error('Bulk approve error:', error);
                         if (typeof showToast === 'function') {
-                            showToast('Failed to approve merchants', 'error');
+                            showToast('Failed to activate merchants', 'error');
                         } else {
-                            alert('Failed to approve merchants');
+                            alert('Failed to activate merchants');
                         }
                     });
                 };
@@ -122,15 +128,15 @@
 
                     $http.post('/admin/merchants/bulk-reject', { ids: vm.selectedIds }).then(function (response) {
                         if (typeof showToast === 'function') {
-                            showToast(response.data.message || 'Selected merchants bulk rejected', 'warning');
+                            showToast(response.data.message || 'Selected merchants bulk deactivated', 'warning');
                         }
                         vm.loadMerchants();
                     }, function (error) {
                         console.error('Bulk reject error:', error);
                         if (typeof showToast === 'function') {
-                            showToast('Failed to reject merchants', 'error');
+                            showToast('Failed to deactivate merchants', 'error');
                         } else {
-                            alert('Failed to reject merchants');
+                            alert('Failed to deactivate merchants');
                         }
                     });
                 };
@@ -153,6 +159,43 @@
                     });
                 };
 
+                vm._deactivateThenContinueDelete = function () {
+                    if (!vm.hasSelection()) { return; }
+
+                    var activeIds = vm.getSelectedMerchants()
+                        .filter(function (m) { return (m.status || '').toLowerCase() === 'active'; })
+                        .map(function (m) { return parseInt(m.id, 10); });
+
+                    if (!activeIds.length) {
+                        vm.openBulkConfirm('delete');
+                        return;
+                    }
+
+                    $http.post('/admin/merchants/bulk-reject', { ids: activeIds }).then(function () {
+                        // Update local rows so next delete confirm can proceed without extra refresh
+                        vm.merchants.forEach(function (m) {
+                            if (activeIds.indexOf(parseInt(m.id, 10)) !== -1) {
+                                m.status = 'inactive';
+                            }
+                        });
+
+                        if (typeof showToast === 'function') {
+                            showToast('Selected active merchants bulk deactivated. Please confirm delete.', 'warning');
+                        }
+
+                        setTimeout(function () {
+                            vm.openBulkConfirm('delete');
+                        }, 150);
+                    }, function (error) {
+                        console.error('Deactivate before delete error:', error);
+                        if (typeof showToast === 'function') {
+                            showToast('Failed to deactivate active merchants before delete', 'error');
+                        } else {
+                            alert('Failed to deactivate active merchants before delete');
+                        }
+                    });
+                };
+
                 vm.openBulkConfirm = function (type) {
                     if (!vm.hasSelection()) {
                         return;
@@ -160,21 +203,33 @@
 
                     vm.pendingBulkAction = type;
 
-                    if (type === 'approve') {
-                        vm.bulkConfirmTitle = 'Approve merchants';
-                        vm.bulkConfirmMessage = 'Are you sure you want to approve the selected merchants?';
-                        vm.bulkConfirmButtonLabel = 'Yes, Approve';
+                    if (type === 'activate') {
+                        vm.bulkConfirmTitle = 'Activate merchants';
+                        vm.bulkConfirmMessage = 'Are you sure you want to activate the selected merchants?';
+                        vm.bulkConfirmButtonLabel = 'Yes, Activate';
                         vm.bulkConfirmBtnClass = 'btn-success';
-                    } else if (type === 'reject') {
-                        vm.bulkConfirmTitle = 'Reject merchants';
-                        vm.bulkConfirmMessage = 'Are you sure you want to reject the selected merchants?';
-                        vm.bulkConfirmButtonLabel = 'Yes, Reject';
+                    } else if (type === 'deactivate') {
+                        vm.bulkConfirmTitle = 'Deactivate merchants';
+                        vm.bulkConfirmMessage = 'Are you sure you want to deactivate the selected merchants?';
+                        vm.bulkConfirmButtonLabel = 'Yes, Deactivate';
                         vm.bulkConfirmBtnClass = 'btn-warning';
                     } else if (type === 'delete') {
-                        vm.bulkConfirmTitle = 'Delete merchants';
-                        vm.bulkConfirmMessage = 'This action cannot be undone. Do you really want to delete the selected merchants?';
-                        vm.bulkConfirmButtonLabel = 'Yes, Delete';
-                        vm.bulkConfirmBtnClass = 'btn-danger';
+                        var hasActiveSelected = vm.getSelectedMerchants().some(function (m) {
+                            return (m.status || '').toLowerCase() === 'active';
+                        });
+
+                        if (hasActiveSelected) {
+                            vm.pendingBulkAction = 'deactivate_then_delete';
+                            vm.bulkConfirmTitle = 'Active merchants selected';
+                            vm.bulkConfirmMessage = 'Active merchants cannot be deleted. Deactivate selected active merchants first.';
+                            vm.bulkConfirmButtonLabel = 'Deactivate & Continue';
+                            vm.bulkConfirmBtnClass = 'btn-warning';
+                        } else {
+                            vm.bulkConfirmTitle = 'Delete merchants';
+                            vm.bulkConfirmMessage = 'This action cannot be undone. Do you really want to delete the selected merchants?';
+                            vm.bulkConfirmButtonLabel = 'Yes, Delete';
+                            vm.bulkConfirmBtnClass = 'btn-danger';
+                        }
                     } else {
                         vm.bulkConfirmTitle = 'Confirm action';
                         vm.bulkConfirmMessage = 'Are you sure you want to perform this action?';
@@ -200,10 +255,12 @@
                     var action = vm.pendingBulkAction;
                     vm.pendingBulkAction = null;
 
-                    if (action === 'approve') {
+                    if (action === 'activate') {
                         vm._bulkApprove();
-                    } else if (action === 'reject') {
+                    } else if (action === 'deactivate') {
                         vm._bulkReject();
+                    } else if (action === 'deactivate_then_delete') {
+                        vm._deactivateThenContinueDelete();
                     } else if (action === 'delete') {
                         vm._bulkDelete();
                     }
