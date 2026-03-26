@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentLink;
 use Illuminate\Http\JsonResponse;
@@ -74,6 +75,8 @@ class PaymentLinkController extends Controller
                 'cancel_url' => $request->cancel_url,
                 'expires_at' => $expiresAt,
             ]);
+
+            event(new PaymentLinkCreated($paymentLink->load('merchant')));
 
             return response()->json([
                 'success' => true,

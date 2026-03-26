@@ -281,10 +281,14 @@
                 </div>
             </div>
 
-            <!-- Bank Account Information -->
+            <!-- Bank Account Information (TC_03: masked display; enter new value only to change) -->
             <div class="profile-section">
                 <div class="profile-section-title">
                     <i class="bi bi-bank"></i> Bank Account Information
+                </div>
+                <div class="alert alert-light border small mb-3">
+                    <i class="bi bi-shield-lock text-primary"></i>
+                    For security, sensitive bank details are masked below. Leave fields blank to keep your current details; enter a new value only when you want to update.
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -293,11 +297,13 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Account Number</label>
-                        <input type="text" class="form-control" name="bank_account_number" value="{{ old('bank_account_number', $merchant->bank_account_number) }}">
+                        <div class="small text-muted mb-1">On file: <strong class="text-body">{{ $maskedBankAccountNumber ?: '—' }}</strong></div>
+                        <input type="text" class="form-control" name="bank_account_number" value="{{ old('bank_account_number') }}" autocomplete="off" placeholder="Enter new account number only to change" maxlength="50">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">IFSC Code</label>
-                        <input type="text" class="form-control" name="bank_ifsc_code" value="{{ old('bank_ifsc_code', $merchant->bank_ifsc_code) }}" maxlength="11">
+                        <div class="small text-muted mb-1">On file: <strong class="text-body">{{ $maskedBankIfsc ?: '—' }}</strong></div>
+                        <input type="text" class="form-control" name="bank_ifsc_code" value="{{ old('bank_ifsc_code') }}" maxlength="11" placeholder="Enter new IFSC only to change" autocomplete="off">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Bank Name</label>

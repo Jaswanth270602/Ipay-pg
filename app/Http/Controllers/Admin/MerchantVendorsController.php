@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\MerchantVendor;
+use App\Support\SensitiveDataMasker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +19,19 @@ class MerchantVendorsController extends Controller
     public function index(): View
     {
         return view('admin.merchants.vendors');
+    }
+
+    /**
+     * Single vendor for edit (unmasked bank fields).
+     */
+    public function show(int $id): JsonResponse
+    {
+        $vendor = MerchantVendor::with('merchant')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $vendor,
+        ]);
     }
 
     /**
@@ -75,6 +89,11 @@ class MerchantVendorsController extends Controller
 
         $vendors = $query->orderByDesc('id')->paginate($perPage);
 
+        // TC_03: mask bank details in list payload (full values via show() for edit)
+        $vendors->getCollection()->transform(function (MerchantVendor $vendor) {
+            return SensitiveDataMasker::maskVendorAttributes($vendor);
+        });
+
         return response()->json([
             'success' => true,
             'data' => $vendors->items(),
@@ -126,7 +145,7 @@ class MerchantVendorsController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Merchant vendor created successfully',
-            'data' => $vendor->fresh('merchant'),
+            'data' => SensitiveDataMasker::maskVendorAttributes($vendor->fresh('merchant')),
         ]);
     }
 
@@ -169,7 +188,7 @@ class MerchantVendorsController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Merchant vendor updated successfully',
-            'data' => $vendor->fresh('merchant'),
+            'data' => SensitiveDataMasker::maskVendorAttributes($vendor->fresh('merchant')),
         ]);
     }
 

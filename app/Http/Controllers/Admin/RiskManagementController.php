@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\RiskRule;
 use App\Models\RiskEvent;
 use App\Models\FraudAlert;
+use App\Models\FraudTransaction;
+use App\Models\FraudEvent;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -138,7 +140,53 @@ class RiskManagementController extends Controller
                 'total_events' => RiskEvent::where('resolved', false)->count(),
                 'critical_alerts' => FraudAlert::where('severity', 'critical')->where('status', 'open')->count(),
                 'high_alerts' => FraudAlert::where('severity', 'high')->where('status', 'open')->count(),
+                'fds_review' => FraudTransaction::where('decision', 'review')->count(),
+                'fds_block' => FraudTransaction::where('decision', 'block')->count(),
             ],
+        ]);
+    }
+
+    // FDS Decisions (fraud_transactions)
+    public function getFdsDecisions(Request $request)
+    {
+        $perPage = min((int) ($request->get('per_page', 15)), 50);
+        $q = FraudTransaction::query()->orderByDesc('id');
+
+        if ($request->filled('merchant_id')) {
+            $q->where('merchant_id', (int) $request->get('merchant_id'));
+        }
+        if ($request->filled('decision')) {
+            $q->where('decision', $request->get('decision'));
+        }
+        if ($request->filled('transaction_id')) {
+            $q->where('transaction_id', 'like', '%' . $request->get('transaction_id') . '%');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $q->paginate($perPage),
+        ]);
+    }
+
+    // FDS Events (fraud_events)
+    public function getFdsEvents(Request $request)
+    {
+        $perPage = min((int) ($request->get('per_page', 20)), 50);
+        $q = FraudEvent::query()->orderByDesc('id');
+
+        if ($request->filled('rule_name')) {
+            $q->where('rule_name', $request->get('rule_name'));
+        }
+        if ($request->filled('triggered')) {
+            $q->where('triggered', (bool) $request->get('triggered'));
+        }
+        if ($request->filled('fraud_transaction_id')) {
+            $q->where('fraud_transaction_id', (int) $request->get('fraud_transaction_id'));
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $q->paginate($perPage),
         ]);
     }
 }

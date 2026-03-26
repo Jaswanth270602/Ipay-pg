@@ -494,10 +494,27 @@
 
                 vm.editVendor = function (vendor) {
                     vm.isEditing = true;
-                    vm.form = angular.copy(vendor);
                     vm.loadMerchants();
-                    var modal = new bootstrap.Modal(document.getElementById('vendorModal'));
-                    modal.show();
+                    var modalEl = document.getElementById('vendorModal');
+                    $http.get("{{ url('admin/merchant-vendors') }}/" + vendor.id).then(function (res) {
+                        if (!res.data || !res.data.success || !res.data.data) {
+                            if (typeof showToast === 'function') {
+                                showToast('Failed to load vendor', 'error');
+                            } else {
+                                alert('Failed to load vendor');
+                            }
+                            return;
+                        }
+                        vm.form = angular.copy(res.data.data);
+                        var modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }, function () {
+                        if (typeof showToast === 'function') {
+                            showToast('Failed to load vendor', 'error');
+                        } else {
+                            alert('Failed to load vendor');
+                        }
+                    });
                 };
 
                 vm.saveVendor = function () {

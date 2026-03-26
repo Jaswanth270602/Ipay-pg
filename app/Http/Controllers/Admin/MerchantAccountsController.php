@@ -8,6 +8,7 @@ use App\Models\Merchant;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AcquirerAccount;
+use App\Support\SensitiveDataMasker;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -112,6 +113,11 @@ class MerchantAccountsController extends Controller
 
             $merchants = $query->with('acquirerAccount')->paginate($perPage);
 
+            // TC_03: mask bank details in list payload (full values via show() for edit)
+            $merchants->getCollection()->transform(function (Merchant $merchant) {
+                return SensitiveDataMasker::maskMerchantAttributes($merchant);
+            });
+
             $this->logDebug('Admin merchant accounts retrieved', [
                 'count' => $merchants->count(),
                 'total' => $merchants->total()
@@ -122,7 +128,7 @@ class MerchantAccountsController extends Controller
                 'data' => $merchants->items(),
                 'pagination' => [
                     'current_page' => $merchants->currentPage(),
-                    'per_page' => $merchants->PerPage(),
+                    'per_page' => $merchants->perPage(),
                     'total' => $merchants->total(),
                     'last_page' => $merchants->lastPage(),
                     'from' => $merchants->firstItem(),
@@ -333,7 +339,7 @@ class MerchantAccountsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant account created successfully',
-                'data' => $merchant,
+                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh()),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -446,7 +452,7 @@ class MerchantAccountsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant updated successfully',
-                'data' => $merchant->fresh(['acquirerAccount']),
+                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh(['acquirerAccount'])),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -552,7 +558,7 @@ class MerchantAccountsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant settings updated successfully',
-                'data' => $merchant->fresh(),
+                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh()),
             ]);
         } catch (\Exception $e) {
             $this->logError('Error updating merchant settings', [
@@ -588,7 +594,7 @@ class MerchantAccountsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant account duplicated successfully',
-                'data' => $duplicate,
+                'data' => SensitiveDataMasker::maskMerchantAttributes($duplicate->fresh()),
             ]);
         } catch (\Exception $e) {
             $this->logError('Error duplicating merchant account', [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Merchant;
 
+use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\PaymentLink;
@@ -219,6 +220,8 @@ class PaymentLinksController extends Controller
                 'link_token' => $paymentLink->link_token,
                 'merchant_id' => $merchant->id
             ]);
+
+            event(new PaymentLinkCreated($paymentLink->load('merchant')));
 
             return response()->json([
                 'success' => true,

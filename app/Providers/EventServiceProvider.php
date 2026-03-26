@@ -32,6 +32,9 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\SendPaymentWebhook::class,
             \App\Listeners\CreatePaymentNotifications::class,
         ],
+        \App\Events\PaymentLinkCreated::class => [
+            \App\Listeners\CreatePaymentNotifications::class,
+        ],
         \App\Events\PaymentCharged::class => [
             \App\Listeners\SendGenericWebhook::class . '@handlePaymentCharged',
         ],

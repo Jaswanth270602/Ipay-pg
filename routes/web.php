@@ -326,6 +326,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchant-vendors.data');
         Route::get('/merchant-vendors/merchants', [MerchantVendorsController::class, 'getMerchants'])
             ->name('admin.merchant-vendors.merchants');
+        Route::get('/merchant-vendors/{id}', [MerchantVendorsController::class, 'show'])
+            ->whereNumber('id')
+            ->name('admin.merchant-vendors.show');
         Route::post('/merchant-vendors/bulk-status', [MerchantVendorsController::class, 'bulkStatus'])
             ->name('admin.merchant-vendors.bulk-status');
         Route::post('/merchant-vendors', [MerchantVendorsController::class, 'store'])
@@ -651,6 +654,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.risk.alerts.store');
         Route::post('/risk/alerts/{id}', [RiskManagementController::class, 'updateAlert'])
             ->name('admin.risk.alerts.update');
+        Route::get('/risk/fds/decisions/data', [RiskManagementController::class, 'getFdsDecisions'])
+            ->name('admin.risk.fds.decisions.data');
+        Route::get('/risk/fds/events/data', [RiskManagementController::class, 'getFdsEvents'])
+            ->name('admin.risk.fds.events.data');
 
         // S2S Callback Logs (Technical Diagnostics)
         Route::get('/s2s-callback-logs', [S2SCallbackLogController::class, 'index'])

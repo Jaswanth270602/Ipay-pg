@@ -9,16 +9,28 @@
             app.controller('AdminRiskController', ['$http', function($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
-                vm.stats = { total_rules: 0, total_events: 0, critical_alerts: 0, high_alerts: 0 };
+                vm.stats = { total_rules: 0, total_events: 0, critical_alerts: 0, high_alerts: 0, fds_review: 0, fds_block: 0 };
                 vm.rules = { data: [] };
                 vm.events = { data: [] };
                 vm.alerts = { data: [] };
+                vm.fdsDecisions = { data: [] };
+                vm.fdsEvents = { data: [] };
                 vm.ruleSearch = '';
                 vm.ruleFilters = { status: '', type: '' };
                 vm.eventFilters = { merchant_id: '', severity: '', resolved: '' };
                 vm.alertFilters = { merchant_id: '', status: '', severity: '' };
+                vm.fdsDecisionFilters = { merchant_id: '', decision: '', transaction_id: '' };
+                vm.fdsEventFilters = { fraud_transaction_id: '', rule_name: '', triggered: '' };
                 vm.ruleForm = { name: '', type: 'velocity', rule_config_json: '{}', action: 'alert', status: 'active', priority: 0 };
                 vm.alertForm = { merchant_id: '', transaction_id: '', alert_type: 'suspicious_pattern', severity: 'medium', description: '', risk_score: 50 };
+                vm.ruleSubmitting = false;
+                vm.ruleTypeTemplates = {
+                    velocity: '{\n  "max_transactions": 10,\n  "time_window": "1h"\n}',
+                    amount_limit: '{\n  "max_amount": 100000,\n  "currency": "INR"\n}',
+                    geo_block: '{\n  "blocked_countries": ["KP", "IR"]\n}',
+                    merchant_block: '{\n  "merchant_ids": [101, 205]\n}',
+                    ip_block: '{\n  "blocked_ips": ["192.168.1.10"]\n}'
+                };
 
                 vm.loadStats = function() {
                     $http.get('/admin/risk/stats').then(function(resp) {
@@ -35,21 +47,59 @@
                 };
 
                 vm.createRule = function() {
+                    if (!vm.ruleForm.name || !vm.ruleForm.name.trim()) {
+                        if (typeof showToast === 'function') {
+                            showToast('Rule name is required.', 'error');
+                        } else {
+                            alert('Rule name is required.');
+                        }
+                        return;
+                    }
+
                     try {
                         vm.ruleForm.rule_config = JSON.parse(vm.ruleForm.rule_config_json || '{}');
                     } catch(e) {
-                        alert('Invalid JSON in rule config');
+                        if (typeof showToast === 'function') {
+                            showToast('Invalid JSON in Rule Config.', 'error');
+                        } else {
+                            alert('Invalid JSON in Rule Config.');
+                        }
                         return;
                     }
+
+                    vm.ruleSubmitting = true;
                     $http.post('/admin/risk/rules', vm.ruleForm, { headers: { 'X-CSRF-TOKEN': csrf } }).then(function() {
+                        vm.ruleSubmitting = false;
                         vm.ruleForm = { name: '', type: 'velocity', rule_config_json: '{}', action: 'alert', status: 'active', priority: 0 };
                         bootstrap.Modal.getInstance(document.getElementById('ruleModal')).hide();
                         vm.loadRules();
                         vm.loadStats();
+                        if (typeof showToast === 'function') {
+                            showToast('Risk rule created successfully.', 'success');
+                        }
                     }, function(err) {
-                        alert('Failed to create rule');
+                        vm.ruleSubmitting = false;
+                        var msg = 'Failed to create rule';
+                        if (err && err.data && err.data.errors) {
+                            var firstKey = Object.keys(err.data.errors)[0];
+                            if (firstKey && err.data.errors[firstKey] && err.data.errors[firstKey][0]) {
+                                msg = err.data.errors[firstKey][0];
+                            }
+                        } else if (err && err.data && err.data.message) {
+                            msg = err.data.message;
+                        }
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        } else {
+                            alert(msg);
+                        }
                         console.error(err);
                     });
+                };
+
+                vm.applyRuleTemplate = function() {
+                    var t = vm.ruleTypeTemplates[vm.ruleForm.type] || '{}';
+                    vm.ruleForm.rule_config_json = t;
                 };
 
                 vm.updateRule = function(r) {
@@ -92,6 +142,30 @@
                     });
                 };
 
+                vm.loadFdsDecisions = function(page) {
+                    var params = {
+                        merchant_id: vm.fdsDecisionFilters.merchant_id || '',
+                        decision: vm.fdsDecisionFilters.decision || '',
+                        transaction_id: vm.fdsDecisionFilters.transaction_id || ''
+                    };
+                    if (page) params.page = page;
+                    $http.get('/admin/risk/fds/decisions/data', { params: params }).then(function(resp) {
+                        vm.fdsDecisions = resp.data.data;
+                    });
+                };
+
+                vm.loadFdsEvents = function(page) {
+                    var params = {
+                        fraud_transaction_id: vm.fdsEventFilters.fraud_transaction_id || '',
+                        rule_name: vm.fdsEventFilters.rule_name || '',
+                        triggered: vm.fdsEventFilters.triggered
+                    };
+                    if (page) params.page = page;
+                    $http.get('/admin/risk/fds/events/data', { params: params }).then(function(resp) {
+                        vm.fdsEvents = resp.data.data;
+                    });
+                };
+
                 vm.createAlert = function() {
                     $http.post('/admin/risk/alerts', vm.alertForm, { headers: { 'X-CSRF-TOKEN': csrf } }).then(function() {
                         vm.alertForm = { merchant_id: '', transaction_id: '', alert_type: 'suspicious_pattern', severity: 'medium', description: '', risk_score: 50 };
@@ -115,6 +189,8 @@
                 };
 
                 vm.openRuleModal = function() {
+                    vm.ruleForm = { name: '', type: 'velocity', rule_config_json: vm.ruleTypeTemplates.velocity, action: 'alert', status: 'active', priority: 0 };
+                    vm.ruleSubmitting = false;
                     new bootstrap.Modal(document.getElementById('ruleModal')).show();
                 };
                 vm.openAlertModal = function() {

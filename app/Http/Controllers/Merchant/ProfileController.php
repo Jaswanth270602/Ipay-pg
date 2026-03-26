@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Support\SensitiveDataMasker;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
@@ -17,8 +18,11 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
         $merchant = $user->merchant;
-        
-        return view('merchant.profile.index', compact('user', 'merchant'));
+
+        $maskedBankAccountNumber = SensitiveDataMasker::maskBankAccountNumber($merchant->bank_account_number);
+        $maskedBankIfsc = SensitiveDataMasker::maskIfsc($merchant->bank_ifsc_code);
+
+        return view('merchant.profile.index', compact('user', 'merchant', 'maskedBankAccountNumber', 'maskedBankIfsc'));
     }
 
     /**
@@ -106,8 +110,13 @@ class ProfileController extends Controller
             $merchant->tax_id = $request->tax_id;
             $merchant->business_registration_number = $request->business_registration_number;
             $merchant->bank_account_holder_name = $request->bank_account_holder_name;
-            $merchant->bank_account_number = $request->bank_account_number;
-            $merchant->bank_ifsc_code = $request->bank_ifsc_code;
+            // TC_03: do not overwrite bank fields with empty/masked values when not explicitly changing
+            if ($request->filled('bank_account_number')) {
+                $merchant->bank_account_number = $request->bank_account_number;
+            }
+            if ($request->filled('bank_ifsc_code')) {
+                $merchant->bank_ifsc_code = $request->bank_ifsc_code;
+            }
             $merchant->bank_name = $request->bank_name;
             $merchant->bank_branch = $request->bank_branch;
             $merchant->save();

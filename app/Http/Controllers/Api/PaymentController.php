@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\PaymentLink;
@@ -81,6 +82,8 @@ class PaymentController extends Controller
                 'usage_count' => 0,
                 'metadata' => $data['metadata'] ?? null,
             ]);
+
+            event(new PaymentLinkCreated($paymentLink->load('merchant')));
 
             // Generate checkout URL pointing to your payment gateway form
             $checkoutUrl = url('/pay/' . $paymentLink->link_token);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Traits\LogsConditionally;
 use App\Services\PaymentService;
 use App\Services\PaymentSimulationService;
+use App\Services\Fraud\FraudEngine;
 use App\Services\GatewayModeService;
 use App\Services\PaymentGateways\GatewayFactory;
 use App\Contracts\PaymentGatewayInterface;
@@ -24,11 +25,17 @@ class PaymentCheckoutController extends Controller
 
     protected PaymentService $paymentService;
     protected PaymentSimulationService $simulationService;
+    protected FraudEngine $fraudEngine;
 
-    public function __construct(PaymentService $paymentService, PaymentSimulationService $simulationService)
+    public function __construct(
+        PaymentService $paymentService,
+        PaymentSimulationService $simulationService,
+        FraudEngine $fraudEngine
+    )
     {
         $this->paymentService = $paymentService;
         $this->simulationService = $simulationService;
+        $this->fraudEngine = $fraudEngine;
     }
 
     public function show(string $token)
@@ -379,6 +386,39 @@ class PaymentCheckoutController extends Controller
                 'test_mode' => $paymentLink->test_mode,
                 'description' => $paymentLink->title . ($paymentLink->allow_partial_payment ? ' (Partial Payment)' : ''),
             ];
+
+            // FDS execution example:
+            // Evaluate risk before gateway/simulation processing.
+            $country = (string) ($request->header('CF-IPCountry')
+                ?? $request->header('X-Country-Code')
+                ?? data_get($request->customer_details, 'country')
+                ?? '');
+            $deviceFingerprint = (string) ($request->header('X-Device-Fingerprint')
+                ?? data_get($paymentDetails, 'device_fingerprint')
+                ?? '');
+            $customerEmail = (string) data_get($request->customer_details, 'email', '');
+
+            $fraudContext = [
+                'transaction_id' => null, // Known once payment transaction row is created
+                'merchant_id' => $paymentLink->merchant_id,
+                'user_id' => null,
+                'amount' => $paymentAmount,
+                'customer_email' => $customerEmail,
+                'ip_address' => (string) $request->ip(),
+                'user_agent' => (string) $request->userAgent(),
+                'country' => strtoupper(trim($country)),
+                'device_fingerprint' => $deviceFingerprint,
+                'payment_status' => 'attempt',
+            ];
+
+            $fraudResult = $this->fraudEngine->evaluate($fraudContext);
+            if (($fraudResult['decision'] ?? 'allow') === 'block') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment blocked by fraud checks.',
+                    'fraud' => $fraudResult,
+                ], 403);
+            }
 
             // Process payment through GatewayFactory (clean routing architecture)
             try {
