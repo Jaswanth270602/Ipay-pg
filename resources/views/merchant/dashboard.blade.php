@@ -245,7 +245,7 @@
                 </div>
                 <div class="mb-3">
                     <small class="text-muted d-block mb-1">API Documentation</small>
-                    <a href="/docs/api" class="btn btn-sm btn-outline-primary">View API Docs</a>
+                    <a href="{{ route('merchant.integration.index') }}#api-docs-tab" class="btn btn-sm btn-outline-primary">View API Docs</a>
                 </div>
                 @if($merchant->onboarding_status !== 'completed')
                     <div class="alert alert-warning">

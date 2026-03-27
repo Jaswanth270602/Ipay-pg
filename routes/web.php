@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AcquirerAccountsController;
 use App\Http\Controllers\Admin\AcquirerAccountUploadController;
 use App\Http\Controllers\Admin\AcquirerRatesController;
+use App\Http\Controllers\DocsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -73,6 +74,7 @@ Route::view('/products', 'products')->name('products.page');
 Route::view('/contact', 'contact')->name('contact.page');
 Route::view('/privacy', 'privacy')->name('privacy.page');
 Route::view('/terms', 'terms')->name('terms.page');
+Route::get('/docs', [DocsController::class, 'index'])->name('docs.index');
 
 // Public payment checkout
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');
