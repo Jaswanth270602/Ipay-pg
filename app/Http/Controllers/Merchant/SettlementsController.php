@@ -25,14 +25,12 @@ class SettlementsController extends Controller
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
 
-        // Show settlements based on merchant's current mode
-        // Test mode shows settlements for test transactions
-        // Live mode shows settlements for live transactions
-        $query = $merchant->settlements()->latest();
-        
-        // Note: Settlements themselves don't have test_mode flag
-        // They're filtered by which transactions they contain
-        // For now, show all settlements for the merchant
+        $modeIsTest = (bool) $merchant->test_mode;
+        $query = $merchant->settlements()
+            ->whereHas('transactions', function ($q) use ($modeIsTest) {
+                $q->where('test_mode', $modeIsTest);
+            })
+            ->latest();
 
         if ($status && $status !== 'all' && $status !== '') {
             $query->where('status', $status);
@@ -73,7 +71,11 @@ class SettlementsController extends Controller
     {
         $merchant = $request->user()->merchant;
 
-        $query = $merchant->settlements();
+        $modeIsTest = (bool) $merchant->test_mode;
+        $query = $merchant->settlements()
+            ->whereHas('transactions', function ($q) use ($modeIsTest) {
+                $q->where('test_mode', $modeIsTest);
+            });
 
         $status = $request->get('status');
         $search = $request->get('search');

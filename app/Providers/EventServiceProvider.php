@@ -25,6 +25,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         \App\Events\PaymentSuccess::class => [
             \App\Listeners\SendPaymentWebhook::class,
+            \App\Listeners\CreateSplitTransactionEntry::class,
             \App\Listeners\CreateSettlementEntry::class,
             \App\Listeners\CreatePaymentNotifications::class,
         ],

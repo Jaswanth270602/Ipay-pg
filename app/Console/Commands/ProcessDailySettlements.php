@@ -11,6 +11,7 @@ class ProcessDailySettlements extends Command
     protected $signature = 'settlements:process-daily 
                             {--date= : Process settlements for specific date (YYYY-MM-DD)}
                             {--merchant= : Process for specific merchant ID}
+                            {--mode= : Filter mode: test or live}
                             {--dry-run : Show what would happen without actually processing}';
 
     protected $description = 'Process daily settlements for merchants';
@@ -29,21 +30,36 @@ class ProcessDailySettlements extends Command
         $this->info('═══════════════════════════════════════');
 
         // Get date to process
-        $date = $this->option('date') 
-            ? Carbon::parse($this->option('date')) 
-            : Carbon::yesterday();
+        $date = $this->option('date')
+            ? Carbon::parse($this->option('date'))
+            : Carbon::now();
+
+        $merchantId = $this->option('merchant') ? (int) $this->option('merchant') : null;
+        $mode = $this->option('mode');
+        $dryRun = (bool) $this->option('dry-run');
+
+        if ($mode && !in_array($mode, ['test', 'live'], true)) {
+            $this->error("Invalid --mode value: {$mode}. Allowed values are: test, live");
+            return self::FAILURE;
+        }
 
         $this->info("Processing date: {$date->toDateString()}");
+        if ($merchantId) {
+            $this->info("Merchant filter: {$merchantId}");
+        }
+        if ($mode) {
+            $this->info("Mode filter: {$mode}");
+        }
         $this->newLine();
 
-        if ($this->option('dry-run')) {
+        if ($dryRun) {
             $this->warn('🔍 DRY RUN MODE - No changes will be saved');
             $this->newLine();
         }
 
         // Process settlements
         try {
-            $results = $this->engine->processDailySettlements($date);
+            $results = $this->engine->processDailySettlements($date, $merchantId, $mode, $dryRun);
 
             // Display results
             $this->displayResults($results);

@@ -14,7 +14,7 @@ class SettlementController extends Controller
     }
 
     /**
-     * Get all settlements for the merchant (LIVE mode only).
+     * Get all settlements for the merchant, filtered by API key mode.
      *
      * @param Request $request
      * @return JsonResponse
@@ -23,24 +23,7 @@ class SettlementController extends Controller
     {
         $merchant = $request->get('api_merchant');
         $apiKeyMode = $request->get('api_key_mode');
-
-        // Settlements are only created for LIVE transactions
-        if ($apiKeyMode === 'test') {
-            return response()->json([
-                'success' => true,
-                'mode' => $apiKeyMode,
-                'data' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => (int) $request->get('per_page', config('ipay.pagination.default_per_page')),
-                    'total' => 0,
-                    'last_page' => 1,
-                    'from' => null,
-                    'to' => null,
-                ],
-                'message' => 'Settlements are only available in LIVE mode. Use a LIVE API key to view settlements.',
-            ]);
-        }
+        $modeIsTest = $apiKeyMode === 'test';
 
         $perPage = min(
             (int) $request->get('per_page', config('ipay.pagination.default_per_page')),
@@ -52,7 +35,11 @@ class SettlementController extends Controller
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
 
-        $query = $merchant->settlements()->latest();
+        $query = $merchant->settlements()
+            ->whereHas('transactions', function ($q) use ($modeIsTest) {
+                $q->where('test_mode', $modeIsTest);
+            })
+            ->latest();
 
         if ($status && $status !== 'all') {
             $query->where('status', $status);
@@ -91,7 +78,7 @@ class SettlementController extends Controller
     }
 
     /**
-     * Get a specific settlement by settlement_id (LIVE mode only).
+     * Get a specific settlement by settlement_id, filtered by API key mode.
      *
      * @param Request $request
      * @param string $settlementId
@@ -101,16 +88,13 @@ class SettlementController extends Controller
     {
         $merchant = $request->get('api_merchant');
         $apiKeyMode = $request->get('api_key_mode');
-
-        if ($apiKeyMode === 'test') {
-            return response()->json([
-                'error' => 'Settlements are only available in LIVE mode',
-                'message' => 'Use a LIVE API key to access settlement details.',
-            ], 400);
-        }
+        $modeIsTest = $apiKeyMode === 'test';
 
         $settlement = $merchant->settlements()
             ->where('settlement_id', $settlementId)
+            ->whereHas('transactions', function ($q) use ($modeIsTest) {
+                $q->where('test_mode', $modeIsTest);
+            })
             ->with(['transactions', 'payouts'])
             ->first();
 
@@ -147,7 +131,9 @@ class SettlementController extends Controller
                 'bank_name' => $settlement->bank_name,
                 'bank_branch' => $settlement->bank_branch,
                 'notes' => $settlement->notes,
-                'transactions' => $settlement->transactions->map(function ($txn) {
+                'transactions' => $settlement->transactions
+                    ->where('test_mode', $modeIsTest)
+                    ->map(function ($txn) {
                     return [
                         'transaction_id' => $txn->txn_id,
                         'amount' => $txn->amount,

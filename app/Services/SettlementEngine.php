@@ -15,19 +15,32 @@ class SettlementEngine
      * Process daily settlements for all merchants.
      * This runs every day at configured time (default: 11 PM).
      */
-    public function processDailySettlements(Carbon $date = null): array
+    public function processDailySettlements(
+        Carbon $date = null,
+        ?int $merchantId = null,
+        ?string $mode = null,
+        bool $dryRun = false
+    ): array
     {
-        $date = $date ?? Carbon::yesterday(); // Process previous day's transactions
+        $date = ($date ?? Carbon::now())->copy()->endOfDay();
         $results = [];
 
-        Log::info('Starting daily settlement processing', ['date' => $date->toDateString()]);
+        Log::info('Starting daily settlement processing', [
+            'date' => $date->toDateString(),
+            'merchant_id' => $merchantId,
+            'mode' => $mode,
+            'dry_run' => $dryRun,
+        ]);
 
         try {
-            // Get all merchants
-            $merchants = Merchant::where('status', 'active')->get();
+            $merchantQuery = Merchant::where('status', 'active');
+            if ($merchantId) {
+                $merchantQuery->where('id', $merchantId);
+            }
+            $merchants = $merchantQuery->get();
 
             foreach ($merchants as $merchant) {
-                $result = $this->processSettlementForMerchant($merchant, $date);
+                $result = $this->processSettlementForMerchant($merchant, $date, $mode, $dryRun);
                 $results[] = $result;
             }
 
@@ -51,7 +64,12 @@ class SettlementEngine
     /**
      * Process settlement for a specific merchant.
      */
-    public function processSettlementForMerchant(Merchant $merchant, Carbon $date): array
+    public function processSettlementForMerchant(
+        Merchant $merchant,
+        Carbon $date,
+        ?string $mode = null,
+        bool $dryRun = false
+    ): array
     {
         // Get merchant's settlement cycles
         $domesticCycle = $merchant->settlement_cycle_domestic ?? 1;
@@ -59,26 +77,45 @@ class SettlementEngine
 
         // Calculate the transaction date that should be settled today
         // For T+X cycle, transactions from (X days ago) should be settled today
-        $domesticCutoffDate = now()->subDays($domesticCycle);
-        $internationalCutoffDate = now()->subDays($internationalCycle);
+        $domesticCutoffDate = $date->copy()->subDays($domesticCycle);
+        $internationalCutoffDate = $date->copy()->subDays($internationalCycle);
 
         // Get transactions that are ready for settlement based on their cycle
-        $transactions = Transaction::where('merchant_id', $merchant->id)
+        $transactionsQuery = Transaction::where('merchant_id', $merchant->id)
             ->where('status', 'success')
             ->where('settlement_status', 'pending')
-            ->where(function($query) use ($domesticCutoffDate, $internationalCutoffDate) {
+            ->where(function ($query) use ($domesticCutoffDate, $internationalCutoffDate) {
                 // Domestic transactions (INR): captured_at <= (today - domestic_cycle)
-                $query->where(function($q) use ($domesticCutoffDate) {
+                $query->where(function ($q) use ($domesticCutoffDate) {
                     $q->where('currency', 'INR')
-                      ->where('captured_at', '<=', $domesticCutoffDate);
+                        ->where(function ($timeQuery) use ($domesticCutoffDate) {
+                            $timeQuery->where('captured_at', '<=', $domesticCutoffDate)
+                                ->orWhere(function ($fallbackQuery) use ($domesticCutoffDate) {
+                                    $fallbackQuery->whereNull('captured_at')
+                                        ->where('created_at', '<=', $domesticCutoffDate);
+                                });
+                        });
                 })
                 // International transactions: captured_at <= (today - international_cycle)
-                ->orWhere(function($q) use ($internationalCutoffDate) {
+                ->orWhere(function ($q) use ($internationalCutoffDate) {
                     $q->where('currency', '!=', 'INR')
-                      ->where('captured_at', '<=', $internationalCutoffDate);
+                        ->where(function ($timeQuery) use ($internationalCutoffDate) {
+                            $timeQuery->where('captured_at', '<=', $internationalCutoffDate)
+                                ->orWhere(function ($fallbackQuery) use ($internationalCutoffDate) {
+                                    $fallbackQuery->whereNull('captured_at')
+                                        ->where('created_at', '<=', $internationalCutoffDate);
+                                });
+                        });
                 });
-            })
-            ->get();
+            });
+
+        if ($mode === 'test') {
+            $transactionsQuery->where('test_mode', true);
+        } elseif ($mode === 'live') {
+            $transactionsQuery->where('test_mode', false);
+        }
+
+        $transactions = $transactionsQuery->orderBy('captured_at')->orderBy('created_at')->get();
 
         if ($transactions->isEmpty()) {
             return [
@@ -96,14 +133,25 @@ class SettlementEngine
         // Process settlements separately if we have both types, or combined if only one type
         if ($domesticTransactions->isNotEmpty() && $internationalTransactions->isNotEmpty()) {
             // Create separate settlements for domestic and international
-            $domesticSettlement = $this->createSettlement($merchant, $domesticTransactions, 
+            if ($dryRun) {
+                return [
+                    'merchant_id' => $merchant->id,
+                    'merchant_name' => $merchant->name,
+                    'created' => false,
+                    'message' => 'Dry run: ' . $transactions->count() . ' transactions would be settled',
+                    'transaction_count' => $transactions->count(),
+                    'net_amount' => $this->calculateSettlementAmounts($transactions)['net_amount'],
+                ];
+            }
+
+            $domesticSettlement = $this->createSettlement($merchant, $domesticTransactions,
                 $this->calculateSettlementAmounts($domesticTransactions), 
-                $domesticCutoffDate, 'domestic');
+                $date, 'domestic');
             $this->markTransactionsAsSettled($domesticTransactions, $domesticSettlement);
 
-            $internationalSettlement = $this->createSettlement($merchant, $internationalTransactions, 
+            $internationalSettlement = $this->createSettlement($merchant, $internationalTransactions,
                 $this->calculateSettlementAmounts($internationalTransactions), 
-                $internationalCutoffDate, 'international');
+                $date, 'international');
             $this->markTransactionsAsSettled($internationalTransactions, $internationalSettlement);
 
             return [
@@ -117,10 +165,19 @@ class SettlementEngine
         } else {
             // Single settlement for all transactions (all domestic or all international)
             $transactionType = $domesticTransactions->isNotEmpty() ? 'domestic' : 'international';
-            $cutoffDate = $transactionType === 'domestic' ? $domesticCutoffDate : $internationalCutoffDate;
-            
+            if ($dryRun) {
+                return [
+                    'merchant_id' => $merchant->id,
+                    'merchant_name' => $merchant->name,
+                    'created' => false,
+                    'message' => 'Dry run: ' . $transactions->count() . ' transactions would be settled',
+                    'transaction_count' => $transactions->count(),
+                    'net_amount' => $this->calculateSettlementAmounts($transactions)['net_amount'],
+                ];
+            }
+
             $calculation = $this->calculateSettlementAmounts($transactions);
-            $settlement = $this->createSettlement($merchant, $transactions, $calculation, $cutoffDate, $transactionType);
+            $settlement = $this->createSettlement($merchant, $transactions, $calculation, $date, $transactionType);
             $this->markTransactionsAsSettled($transactions, $settlement);
 
             return [
@@ -174,7 +231,7 @@ class SettlementEngine
     /**
      * Create settlement record.
      */
-    protected function createSettlement(Merchant $merchant, $transactions, array $calculation, Carbon $cutoffDate, string $transactionType = 'domestic'): Settlement
+    protected function createSettlement(Merchant $merchant, $transactions, array $calculation, Carbon $processDate, string $transactionType = 'domestic'): Settlement
     {
         // Get the appropriate settlement cycle
         $settlementCycle = $transactionType === 'domestic' 
@@ -182,7 +239,7 @@ class SettlementEngine
             : ($merchant->settlement_cycle_international ?? 7);
 
         // Settlement date is today (when the settlement is being processed)
-        $settlementDate = now();
+        $settlementDate = $processDate->copy();
 
         $firstTransaction = $transactions->first();
         $lastTransaction = $transactions->last();
