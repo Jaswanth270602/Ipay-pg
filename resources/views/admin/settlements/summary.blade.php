@@ -24,6 +24,14 @@
                 <label class="form-label">Select Date Range:</label>
                 <input type="text" class="form-control" ng-model="assc.dateRange" placeholder="Leave empty to show all dates">
             </div>
+            <div class="col-md-3">
+                <label class="form-label">Environment</label>
+                <select class="form-select" ng-model="assc.mode" ng-change="assc.applyFilters()">
+                    <option value="all">All</option>
+                    <option value="test">Test</option>
+                    <option value="live">Live</option>
+                </select>
+            </div>
             <div class="col-md-2">
                 <button class="btn btn-primary w-100">Advanced Filter</button>
             </div>
@@ -128,6 +136,12 @@
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="assc.filters.filter_payout_amount" ng-change="assc.applyFilters()">
                             </th>
+                            <th ng-show="assc.visibleColumns.transaction_count.visible">
+                                <span>Txns in batch</span>
+                            </th>
+                            <th ng-show="assc.visibleColumns.refund_count.visible">
+                                <span>Refunds in batch</span>
+                            </th>
                             <th ng-show="assc.visibleColumns.settlement_status.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Settlement Status</span>
@@ -217,6 +231,8 @@
                             <td ng-show="assc.visibleColumns.partner_id.visible">@{{ settlement.partner_id }}</td>
                             <td ng-show="assc.visibleColumns.partner_name.visible">@{{ settlement.partner_name }}</td>
                             <td ng-show="assc.visibleColumns.payout_amount.visible">@{{ settlement.payout_amount }}</td>
+                            <td ng-show="assc.visibleColumns.transaction_count.visible"><span class="badge bg-secondary">@{{ settlement.transaction_count }}</span></td>
+                            <td ng-show="assc.visibleColumns.refund_count.visible">@{{ settlement.refund_count }}</td>
                             <td ng-show="assc.visibleColumns.settlement_status.visible">
                                 <span class="badge" ng-class="{
                                     'bg-success': settlement.settlement_status === 'settled',
@@ -286,6 +302,7 @@
                 vm.loading = false;
                 vm.selectAll = false;
                 vm.dateRange = ''; // Empty = show all dates
+                vm.mode = 'all';
                 vm.sortColumn = 'id';
                 vm.sortDirection = 'desc';
                 
@@ -296,6 +313,8 @@
                     partner_id: { visible: true, label: 'Partner Id' },
                     partner_name: { visible: true, label: 'Partner Name' },
                     payout_amount: { visible: true, label: 'Payout Amount' },
+                    transaction_count: { visible: true, label: 'Txns in batch' },
+                    refund_count: { visible: true, label: 'Refunds in batch' },
                     settlement_status: { visible: true, label: 'Settlement Status' },
                     settlement_date: { visible: true, label: 'Settlement Date' },
                     bank_reference: { visible: true, label: 'Bank Reference' },
@@ -324,6 +343,9 @@
                             params[key] = vm.filters[key];
                         }
                     });
+                    if (vm.mode && vm.mode !== 'all') {
+                        params.mode = vm.mode;
+                    }
                     
                     $http.get('/admin/settlements/summary/data', { params: params }).then(function(response) {
                         vm.settlements = response.data.data || [];
@@ -355,6 +377,7 @@
                 vm.clearFilters = function() {
                     vm.filters = {};
                     vm.dateRange = '';
+                    vm.mode = 'all';
                     vm.applyFilters();
                 };
 

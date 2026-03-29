@@ -33,12 +33,29 @@ class DashboardController extends Controller
                     $q->where('test_mode', $merchant->test_mode);
                 });
 
-            // Get statistics for the current mode only
+            $totalVolume = (clone $transactionsQuery)->where('status', 'success')->sum('amount');
+            $totalRefundedVolume = (clone $refundsQuery)->where('status', 'completed')->sum('amount');
+
+            // Gross of captures already paid out via settlement (merchant should not count this as "still on platform")
+            $totalSettledVolume = (clone $transactionsQuery)
+                ->where('status', 'success')
+                ->where('settlement_status', 'settled')
+                ->sum('amount');
+
+            // Net volume ≈ success gross − refunds − amounts already settled to bank (same mode as merchant toggle)
             $stats = [
                 'total_transactions' => $transactionsQuery->count(),
                 'successful_transactions' => (clone $transactionsQuery)->where('status', 'success')->count(),
-                'total_volume' => (clone $transactionsQuery)->where('status', 'success')->sum('amount'),
-                'pending_refunds' => $refundsQuery->where('status', 'pending')->count(),
+                'total_volume' => $totalVolume,
+                'total_refunded_volume' => $totalRefundedVolume,
+                'total_settled_volume' => $totalSettledVolume,
+                'net_volume' => max(0, (float) $totalVolume - (float) $totalRefundedVolume - (float) $totalSettledVolume),
+                'pending_refunds' => $refundsQuery->whereIn('status', [
+                    'pending',
+                    'pending_approval',
+                    'pending_processing',
+                    'processing',
+                ])->count(),
             ];
 
             return view('merchant.dashboard', [

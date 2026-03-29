@@ -33,7 +33,7 @@ class TransactionsController extends Controller
             // Filter by current merchant mode (test or live)
             $query = $merchant->transactions()
                 ->where('test_mode', $merchant->test_mode)
-                ->with(['order.paymentLink'])
+                ->with(['order.paymentLink', 'settlement'])
                 ->latest();
 
             // Date range filter (only apply if provided)
@@ -78,11 +78,20 @@ class TransactionsController extends Controller
             if ($request->has('filter_transaction_sequence_id') && $request->get('filter_transaction_sequence_id')) {
                 $query->where('id', $request->get('filter_transaction_sequence_id'));
             }
+            if ($request->filled('filter_settlement_status') && $request->get('filter_settlement_status') !== 'all') {
+                $query->where('settlement_status', $request->get('filter_settlement_status'));
+            }
+            if ($request->filled('filter_settlement_batch_id')) {
+                $batch = trim((string) $request->get('filter_settlement_batch_id'));
+                $query->whereHas('settlement', function ($q) use ($batch) {
+                    $q->where('settlement_id', 'like', '%'.$batch.'%');
+                });
+            }
 
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
             $sortDirection = $request->get('sort_direction', 'desc');
-            if (in_array($sortBy, ['id', 'txn_id', 'created_at', 'amount', 'status'])) {
+            if (in_array($sortBy, ['id', 'txn_id', 'created_at', 'amount', 'status', 'settlement_status'])) {
                 $query->orderBy($sortBy, $sortDirection);
             }
 
@@ -134,6 +143,15 @@ class TransactionsController extends Controller
                     'gst_paid_by_merchant' => number_format(($transaction->fee_amount ?? 0) * 0.18, 2),
                     'gst_paid_by_customer' => '0.00',
                     'net_settlements_amount' => number_format($transaction->net_amount ?? $transaction->amount, 2),
+                    'settlement_batch_id' => $transaction->status === 'success' && $transaction->relationLoaded('settlement') && $transaction->settlement
+                        ? $transaction->settlement->settlement_id
+                        : '-',
+                    'settlement_txn_status' => $transaction->status === 'success'
+                        ? ($transaction->settlement_status ?? 'pending')
+                        : '-',
+                    'settlement_txn_status_label' => $transaction->status === 'success'
+                        ? $this->merchantTxnSettlementLabel($transaction->settlement_status ?? 'pending')
+                        : '—',
                     'card_holder_name' => $paymentDetails['card_holder_name'] ?? $paymentDetails['card_holder'] ?? '-',
                     // PCI-DSS: Use last4 from sanitized data (card_number never stored)
                     'card_number' => isset($paymentDetails['last4']) ? '****' . $paymentDetails['last4'] : '-',
@@ -346,6 +364,17 @@ class TransactionsController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    protected function merchantTxnSettlementLabel(string $status): string
+    {
+        return match ($status) {
+            'settled' => 'Settled',
+            'pending' => 'Pending settlement',
+            'on_hold' => 'On hold',
+            'excluded' => 'Excluded',
+            default => ucfirst(str_replace('_', ' ', $status)),
+        };
     }
 }
 

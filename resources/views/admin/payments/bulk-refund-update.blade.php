@@ -38,7 +38,10 @@
             </div>
             <div class="row mt-2">
                 <div class="col-md-12">
-                    <small class="text-muted">(* Max number of rows/transactions allowed per file upload is 1000)</small>
+                    <small class="text-muted d-block">(* Max number of rows/transactions allowed per file upload is 1000)</small>
+                    <small class="text-muted d-block mt-1">
+                        CSV columns: <strong>Refund ID</strong> (required), then optional <strong>Status</strong>, <strong>Notes</strong>, <strong>Reason</strong>, <strong>Amount</strong>, <strong>Currency</strong> (3-letter code, e.g. USD, INR).
+                    </small>
                 </div>
             </div>
             <div class="row mt-3">
@@ -295,7 +298,8 @@
                 vm.uploadFile = function() {
                     var fileInput = document.getElementById('refundFile');
                     if (!fileInput.files.length) {
-                        alert('Please select a file');
+                        if (typeof showToast === 'function') showToast('Please select a file', 'warning');
+                        else if (typeof ipayAlert === 'function') ipayAlert('Please select a file', 'warning');
                         return;
                     }
 
@@ -312,16 +316,20 @@
                     }).then(function(response) {
                         vm.uploading = false;
                         if (response.data.success) {
-                            alert('File uploaded successfully');
+                            if (typeof showToast === 'function') showToast('File uploaded successfully', 'success');
+                            else if (typeof ipayAlert === 'function') ipayAlert('File uploaded successfully', 'success');
                             fileInput.value = '';
                             document.getElementById('fileNameDisplay').value = 'No Files Selected';
                             vm.loadJobs();
                         } else {
-                            alert('Upload failed: ' + (response.data.message || 'Unknown error'));
+                            var em = 'Upload failed: ' + (response.data.message || 'Unknown error');
+                            if (typeof showToast === 'function') showToast(em, 'error');
+                            else if (typeof ipayAlert === 'function') ipayAlert(em, 'danger');
                         }
                     }, function(error) {
                         vm.uploading = false;
-                        alert('Upload failed');
+                        if (typeof showToast === 'function') showToast('Upload failed', 'error');
+                        else if (typeof ipayAlert === 'function') ipayAlert('Upload failed', 'danger');
                         console.error('Error:', error);
                     });
                 };

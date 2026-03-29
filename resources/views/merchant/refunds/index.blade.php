@@ -5,6 +5,15 @@
 
 @section('content')
 <div ng-app="ipayApp" ng-controller="RefundsController as rc">
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
+        <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+        <div class="small">
+            <strong>Refund approval rules</strong>
+            — Refunds below <strong>{{ number_format($refundApprovalThreshold, 0) }}</strong> (in the <strong>same currency</strong> as the original payment) can be submitted directly when your account rules allow.
+            Refunds of <strong>{{ number_format($refundApprovalThreshold, 0) }} or more</strong> are sent for <strong>admin approval</strong> first; they appear as <span class="badge bg-warning text-dark">PENDING_APPROVAL</span> until approved or rejected.
+        </div>
+    </div>
+
     <div class="row mb-3">
         <div class="col-md-12 text-end">
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRefundModal">
@@ -19,10 +28,13 @@
                 <label class="form-label">Status</label>
                 <select class="form-select" ng-model="rc.filters.status" ng-change="rc.applyFilters()">
                     <option value="">All</option>
+                    <option value="pending_approval">Pending approval</option>
+                    <option value="pending_processing">Pending processing</option>
                     <option value="pending">Pending</option>
                     <option value="processing">Processing</option>
                     <option value="completed">Completed</option>
                     <option value="failed">Failed</option>
+                    <option value="cancelled">Cancelled</option>
                 </select>
             </div>
             <div class="col-md-6 col-lg-3">
@@ -87,7 +99,7 @@
                     <td><strong>@{{ refund.amount | number:2 }}</strong></td>
                     <td>@{{ refund.currency || 'INR' }}</td>
                     <td>
-                        <span class="badge" ng-class="{'bg-success': refund.status==='completed', 'bg-danger': refund.status==='failed', 'bg-warning': refund.status==='pending', 'bg-info': refund.status==='processing'}">@{{ refund.status | uppercase }}</span>
+                        <span class="badge" ng-class="{'bg-success': refund.status==='completed', 'bg-danger': refund.status==='failed', 'bg-secondary': refund.status==='cancelled', 'bg-warning text-dark': refund.status==='pending' || refund.status==='pending_approval', 'bg-info': refund.status==='processing' || refund.status==='pending_processing'}">@{{ refund.status | uppercase }}</span>
                     </td>
                     <td>@{{ refund.reason || 'N/A' }}</td>
                     <td>@{{ refund.created_at | date:'MMM d, y HH:mm' }}</td>
@@ -141,7 +153,7 @@
                         </div>
                         <div class="col-md-6">
                             <strong>Status:</strong><br>
-                            <span class="badge" ng-class="{'bg-success': rc.selectedRefund.status==='completed', 'bg-danger': rc.selectedRefund.status==='failed', 'bg-warning': rc.selectedRefund.status==='pending', 'bg-info': rc.selectedRefund.status==='processing'}">
+                            <span class="badge" ng-class="{'bg-success': rc.selectedRefund.status==='completed', 'bg-danger': rc.selectedRefund.status==='failed', 'bg-secondary': rc.selectedRefund.status==='cancelled', 'bg-warning text-dark': rc.selectedRefund.status==='pending' || rc.selectedRefund.status==='pending_approval', 'bg-info': rc.selectedRefund.status==='processing' || rc.selectedRefund.status==='pending_processing'}">
                                 @{{ rc.selectedRefund.status | uppercase }}
                             </span>
                         </div>
@@ -193,14 +205,30 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Amounts <strong>≥ {{ number_format($refundApprovalThreshold, 0) }}</strong> (same currency as the transaction) require <strong>admin approval</strong> before processing.
+                    </p>
                     <form ng-submit="rc.createRefund(); $event.preventDefault();">
                         <div class="mb-3">
                             <label class="form-label">Transaction ID *</label>
                             <input type="text" class="form-control" ng-model="rc.newRefund.transaction_id" required id="refundTransactionId">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount *</label>
-                            <input type="number" class="form-control" ng-model="rc.newRefund.amount" step="0.01" min="0.01" required id="refundAmount">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Amount *</label>
+                                    <input type="number" class="form-control" ng-model="rc.newRefund.amount" step="0.01" min="0.01" required id="refundAmount">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Currency *</label>
+                                    <select class="form-select" id="refundCurrency" ng-model="rc.newRefund.currency" required>
+                                        @include('components.currency-options')
+                                    </select>
+                                    <small class="text-muted">Must match the original transaction currency.</small>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Reason</label>

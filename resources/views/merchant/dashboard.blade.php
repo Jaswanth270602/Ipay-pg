@@ -58,6 +58,34 @@
     .stat-card.card-success-rate::before {
         background: linear-gradient(90deg, #7c3aed, #ec4899);
     }
+
+    /* Keep dashboard stat cards equal height */
+    .dashboard-stats-row > [class*="col-"] {
+        display: flex;
+    }
+    .dashboard-stats-row .stat-card {
+        width: 100%;
+        min-height: 168px;
+        display: flex;
+        flex-direction: column;
+    }
+    .dashboard-stats-row .stat-card-spacer {
+        min-height: 38px;
+        margin-top: auto;
+    }
+    .dashboard-stats-row .stat-card > .flip-volume-inner {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .dashboard-stats-row .flip-volume-face {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .dashboard-stats-row .flip-volume-metric {
+        flex: 1 1 auto;
+    }
     
     /* Ensure large numbers don't overflow cards */
     .stat-card h3.fw-bold {
@@ -73,6 +101,45 @@
     .stat-card.card-success-rate:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .flip-volume-wrap {
+        perspective: 1000px;
+        overflow: hidden;
+    }
+    .stat-card.card-volume.flip-volume-wrap:hover {
+        transform: none;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .flip-volume-inner {
+        position: relative;
+        width: 100%;
+        min-height: 140px;
+        transition: transform 0.55s ease;
+        transform-style: preserve-3d;
+    }
+    .flip-volume-inner.is-flipped {
+        transform: rotateY(180deg);
+    }
+    .flip-volume-face {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+    .flip-volume-back {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform: rotateY(180deg);
+    }
+    .flip-volume-btn {
+        border: none;
+        background: transparent;
+        line-height: 1;
+    }
+    .flip-volume-btn:hover {
+        color: #7c3aed !important;
     }
     
     /* Quick Actions Cards */
@@ -133,28 +200,53 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-4 dashboard-stats-row align-items-stretch">
         <div class="col-md-3">
             <div class="stat-card card-transactions">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <h6 class="mb-0">Total Transactions</h6>
                     <i class="bi bi-credit-card-2-front"></i>
                 </div>
-                <h3 class="fw-bold mb-1">{{ number_format($stats['total_transactions']) }}</h3>
-                <small>
-                    <i class="bi bi-check-circle"></i> {{ number_format($stats['successful_transactions']) }} successful
-                </small>
+                <div class="flip-volume-metric">
+                    <h3 class="fw-bold mb-1">{{ number_format($stats['total_transactions']) }}</h3>
+                    <small class="text-muted text-nowrap d-block text-truncate">
+                        <i class="bi bi-check-circle"></i> {{ number_format($stats['successful_transactions']) }} successful
+                    </small>
+                </div>
+                <div class="stat-card-spacer" aria-hidden="true"></div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="stat-card card-volume">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="mb-0">Total Volume</h6>
-                    <i class="bi bi-currency-dollar"></i>
+            <div class="stat-card card-volume flip-volume-wrap">
+                <div class="flip-volume-inner" id="merchantVolumeFlipInner">
+                    <div class="flip-volume-face flip-volume-front">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="mb-0">Total Volume</h6>
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <div class="flip-volume-metric">
+                            <h3 class="fw-bold mb-1">{{ $merchant->default_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
+                            <small class="text-muted">Gross</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show net volume" aria-label="Show net volume">
+                            <i class="bi bi-arrow-down-up me-1"></i> Net volume
+                        </button>
+                    </div>
+                    <div class="flip-volume-face flip-volume-back">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="mb-0">Net Volume</h6>
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div class="flip-volume-metric">
+                            <h3 class="fw-bold mb-1">{{ $merchant->default_currency }} {{ number_format($stats['net_volume'], 2) }}</h3>
+                            <small class="text-muted">After refunds &amp; settled payouts</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show gross volume" aria-label="Show gross volume">
+                            <i class="bi bi-arrow-down-up me-1"></i> Gross volume
+                        </button>
+                    </div>
                 </div>
-                <h3 class="fw-bold mb-1">{{ $merchant->default_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
-                <small>Lifetime</small>
             </div>
         </div>
 
@@ -164,8 +256,11 @@
                     <h6 class="mb-0">Pending Refunds</h6>
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </div>
-                <h3 class="fw-bold mb-1">{{ number_format($stats['pending_refunds']) }}</h3>
-                <small>Awaiting processing</small>
+                <div class="flip-volume-metric">
+                    <h3 class="fw-bold mb-1">{{ number_format($stats['pending_refunds']) }}</h3>
+                    <small class="text-muted">Awaiting processing</small>
+                </div>
+                <div class="stat-card-spacer" aria-hidden="true"></div>
             </div>
         </div>
 
@@ -175,14 +270,17 @@
                     <h6 class="mb-0">Success Rate</h6>
                     <i class="bi bi-graph-up"></i>
                 </div>
-                <h3 class="fw-bold mb-1">
-                    @if($stats['total_transactions'] > 0)
-                        {{ number_format(($stats['successful_transactions'] / $stats['total_transactions']) * 100, 1) }}%
-                    @else
-                        0%
-                    @endif
-                </h3>
-                <small>Payment success</small>
+                <div class="flip-volume-metric">
+                    <h3 class="fw-bold mb-1">
+                        @if($stats['total_transactions'] > 0)
+                            {{ number_format(($stats['successful_transactions'] / $stats['total_transactions']) * 100, 1) }}%
+                        @else
+                            0%
+                        @endif
+                    </h3>
+                    <small class="text-muted">Payment success</small>
+                </div>
+                <div class="stat-card-spacer" aria-hidden="true"></div>
             </div>
         </div>
     </div>

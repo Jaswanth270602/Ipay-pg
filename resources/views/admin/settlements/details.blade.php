@@ -24,6 +24,14 @@
                 <label class="form-label">Select Date Range :</label>
                 <input type="text" class="form-control" ng-model="asdc.dateRange" placeholder="14/11/2025 00:00:00 - 29/11/2025 23:59:59">
             </div>
+            <div class="col-md-3">
+                <label class="form-label">Environment</label>
+                <select class="form-select" ng-model="asdc.mode" ng-change="asdc.applyFilters()">
+                    <option value="all">All</option>
+                    <option value="test">Test</option>
+                    <option value="live">Live</option>
+                </select>
+            </div>
             <div class="col-md-2">
                 <button class="btn btn-primary" ng-click="asdc.openCreateModal()">
                     <i class="bi bi-plus-circle"></i> + Settlement Detail
@@ -335,6 +343,7 @@
                 vm.filters = {};
                 vm.loading = false;
                 vm.dateRange = '';
+                vm.mode = 'all';
                 vm.form = {};
                 
                 vm.visibleColumns = {
@@ -361,6 +370,9 @@
                             params[key] = vm.filters[key];
                         }
                     });
+                    if (vm.mode && vm.mode !== 'all') {
+                        params.mode = vm.mode;
+                    }
                     
                     $http.get('/admin/settlements/details/data', { params: params }).then(function(response) {
                         vm.details = response.data.data || [];
@@ -434,6 +446,7 @@
                 vm.clearFilters = function() {
                     vm.filters = {};
                     vm.dateRange = '';
+                    vm.mode = 'all';
                     vm.applyFilters();
                 };
 

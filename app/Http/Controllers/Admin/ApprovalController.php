@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MerchantTdrApproval;
 use App\Models\PgRefundApproval;
+use App\Services\RefundService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
@@ -372,12 +374,29 @@ class ApprovalController extends Controller
             }
 
             $approval = PgRefundApproval::findOrFail($id);
-            $approval->update([
-                'is_approved' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-                'approval_notes' => $request->input('approval_notes'),
-            ]);
+
+            if ($approval->is_approved !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This approval request is no longer pending.',
+                ], 422);
+            }
+
+            $refundService = app(RefundService::class);
+
+            DB::transaction(function () use ($approval, $request, $refundService) {
+                $approval->update([
+                    'is_approved' => 'approved',
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                    'approval_notes' => $request->input('approval_notes'),
+                ]);
+
+                $refund = $refundService->findRefundForPgApproval($approval);
+                if ($refund) {
+                    $refundService->processRefundApprovedByAdmin($refund);
+                }
+            });
 
             return response()->json([
                 'success' => true,
@@ -410,12 +429,29 @@ class ApprovalController extends Controller
             }
 
             $approval = PgRefundApproval::findOrFail($id);
-            $approval->update([
-                'is_approved' => 'rejected',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-                'approval_notes' => $request->input('approval_notes'),
-            ]);
+
+            if ($approval->is_approved !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This approval request is no longer pending.',
+                ], 422);
+            }
+
+            $refundService = app(RefundService::class);
+
+            DB::transaction(function () use ($approval, $request, $refundService) {
+                $approval->update([
+                    'is_approved' => 'rejected',
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                    'approval_notes' => $request->input('approval_notes'),
+                ]);
+
+                $refund = $refundService->findRefundForPgApproval($approval);
+                if ($refund) {
+                    $refundService->cancelRefundPendingApproval($refund);
+                }
+            });
 
             return response()->json([
                 'success' => true,
@@ -497,13 +533,30 @@ class ApprovalController extends Controller
             $ids = $request->input('ids');
             $action = $request->input('action');
             $status = $action === 'approve' ? 'approved' : 'rejected';
+            $refundService = app(RefundService::class);
 
-            PgRefundApproval::whereIn('id', $ids)->update([
-                'is_approved' => $status,
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-                'approval_notes' => $request->input('approval_notes'),
-            ]);
+            DB::transaction(function () use ($ids, $status, $action, $request, $refundService) {
+                $approvals = PgRefundApproval::whereIn('id', $ids)->where('is_approved', 'pending')->get();
+
+                foreach ($approvals as $approval) {
+                    $approval->update([
+                        'is_approved' => $status,
+                        'approved_by' => auth()->id(),
+                        'approved_at' => now(),
+                        'approval_notes' => $request->input('approval_notes'),
+                    ]);
+
+                    $refund = $refundService->findRefundForPgApproval($approval);
+                    if (! $refund) {
+                        continue;
+                    }
+                    if ($action === 'approve') {
+                        $refundService->processRefundApprovedByAdmin($refund);
+                    } else {
+                        $refundService->cancelRefundPendingApproval($refund);
+                    }
+                }
+            });
 
             return response()->json([
                 'success' => true,

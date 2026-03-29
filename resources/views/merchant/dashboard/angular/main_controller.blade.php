@@ -17,6 +17,16 @@
                 vm.recentTransactions = [];
                 vm.selectedTransaction = null;
 
+                // API returns amount_paid_by_customer via PHP number_format() (e.g. "20,000.00").
+                // parseFloat("20,000.00") === 20 in JavaScript — must strip thousands separators first.
+                function parseApiMoneyAmount(val) {
+                    if (val === null || val === undefined) return 0;
+                    if (typeof val === 'number' && !isNaN(val)) return val;
+                    var s = String(val).replace(/,/g, '');
+                    var n = parseFloat(s);
+                    return isNaN(n) ? 0 : n;
+                }
+
                 vm.loadRecentTransactions = function() {
                     vm.loading = true;
                     $http.get('/merchant/transactions/data', {
@@ -27,7 +37,7 @@
                             vm.recentTransactions = response.data.data.map(function(txn) {
                                 return {
                                     txn_id: txn.transaction_id || txn.txn_id || '-',
-                                    amount: parseFloat(txn.amount_paid_by_customer || txn.amount || 0),
+                                    amount: parseApiMoneyAmount(txn.amount_paid_by_customer != null ? txn.amount_paid_by_customer : txn.amount),
                                     currency: txn.currency_code || txn.currency || 'INR',
                                     payment_method: txn.payment_mode || txn.payment_method || '-',
                                     status: txn.payment_status || txn.status || '-',

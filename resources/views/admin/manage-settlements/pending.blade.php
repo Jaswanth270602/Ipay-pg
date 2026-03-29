@@ -24,6 +24,14 @@
                 <label class="form-label">Select Date Range :</label>
                 <input type="text" class="form-control" ng-model="apsc.dateRange" placeholder="14/11/2025 00:00:00 - 29/11/2025 23:59:59">
             </div>
+            <div class="col-md-3">
+                <label class="form-label">Environment</label>
+                <select class="form-select" ng-model="apsc.mode" ng-change="apsc.applyFilters()">
+                    <option value="all">All</option>
+                    <option value="test">Test</option>
+                    <option value="live">Live</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -327,6 +335,7 @@
                 vm.filters = {};
                 vm.loading = false;
                 vm.dateRange = '';
+                vm.mode = 'all';
                 
                 vm.visibleColumns = {
                     settlement_id: { visible: true, label: 'Settlement Id' },
@@ -359,6 +368,9 @@
                             params[key] = vm.filters[key];
                         }
                     });
+                    if (vm.mode && vm.mode !== 'all') {
+                        params.mode = vm.mode;
+                    }
                     
                     $http.get('/admin/manage-settlements/pending/data', { params: params }).then(function(response) {
                         vm.settlements = response.data.data || [];
@@ -390,6 +402,7 @@
                 vm.clearFilters = function() {
                     vm.filters = {};
                     vm.dateRange = '';
+                    vm.mode = 'all';
                     vm.applyFilters();
                 };
 

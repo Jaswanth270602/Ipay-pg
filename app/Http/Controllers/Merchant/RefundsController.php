@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Services\RefundService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +21,10 @@ class RefundsController extends Controller
 
     public function index(): View
     {
-        return view('merchant.refunds.index');
+        return view('merchant.refunds.index', [
+            'merchant' => auth()->user()->merchant,
+            'refundApprovalThreshold' => RefundService::APPROVAL_THRESHOLD,
+        ]);
     }
 
     public function getData(Request $request): JsonResponse
@@ -97,9 +101,10 @@ class RefundsController extends Controller
             $request->validate([
                 'transaction_id' => 'required|string',
                 'amount' => 'required|numeric|min:0.01',
+                'currency' => ['required', 'string', 'size:3', Rule::in(config('ipay.supported_currencies', ['INR', 'USD', 'EUR', 'GBP']))],
                 'reason' => 'nullable|string|max:500',
             ]);
-            
+
             // Find transaction by txn_id (not database id)
             $transaction = $merchant->transactions()
                 ->where('txn_id', $request->transaction_id)
@@ -114,20 +119,32 @@ class RefundsController extends Controller
                 ], 400);
             }
 
+            if (strtoupper($request->currency) !== strtoupper($transaction->currency)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Currency must match the original transaction currency ('.$transaction->currency.').',
+                ], 422);
+            }
+
             $refund = $this->refundService->createRefund(
                 $transaction,
                 $request->amount,
                 $request->user(),
-                $request->reason
+                $request->reason,
+                $request->currency
             );
 
-            // Align API response with actual refund status so that
-            // the UI toast and the refunds grid don't contradict each other.
-            $wasSuccessful = $refund->status === 'completed';
+            $wasSuccessful = $refund->status !== 'failed';
 
-            $message = $wasSuccessful
-                ? 'Refund created successfully'
-                : ($refund->gateway_response['message'] ?? $refund->gateway_response['error'] ?? 'Refund could not be processed. Please check gateway logs for details.');
+            $message = match ($refund->status) {
+                'pending_approval' => 'Refund request submitted and is pending admin approval.',
+                'pending_processing' => 'Refund initiated; final status will be confirmed by the bank.',
+                'completed' => 'Refund created successfully',
+                'cancelled' => 'Refund request was cancelled.',
+                default => $refund->gateway_response['message']
+                    ?? $refund->gateway_response['error']
+                    ?? ($wasSuccessful ? 'Refund request recorded.' : 'Refund could not be processed. Please check gateway logs for details.'),
+            };
 
             return response()->json([
                 'success' => $wasSuccessful,
@@ -138,6 +155,7 @@ class RefundsController extends Controller
                     'amount' => $refund->amount,
                     'currency' => $refund->currency,
                     'status' => $refund->status,
+                    'mode' => $refund->mode,
                     'is_partial' => $refund->is_partial,
                     'created_at' => $refund->created_at->toIso8601String(),
                 ],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\Settlement;
+use App\Services\Settlements\SettlementCompletionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -25,6 +26,13 @@ class SettlementSummaryController extends Controller
             $perPage = min($request->get('per_page', 5), 50);
             
             $query = Settlement::with('merchant')->latest();
+
+            $mode = $request->get('mode');
+            if ($mode === 'test') {
+                $query->where('test_mode', true);
+            } elseif ($mode === 'live') {
+                $query->where('test_mode', false);
+            }
 
             // Date range filter (only apply if provided and not empty)
             if ($request->has('date_range') && !empty($request->get('date_range'))) {
@@ -92,6 +100,9 @@ class SettlementSummaryController extends Controller
                     'settlement_description' => $settlement->settlement_description ?? '-',
                     'payment_start_date' => $settlement->payment_start_date ? $settlement->payment_start_date->format('Y-m-d') : '-',
                     'payment_end_date' => $settlement->payment_end_date ? $settlement->payment_end_date->format('Y-m-d') : '-',
+                    'test_mode' => (bool) $settlement->test_mode,
+                    'transaction_count' => (int) ($settlement->transaction_count ?? 0),
+                    'refund_count' => (int) ($settlement->refund_count ?? 0),
                 ];
             });
 
@@ -117,14 +128,17 @@ class SettlementSummaryController extends Controller
         }
     }
 
-    public function markAsSettled(Request $request): JsonResponse
+    public function markAsSettled(Request $request, SettlementCompletionService $completion): JsonResponse
     {
         try {
             $ids = $request->get('ids', []);
-            Settlement::whereIn('id', $ids)->update([
-                'settlement_status' => 'settled',
-                'status' => 'completed',
-            ]);
+            $bankRef = $request->input('bank_reference');
+            $completion->markSettlementsCompleted(
+                array_map('intval', $ids),
+                null,
+                $bankRef,
+                true
+            );
 
             return response()->json([
                 'success' => true,

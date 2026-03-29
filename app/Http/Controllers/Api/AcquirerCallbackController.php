@@ -264,11 +264,10 @@ class AcquirerCallbackController extends Controller
     protected function extractProviderStatus(array $payload, string $providerName): ?string
     {
         if ($providerName === 'razorpay') {
-            // Razorpay status is in payload.payload.payment.entity.status
-            return $payload['payload']['payment']['entity']['status'] ?? 
-                   $payload['payload']['order']['entity']['status'] ?? 
-                   $payload['payload']['refund']['entity']['status'] ?? 
-                   null;
+            return $payload['payload']['refund']['entity']['status'] ??
+                $payload['payload']['payment']['entity']['status'] ??
+                $payload['payload']['order']['entity']['status'] ??
+                null;
         }
 
         return null;
@@ -307,7 +306,8 @@ class AcquirerCallbackController extends Controller
 
                 case 'refund.created':
                 case 'refund.success':
-                    $this->handleRefund($adapter, $payload, $providerResponse);
+                case 'refund.failed':
+                    $this->handleRefund($adapter, $eventType, $payload, $providerResponse);
                     break;
 
                 case 'settlement.processed':
@@ -421,29 +421,90 @@ class AcquirerCallbackController extends Controller
     }
 
     /**
-     * Handle refund event.
+     * Handle refund webhook (success/failure). Final status for live refunds is driven here.
      */
-    protected function handleRefund($adapter, array $payload, ProviderResponse $providerResponse): void
+    protected function handleRefund($adapter, string $eventType, array $payload, ProviderResponse $providerResponse): void
     {
         $refundId = $providerResponse->refund_id;
         $paymentId = $providerResponse->payment_id;
-        
-        if ($refundId && $paymentId) {
-            // Find refund record
-            $refund = \App\Models\Refund::where('gateway_refund_id', $refundId)
-                ->orWhere('gateway_txn_id', $paymentId)
-                ->first();
-            
-            if ($refund) {
-                $refund->update([
-                    'status' => 'success',
-                    'gateway_response' => $payload,
-                    'processed_at' => now(),
-                ]);
 
-                event(new \App\Events\RefundCreated($refund));
-            }
+        if (! $refundId && ! $paymentId) {
+            Log::warning('Refund webhook missing refund_id and payment_id', [
+                'provider_response_id' => $providerResponse->id,
+            ]);
+
+            return;
         }
+
+        $refund = null;
+        if ($refundId) {
+            $refund = \App\Models\Refund::where('gateway_refund_id', $refundId)->first();
+        }
+        if (! $refund && $paymentId) {
+            $refund = \App\Models\Refund::query()
+                ->whereHas('transaction', function ($q) use ($paymentId) {
+                    $q->where('gateway_txn_id', $paymentId);
+                })
+                ->whereIn('status', ['pending_processing', 'processing', 'pending'])
+                ->latest()
+                ->first();
+        }
+
+        if (! $refund) {
+            Log::warning('Refund webhook: no matching refund record', [
+                'refund_id' => $refundId,
+                'payment_id' => $paymentId,
+            ]);
+
+            return;
+        }
+
+        $normalized = $providerResponse->normalized_status;
+        if (($normalized === null || $normalized === '') && $adapter) {
+            $rs = $this->extractProviderStatus($payload, (string) ($providerResponse->provider ?? ''));
+            $normalized = $rs ? $adapter->normalizeStatus($rs) : null;
+        }
+
+        $isFailed = $eventType === 'refund.failed'
+            || $normalized === 'failed';
+
+        if ($isFailed) {
+            $refund->update([
+                'status' => 'failed',
+                'gateway_response' => $payload,
+            ]);
+
+            return;
+        }
+
+        if (in_array((string) $normalized, ['pending', 'attempted'], true)) {
+            $refund->update([
+                'gateway_response' => $payload,
+            ]);
+
+            return;
+        }
+
+        $isSuccess = in_array((string) $normalized, ['success', 'refunded', 'completed', 'processed'], true)
+            || $eventType === 'refund.success';
+
+        if (! $isSuccess) {
+            Log::info('Refund webhook: non-terminal status, skipping update', [
+                'refund_id' => $refund->refund_id,
+                'normalized_status' => $normalized,
+                'event_type' => $eventType,
+            ]);
+
+            return;
+        }
+
+        $refund->update([
+            'status' => 'completed',
+            'gateway_response' => $payload,
+            'processed_at' => now(),
+        ]);
+
+        event(new \App\Events\RefundCreated($refund));
     }
 
     /**

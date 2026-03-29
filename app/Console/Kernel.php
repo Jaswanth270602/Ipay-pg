@@ -21,6 +21,11 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Kolkata')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Test settlements: auto-complete after cooling-off (no acquirer dependency)
+        $schedule->command('settlements:auto-complete-test')
+            ->everyMinute()
+            ->withoutOverlapping();
     }
 
     /**

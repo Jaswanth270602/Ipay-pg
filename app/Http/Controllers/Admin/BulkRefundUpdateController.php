@@ -121,88 +121,17 @@ class BulkRefundUpdateController extends Controller
             'Content-Disposition' => 'attachment; filename="bulk_refund_template.csv"',
         ];
 
-        $callback = function() {
+        $callback = function () {
             $file = fopen('php://output', 'w');
-            // CSV Headers matching the grid columns
+            fputcsv($file, ['Refund ID', 'Status', 'Notes', 'Reason', 'Amount', 'Currency']);
             fputcsv($file, [
-                'Refund ID',
-                'Merchant ID',
-                'Merchant Name',
-                'Payment ID',
-                'Customer IP',
-                'Transaction Sequence ID',
-                'Transaction ID',
-                'Order ID',
-                'Payer Name',
-                'Payer Email',
-                'Payer Phone',
-                'Refund Status',
-                'Refund Description',
-                'Refund Amount',
-                'Refund Charges',
-                'Refund Tax On Charges',
-                'Transaction Amount',
-                'Refund Request Date',
-                'Refund Initiated Date',
-                'Refund Reference No',
-                'Is Refund Approved',
-                'Refund PG Completed',
-                'Latest API Response'
-            ]);
-            
-            // Add sample entries
-            fputcsv($file, [
-                'RFD_123456789012',
-                '1',
-                'Sample Merchant',
-                'TXN_1234567890',
-                '192.168.1.1',
-                '1001',
-                'TXN_1234567890',
-                'ORD_1234567890',
-                'John Doe',
-                'john@example.com',
-                '9876543210',
-                'pending',
-                'Customer requested refund',
-                '100.00',
-                '0.00',
-                '0.00',
-                '100.00',
-                '2025-12-09 10:00:00',
-                '',
-                '',
-                'No',
-                'No',
-                '{}'
-            ]);
-            
-            fputcsv($file, [
-                'RFD_123456789013',
-                '2',
-                'Another Merchant',
-                'TXN_1234567891',
-                '192.168.1.2',
-                '1002',
-                'TXN_1234567891',
-                'ORD_1234567891',
-                'Jane Smith',
-                'jane@example.com',
-                '9876543211',
+                'RFD_REPLACE_WITH_YOUR_REFUND_ID',
                 'completed',
-                'Product not delivered',
-                '250.50',
-                '2.50',
-                '0.45',
-                '250.50',
-                '2025-12-08 14:30:00',
-                '2025-12-08 15:00:00',
-                'REF_1234567890',
-                'Yes',
-                'Yes',
-                '{"status":"success","refund_id":"REF_1234567890"}'
+                '',
+                '',
+                '100.00',
+                'USD',
             ]);
-            
             fclose($file);
         };
 

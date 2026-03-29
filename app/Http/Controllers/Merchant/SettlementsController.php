@@ -25,11 +25,8 @@ class SettlementsController extends Controller
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
 
-        $modeIsTest = (bool) $merchant->test_mode;
         $query = $merchant->settlements()
-            ->whereHas('transactions', function ($q) use ($modeIsTest) {
-                $q->where('test_mode', $modeIsTest);
-            })
+            ->where('test_mode', (bool) $merchant->test_mode)
             ->latest();
 
         if ($status && $status !== 'all' && $status !== '') {
@@ -71,11 +68,8 @@ class SettlementsController extends Controller
     {
         $merchant = $request->user()->merchant;
 
-        $modeIsTest = (bool) $merchant->test_mode;
         $query = $merchant->settlements()
-            ->whereHas('transactions', function ($q) use ($modeIsTest) {
-                $q->where('test_mode', $modeIsTest);
-            });
+            ->where('test_mode', (bool) $merchant->test_mode);
 
         $status = $request->get('status');
         $search = $request->get('search');

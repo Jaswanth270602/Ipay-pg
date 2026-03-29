@@ -17,7 +17,8 @@
         vm.perPage = 10;
         vm.pagination = { current_page: 1, last_page: 1, total: 0, from: 0, to: 0, per_page: 10 };
         vm.filters = { status: '', from_date: '', to_date: '', search: '' };
-        vm.newRefund = { transaction_id: '', amount: '', reason: '' };
+        vm.defaultCurrency = @json($merchant->default_currency ?? config('ipay.default_currency', 'USD'));
+        vm.newRefund = { transaction_id: '', amount: '', reason: '', currency: vm.defaultCurrency };
         vm.selectedRefund = null;
 
         vm.loadRefunds = function() {
@@ -46,8 +47,8 @@
                 vm.loading = false;
                 if (typeof showToast === 'function') {
                     showToast('Unable to load refunds. Please try again.', 'error');
-                } else {
-                    alert('Unable to load refunds. Please try again.');
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert('Unable to load refunds. Please try again.', 'danger');
                 }
                 console.error('Error loading refunds:', error);
             });
@@ -63,8 +64,8 @@
             if (!vm.newRefund.transaction_id || !vm.newRefund.transaction_id.trim()) {
                 if (typeof showToast === 'function') {
                     showToast('Please enter a Transaction ID', 'error');
-                } else {
-                    alert('Please enter a Transaction ID');
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert('Please enter a Transaction ID', 'warning');
                 }
                 return;
             }
@@ -72,8 +73,17 @@
             if (!vm.newRefund.amount || parseFloat(vm.newRefund.amount) <= 0) {
                 if (typeof showToast === 'function') {
                     showToast('Please enter a valid amount greater than 0', 'error');
-                } else {
-                    alert('Please enter a valid amount greater than 0');
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert('Please enter a valid amount greater than 0', 'warning');
+                }
+                return;
+            }
+
+            if (!vm.newRefund.currency || !String(vm.newRefund.currency).trim()) {
+                if (typeof showToast === 'function') {
+                    showToast('Please select a currency', 'error');
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert('Please select a currency', 'warning');
                 }
                 return;
             }
@@ -84,8 +94,8 @@
                 vm.creating = false;
                 if (typeof showToast === 'function') {
                     showToast('CSRF token not found. Please refresh the page.', 'error');
-                } else {
-                    alert('CSRF token not found. Please refresh the page.');
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert('CSRF token not found. Please refresh the page.', 'danger');
                 }
                 return;
             }
@@ -93,6 +103,7 @@
             var requestData = {
                 transaction_id: vm.newRefund.transaction_id.trim(),
                 amount: parseFloat(vm.newRefund.amount),
+                currency: String(vm.newRefund.currency || '').trim().toUpperCase(),
                 reason: (vm.newRefund.reason || '').trim()
             };
 
@@ -118,7 +129,7 @@
                     }
                     
                     // Reset form
-                    vm.newRefund = { transaction_id: '', amount: '', reason: '' };
+                    vm.newRefund = { transaction_id: '', amount: '', reason: '', currency: vm.defaultCurrency };
                     
                     // Reload refunds list
                     vm.loadRefunds();
@@ -128,20 +139,16 @@
                     var successMsg = 'Refund Created Successfully! Refund ID: ' + refundData.refund_id + ', Amount: ' + refundData.currency + ' ' + parseFloat(refundData.amount).toFixed(2);
                     if (typeof showToast === 'function') {
                         showToast(successMsg, 'success');
-                    } else {
-                        var alertMsg = 'Refund Created Successfully!\n\n';
-                        alertMsg += 'Refund ID: ' + refundData.refund_id + '\n';
-                        alertMsg += 'Amount: ' + refundData.currency + ' ' + parseFloat(refundData.amount).toFixed(2) + '\n';
-                        alertMsg += 'Status: ' + refundData.status.toUpperCase() + '\n';
-                        alertMsg += (refundData.is_partial ? 'Type: Partial Refund' : 'Type: Full Refund');
-                        alert(alertMsg);
+                    } else if (typeof ipayAlert === 'function') {
+                        var detail = 'Refund ID: ' + refundData.refund_id + '\nAmount: ' + refundData.currency + ' ' + parseFloat(refundData.amount).toFixed(2) + '\nStatus: ' + refundData.status.toUpperCase() + '\n' + (refundData.is_partial ? 'Type: Partial Refund' : 'Type: Full Refund');
+                        ipayAlert(detail, 'success', { title: 'Refund created' });
                     }
                 } else {
                     var errorMsg = 'Failed to create refund: ' + (response.data && response.data.message ? response.data.message : 'Unknown error');
                     if (typeof showToast === 'function') {
                         showToast(errorMsg, 'error');
-                    } else {
-                        alert(errorMsg);
+                    } else if (typeof ipayAlert === 'function') {
+                        ipayAlert(errorMsg, 'danger');
                     }
                 }
             }, function(error) {
@@ -172,8 +179,8 @@
                 }
                 if (typeof showToast === 'function') {
                     showToast(errorMsg, 'error');
-                } else {
-                    alert(errorMsg);
+                } else if (typeof ipayAlert === 'function') {
+                    ipayAlert(errorMsg, 'danger');
                 }
             });
         };

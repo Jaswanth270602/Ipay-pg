@@ -31,6 +31,13 @@ class SettlementDetailsController extends Controller
                 ->leftJoin('transactions', 'settlement_details.transaction_id', '=', 'transactions.id')
                 ->select('settlement_details.*', 'merchants.name as merchant_name', 'merchants.id as merchant_id_val', 'transactions.order_id as transaction_order_id', 'transactions.txn_id as transaction_txn_id');
 
+            $mode = $request->get('mode');
+            if ($mode === 'test') {
+                $query->where('settlement_details.test_mode', true);
+            } elseif ($mode === 'live') {
+                $query->where('settlement_details.test_mode', false);
+            }
+
             // Filters
             if ($request->has('filter_merchant_id') && $request->get('filter_merchant_id')) {
                 $query->where('settlement_details.merchant_id', $request->get('filter_merchant_id'));
@@ -141,8 +148,11 @@ class SettlementDetailsController extends Controller
         }
 
         try {
+            $merchant = Merchant::findOrFail($request->merchant_id);
+
             $settlementDetail = DB::table('settlement_details')->insertGetId([
                 'merchant_id' => $request->merchant_id,
+                'test_mode' => (bool) $merchant->test_mode,
                 'transaction_id' => $request->transaction_id,
                 'settlement_id' => $request->settlement_id,
                 'order_id' => $request->order_id,
@@ -173,7 +183,7 @@ class SettlementDetailsController extends Controller
                 'provider' => $request->provider,
                 'account_id' => $request->account_id,
                 'acq_payment_id' => $request->acq_payment_id,
-                'settlement_status' => 'not_settled',
+                'settlement_status' => 'pending',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

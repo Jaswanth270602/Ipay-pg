@@ -150,6 +150,14 @@ class Transaction extends Model
     }
 
     /**
+     * Settlement batch this transaction was included in (after daily settlement run).
+     */
+    public function settlement(): BelongsTo
+    {
+        return $this->belongsTo(Settlement::class);
+    }
+
+    /**
      * Get refunds for this transaction.
      */
     public function refunds(): HasMany
@@ -207,8 +215,23 @@ class Transaction extends Model
      */
     public function totalRefunded(): float
     {
-        return $this->refunds()
+        return (float) $this->refunds()
             ->where('status', 'completed')
+            ->sum('amount');
+    }
+
+    /**
+     * Amount tied up in refunds not yet completed (approval queue or bank processing).
+     */
+    public function reservedRefundAmount(): float
+    {
+        return (float) $this->refunds()
+            ->whereIn('status', [
+                'pending',
+                'pending_approval',
+                'pending_processing',
+                'processing',
+            ])
             ->sum('amount');
     }
 
@@ -217,7 +240,7 @@ class Transaction extends Model
      */
     public function refundableAmount(): float
     {
-        return $this->amount - $this->totalRefunded();
+        return max(0, $this->amount - $this->totalRefunded() - $this->reservedRefundAmount());
     }
 }
 

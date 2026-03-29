@@ -126,9 +126,17 @@ class BulkRefundUpdateController extends Controller
             'Content-Disposition' => 'attachment; filename="bulk_refund_template.csv"',
         ];
 
-        $callback = function() {
+        $callback = function () {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Refund ID', 'Status']);
+            fputcsv($file, ['Refund ID', 'Status', 'Notes', 'Reason', 'Amount', 'Currency']);
+            fputcsv($file, [
+                'RFD_REPLACE_WITH_YOUR_REFUND_ID',
+                'completed',
+                '',
+                '',
+                '100.00',
+                'USD',
+            ]);
             fclose($file);
         };
 

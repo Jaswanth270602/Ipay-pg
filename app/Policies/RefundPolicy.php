@@ -28,8 +28,8 @@ class RefundPolicy
      */
     public function update(User $user, Refund $refund): bool
     {
-        return $user->isAdmin() || 
-               ($user->isMerchant() && $user->merchant_id === $refund->merchant_id && $refund->status === 'pending');
+        return $user->isAdmin() ||
+               ($user->isMerchant() && $user->merchant_id === $refund->merchant_id && in_array($refund->status, ['pending', 'pending_approval'], true));
     }
 }
 

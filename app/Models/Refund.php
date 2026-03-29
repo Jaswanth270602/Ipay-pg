@@ -17,6 +17,7 @@ class Refund extends Model
         'refund_id',
         'amount',
         'currency',
+        'mode',
         'status',
         'reason',
         'notes',

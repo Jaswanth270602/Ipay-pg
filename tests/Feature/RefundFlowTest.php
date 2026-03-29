@@ -135,5 +135,54 @@ class RefundFlowTest extends TestCase
                 'error' => 'Cannot refund unsuccessful transaction',
             ]);
     }
+
+    public function test_large_refund_creates_pending_approval_and_pg_row(): void
+    {
+        $order = Order::create([
+            'merchant_id' => $this->merchant->id,
+            'order_id' => Order::generateOrderId(),
+            'amount' => 20000.00,
+            'currency' => 'USD',
+            'status' => 'completed',
+            'test_mode' => true,
+        ]);
+
+        $transaction = Transaction::create([
+            'order_id' => $order->id,
+            'merchant_id' => $this->merchant->id,
+            'txn_id' => Transaction::generateTxnId(),
+            'payment_method' => 'card',
+            'amount' => 20000.00,
+            'fee_amount' => 0,
+            'net_amount' => 20000.00,
+            'currency' => 'USD',
+            'status' => 'success',
+            'test_mode' => true,
+        ]);
+
+        $response = $this->postJson('/api/v1/refunds', [
+            'transaction_id' => $transaction->txn_id,
+            'amount' => 15000.00,
+            'reason' => 'Customer request',
+        ], [
+            'X-API-Key' => $this->apiKey->key,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.status', 'pending_approval');
+
+        $this->assertDatabaseHas('refunds', [
+            'transaction_id' => $transaction->id,
+            'amount' => 15000.00,
+            'status' => 'pending_approval',
+            'mode' => 'test',
+        ]);
+
+        $this->assertDatabaseHas('pg_refund_approvals', [
+            'merchant_id' => $this->merchant->id,
+            'model_name' => 'Refund',
+            'is_approved' => 'pending',
+        ]);
+    }
 }
 

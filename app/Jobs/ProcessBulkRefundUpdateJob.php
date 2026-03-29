@@ -132,7 +132,15 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                 if (isset($columnIndexes['status'])) {
                     $status = trim($row[$columnIndexes['status']] ?? '');
                     if (!empty($status)) {
-                        $validStatuses = ['pending', 'processing', 'completed', 'failed', 'cancelled'];
+                        $validStatuses = [
+                            'pending',
+                            'pending_approval',
+                            'pending_processing',
+                            'processing',
+                            'completed',
+                            'failed',
+                            'cancelled',
+                        ];
                         if (in_array(strtolower($status), $validStatuses)) {
                             $updateData['status'] = strtolower($status);
                             

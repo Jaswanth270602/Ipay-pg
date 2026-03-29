@@ -5,12 +5,17 @@ namespace App\Services;
 use App\Models\Settlement;
 use App\Models\Transaction;
 use App\Models\Merchant;
+use App\Services\Settlements\SettlementDetailSyncService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class SettlementEngine
 {
+    public function __construct(
+        protected SettlementDetailSyncService $settlementDetailSync
+    ) {}
+
     /**
      * Process daily settlements for all merchants.
      * This runs every day at configured time (default: 11 PM).
@@ -145,14 +150,16 @@ class SettlementEngine
             }
 
             $domesticSettlement = $this->createSettlement($merchant, $domesticTransactions,
-                $this->calculateSettlementAmounts($domesticTransactions), 
+                $this->calculateSettlementAmounts($domesticTransactions),
                 $date, 'domestic');
             $this->markTransactionsAsSettled($domesticTransactions, $domesticSettlement);
+            $this->syncSettlementDetails($merchant, $domesticTransactions, $domesticSettlement);
 
             $internationalSettlement = $this->createSettlement($merchant, $internationalTransactions,
-                $this->calculateSettlementAmounts($internationalTransactions), 
+                $this->calculateSettlementAmounts($internationalTransactions),
                 $date, 'international');
             $this->markTransactionsAsSettled($internationalTransactions, $internationalSettlement);
+            $this->syncSettlementDetails($merchant, $internationalTransactions, $internationalSettlement);
 
             return [
                 'merchant_id' => $merchant->id,
@@ -179,6 +186,7 @@ class SettlementEngine
             $calculation = $this->calculateSettlementAmounts($transactions);
             $settlement = $this->createSettlement($merchant, $transactions, $calculation, $date, $transactionType);
             $this->markTransactionsAsSettled($transactions, $settlement);
+            $this->syncSettlementDetails($merchant, $transactions, $settlement);
 
             return [
                 'merchant_id' => $merchant->id,
@@ -246,6 +254,7 @@ class SettlementEngine
 
         $settlement = Settlement::create([
             'merchant_id' => $merchant->id,
+            'test_mode' => (bool) ($firstTransaction->test_mode ?? false),
             'settlement_id' => $this->generateSettlementId($merchant, $settlementDate),
             'amount' => $calculation['gross_amount'],
             'fee_amount' => $calculation['fee_amount'] + $calculation['gst_amount'] + $calculation['other_fees'],
@@ -299,6 +308,12 @@ class SettlementEngine
                 'settlement_status' => 'settled',
                 'settled_at' => now(),
             ]);
+    }
+
+    protected function syncSettlementDetails(Merchant $merchant, $transactions, Settlement $settlement): void
+    {
+        $settlement->refresh();
+        $this->settlementDetailSync->replaceDetailsForSettlement($settlement, $transactions, $merchant);
     }
 
     /**

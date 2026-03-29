@@ -7,6 +7,7 @@ use App\Services\RefundService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class RefundController extends Controller
 {
@@ -29,6 +30,7 @@ class RefundController extends Controller
         $validator = Validator::make($request->all(), [
             'transaction_id' => 'required|string',
             'amount' => 'nullable|numeric|min:0.01',
+            'currency' => ['nullable', 'string', 'size:3', Rule::in(config('ipay.supported_currencies', ['INR', 'USD', 'EUR', 'GBP']))],
             'reason' => 'nullable|string|max:500',
         ]);
 
@@ -72,11 +74,20 @@ class RefundController extends Controller
 
             $amount = $request->amount ?? $transaction->amount;
 
+            $currency = $request->input('currency');
+            if ($currency !== null && strtoupper($currency) !== strtoupper($transaction->currency)) {
+                return response()->json([
+                    'error' => 'Invalid currency',
+                    'message' => 'Currency must match the original transaction currency ('.$transaction->currency.').',
+                ], 422);
+            }
+
             $refund = $this->refundService->createRefund(
                 $transaction,
                 $amount,
                 $initiator,
-                $request->reason
+                $request->reason,
+                $currency
             );
 
             return response()->json([
@@ -87,6 +98,7 @@ class RefundController extends Controller
                     'amount' => $refund->amount,
                     'currency' => $refund->currency,
                     'status' => $refund->status,
+                    'mode' => $refund->mode,
                     'is_partial' => $refund->is_partial,
                     'created_at' => $refund->created_at->toIso8601String(),
                 ],

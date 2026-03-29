@@ -207,13 +207,13 @@
                                 <span ng-if="!item.changes || item.changes === 'N/A'">N/A</span>
                             </td>
                             <td>
-                                <span class="badge" 
+                                <span class="badge text-capitalize" 
                                       ng-class="{
                                           'bg-warning': item.is_approved === 'pending',
                                           'bg-success': item.is_approved === 'approved',
                                           'bg-danger': item.is_approved === 'rejected'
                                       }">
-                                    @{{ item.is_approved | capitalize }}
+                                    @{{ item.is_approved }}
                                 </span>
                             </td>
                             <td>@{{ item.created_at || 'N/A' }}</td>
@@ -335,8 +335,8 @@
                             }
                             if (typeof showToast === 'function') {
                                 showToast(msg, 'error');
-                            } else {
-                                alert(msg);
+                            } else if (typeof ipayAlert === 'function') {
+                                ipayAlert(msg, 'danger');
                             }
                         });
                 };
@@ -407,35 +407,39 @@
                         return;
                     }
 
-                    if (!confirm('Are you sure you want to approve selected items?')) {
-                        return;
-                    }
-
-                    $http.post("{{ route('admin.approvals.merchant-tdr.bulk-action') }}", {
-                        ids: vm.selectedItems,
-                        action: 'approve'
-                    }, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message, 'success');
-                            }
-                            vm.loadData();
-                        } else {
-                            var errorMsg = response.data.message || 'Failed to approve items';
-                            if (typeof showToast === 'function') {
-                                showToast(errorMsg, 'error');
-                            }
-                        }
-                    }, function (error) {
-                        var errorMsg = 'Failed to approve items';
-                        if (error.data && error.data.message) {
-                            errorMsg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(errorMsg, 'error');
-                        }
+                    ipayConfirm('Are you sure you want to approve selected items?', 'warning', {
+                        okText: 'Approve all',
+                        title: 'Bulk approve'
+                    }).then(function (ok) {
+                        if (!ok) return;
+                        $timeout(function () {
+                            $http.post("{{ route('admin.approvals.merchant-tdr.bulk-action') }}", {
+                                ids: vm.selectedItems,
+                                action: 'approve'
+                            }, {
+                                headers: { 'X-CSRF-TOKEN': csrf }
+                            }).then(function (response) {
+                                if (response.data && response.data.success) {
+                                    if (typeof showToast === 'function') {
+                                        showToast(response.data.message, 'success');
+                                    }
+                                    vm.loadData();
+                                } else {
+                                    var errorMsg = response.data.message || 'Failed to approve items';
+                                    if (typeof showToast === 'function') {
+                                        showToast(errorMsg, 'error');
+                                    }
+                                }
+                            }, function (error) {
+                                var errorMsg = 'Failed to approve items';
+                                if (error.data && error.data.message) {
+                                    errorMsg = error.data.message;
+                                }
+                                if (typeof showToast === 'function') {
+                                    showToast(errorMsg, 'error');
+                                }
+                            });
+                        });
                     });
                 };
 
@@ -447,35 +451,39 @@
                         return;
                     }
 
-                    if (!confirm('Are you sure you want to reject selected items?')) {
-                        return;
-                    }
-
-                    $http.post("{{ route('admin.approvals.merchant-tdr.bulk-action') }}", {
-                        ids: vm.selectedItems,
-                        action: 'reject'
-                    }, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message, 'success');
-                            }
-                            vm.loadData();
-                        } else {
-                            var errorMsg = response.data.message || 'Failed to reject items';
-                            if (typeof showToast === 'function') {
-                                showToast(errorMsg, 'error');
-                            }
-                        }
-                    }, function (error) {
-                        var errorMsg = 'Failed to reject items';
-                        if (error.data && error.data.message) {
-                            errorMsg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(errorMsg, 'error');
-                        }
+                    ipayConfirm('Are you sure you want to reject selected items?', 'danger', {
+                        okText: 'Reject all',
+                        title: 'Bulk reject'
+                    }).then(function (ok) {
+                        if (!ok) return;
+                        $timeout(function () {
+                            $http.post("{{ route('admin.approvals.merchant-tdr.bulk-action') }}", {
+                                ids: vm.selectedItems,
+                                action: 'reject'
+                            }, {
+                                headers: { 'X-CSRF-TOKEN': csrf }
+                            }).then(function (response) {
+                                if (response.data && response.data.success) {
+                                    if (typeof showToast === 'function') {
+                                        showToast(response.data.message, 'success');
+                                    }
+                                    vm.loadData();
+                                } else {
+                                    var errorMsg = response.data.message || 'Failed to reject items';
+                                    if (typeof showToast === 'function') {
+                                        showToast(errorMsg, 'error');
+                                    }
+                                }
+                            }, function (error) {
+                                var errorMsg = 'Failed to reject items';
+                                if (error.data && error.data.message) {
+                                    errorMsg = error.data.message;
+                                }
+                                if (typeof showToast === 'function') {
+                                    showToast(errorMsg, 'error');
+                                }
+                            });
+                        });
                     });
                 };
 
@@ -487,7 +495,9 @@
                     } catch (e) {
                         // Use as is if not valid JSON
                     }
-                    alert('Previous Changes:\n\n' + content);
+                    $timeout(function () {
+                        ipayAlert(content, 'info', { title: 'Previous changes', forceJson: true });
+                    });
                 };
 
                 vm.viewChanges = function (item) {
@@ -498,29 +508,9 @@
                     } catch (e) {
                         // Use as is if not valid JSON
                     }
-                    alert('Changes:\n\n' + content);
-                };
-
-                vm.viewPreviousChanges = function (item) {
-                    var content = item.previous_changes;
-                    try {
-                        var parsed = JSON.parse(content);
-                        content = JSON.stringify(parsed, null, 2);
-                    } catch (e) {
-                        // Use as is if not valid JSON
-                    }
-                    alert('Previous Changes:\n\n' + content);
-                };
-
-                vm.viewChanges = function (item) {
-                    var content = item.changes;
-                    try {
-                        var parsed = JSON.parse(content);
-                        content = JSON.stringify(parsed, null, 2);
-                    } catch (e) {
-                        // Use as is if not valid JSON
-                    }
-                    alert('Changes:\n\n' + content);
+                    $timeout(function () {
+                        ipayAlert(content, 'info', { title: 'Request changes', forceJson: true });
+                    });
                 };
 
                 // Initialize

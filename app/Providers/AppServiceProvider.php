@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use App\Contracts\Settlements\LiveSettlementPayoutContract;
 use App\Services\BankProviders\BankProviderInterface;
 use App\Services\BankProviders\SandboxBankProvider;
 use App\Services\BankProviders\ProductionBankProvider;
+use App\Services\Settlements\NullLiveSettlementPayout;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(LiveSettlementPayoutContract::class, NullLiveSettlementPayout::class);
         // Bind bank provider by merchant mode; fallback to app mode
         $this->app->bind(BankProviderInterface::class, function ($app) {
             $user = auth()->user();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\Settlement;
+use App\Services\Settlements\SettlementCompletionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -25,6 +26,7 @@ class SettlementSummaryController extends Controller
             $perPage = min($request->get('per_page', 5), 50);
             
             $query = Settlement::where('merchant_id', $merchant->id)
+                ->where('test_mode', (bool) $merchant->test_mode)
                 ->with('merchant')
                 ->latest();
 
@@ -86,6 +88,9 @@ class SettlementSummaryController extends Controller
                     'settlement_description' => $settlement->settlement_description ?? '-',
                     'payment_start_date' => $settlement->payment_start_date ? $settlement->payment_start_date->format('Y-m-d') : '-',
                     'payment_end_date' => $settlement->payment_end_date ? $settlement->payment_end_date->format('Y-m-d') : '-',
+                    'test_mode' => (bool) $settlement->test_mode,
+                    'transaction_count' => (int) ($settlement->transaction_count ?? 0),
+                    'refund_count' => (int) ($settlement->refund_count ?? 0),
                 ];
             });
 
@@ -111,17 +116,18 @@ class SettlementSummaryController extends Controller
         }
     }
 
-    public function markAsSettled(Request $request): JsonResponse
+    public function markAsSettled(Request $request, SettlementCompletionService $completion): JsonResponse
     {
         try {
             $merchant = $request->user()->merchant;
             $ids = $request->get('ids', []);
-            Settlement::where('merchant_id', $merchant->id)
-                ->whereIn('id', $ids)
-                ->update([
-                    'settlement_status' => 'settled',
-                    'status' => 'completed',
-                ]);
+            $bankRef = $request->input('bank_reference');
+            $completion->markSettlementsCompleted(
+                array_map('intval', $ids),
+                $merchant->id,
+                $bankRef,
+                true
+            );
 
             return response()->json([
                 'success' => true,

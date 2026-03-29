@@ -13,7 +13,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Settlement Summary</h2>
-            <p class="text-muted">List of Settlements</p>
+            <p class="text-muted">Settlement batches for your account. Rows match your current <strong>Test/Live</strong> mode toggle in the header.</p>
         </div>
     </div>
 
@@ -116,6 +116,17 @@
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mssc.filters.filter_payout_amount" ng-change="mssc.applyFilters()">
                             </th>
+                            <th ng-show="mssc.visibleColumns.transaction_count.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Txns in batch</span>
+                                </div>
+                                <span class="small text-muted d-block mt-1">Included in payout</span>
+                            </th>
+                            <th ng-show="mssc.visibleColumns.refund_count.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Refunds in batch</span>
+                                </div>
+                            </th>
                             <th ng-show="mssc.visibleColumns.settlement_status.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Settlement Status</span>
@@ -203,6 +214,13 @@
                             <td ng-show="mssc.visibleColumns.partner_id.visible">@{{ settlement.partner_id }}</td>
                             <td ng-show="mssc.visibleColumns.partner_name.visible">@{{ settlement.partner_name }}</td>
                             <td ng-show="mssc.visibleColumns.payout_amount.visible">@{{ settlement.payout_amount }}</td>
+                            <td ng-show="mssc.visibleColumns.transaction_count.visible">
+                                <span class="badge bg-secondary">@{{ settlement.transaction_count }}</span>
+                            </td>
+                            <td ng-show="mssc.visibleColumns.refund_count.visible">
+                                <span ng-if="settlement.refund_count > 0" class="badge bg-warning text-dark">@{{ settlement.refund_count }}</span>
+                                <span ng-if="!settlement.refund_count || settlement.refund_count === 0">0</span>
+                            </td>
                             <td ng-show="mssc.visibleColumns.settlement_status.visible">
                                 <span class="badge" ng-class="{
                                     'bg-success': settlement.settlement_status === 'settled',
@@ -280,6 +298,8 @@
                     partner_id: { visible: true, label: 'Partner Id' },
                     partner_name: { visible: true, label: 'Partner Name' },
                     payout_amount: { visible: true, label: 'Payout Amount' },
+                    transaction_count: { visible: true, label: 'Txns in batch' },
+                    refund_count: { visible: true, label: 'Refunds in batch' },
                     settlement_status: { visible: true, label: 'Settlement Status' },
                     settlement_date: { visible: true, label: 'Settlement Date' },
                     bank_reference: { visible: true, label: 'Bank Reference' },

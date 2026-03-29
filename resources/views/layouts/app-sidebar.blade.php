@@ -1547,12 +1547,8 @@ function switchMode(mode) {
         } else {
             if (typeof showToast === 'function') {
                 showToast('Failed to switch mode', 'error');
-            } else {
-                if (typeof showToast === 'function') {
-            showToast('Failed to switch mode', 'error');
-        } else {
-            alert('Failed to switch mode');
-        }
+            } else if (typeof ipayAlert === 'function') {
+                ipayAlert('Failed to switch mode', 'danger');
             }
         }
     })
@@ -1560,8 +1556,8 @@ function switchMode(mode) {
         document.body.removeChild(overlay);
         if (typeof showToast === 'function') {
             showToast('Failed to switch mode', 'error');
-        } else {
-            alert('Failed to switch mode');
+        } else if (typeof ipayAlert === 'function') {
+            ipayAlert('Failed to switch mode', 'danger');
         }
         console.error('Error:', error);
     });
@@ -1589,12 +1585,8 @@ function switchAdminMode(mode) {
         } else {
             if (typeof showToast === 'function') {
                 showToast('Failed to switch admin viewing mode', 'error');
-            } else {
-                if (typeof showToast === 'function') {
-            showToast('Failed to switch admin viewing mode', 'error');
-        } else {
-            alert('Failed to switch admin viewing mode');
-        }
+            } else if (typeof ipayAlert === 'function') {
+                ipayAlert('Failed to switch admin viewing mode', 'danger');
             }
         }
     })
@@ -1602,8 +1594,8 @@ function switchAdminMode(mode) {
         document.body.removeChild(overlay);
         if (typeof showToast === 'function') {
             showToast('Failed to switch admin viewing mode', 'error');
-        } else {
-            alert('Failed to switch admin viewing mode');
+        } else if (typeof ipayAlert === 'function') {
+            ipayAlert('Failed to switch admin viewing mode', 'danger');
         }
         console.error('Error:', error);
     });
@@ -1762,8 +1754,12 @@ document.addEventListener('click', function(event) {
         
         var toastElement = document.getElementById('globalToast');
         if (!toastElement || !message) {
-            // Fallback to alert if toast element doesn't exist
-            alert(message);
+            if (typeof window.ipayAlert === 'function') {
+                var t = type === 'error' ? 'danger' : (type || 'info');
+                window.ipayAlert(message, t);
+            } else {
+                console.error('[Toast]', message);
+            }
             return;
         }
         
@@ -1867,6 +1863,8 @@ document.addEventListener('click', function(event) {
     }
 })();
 </script>
+
+@include('components.ipay-modals')
 
 <script>
 (function () {

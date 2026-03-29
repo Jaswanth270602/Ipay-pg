@@ -489,6 +489,7 @@ class RazorpayAcquirerAdapter implements AcquirerInterface
             'payment.pending' => 'payment.pending',
             'refund.created' => 'refund.created',
             'refund.processed' => 'refund.success',
+            'refund.failed' => 'refund.failed',
             'order.paid' => 'order.completed',
             'settlement.processed' => 'settlement.processed',
             'dispute.created' => 'dispute.created',

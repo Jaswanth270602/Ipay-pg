@@ -281,6 +281,24 @@
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount">
                             </th>
+                            <th ng-show="mtc.visibleColumns.settlement_batch_id.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Settlement batch</span>
+                                </div>
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="STL_..." ng-model="mtc.filters.filter_settlement_batch_id" ng-change="mtc.applyFilters()">
+                            </th>
+                            <th ng-show="mtc.visibleColumns.settlement_txn_status.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Settlement (txn)</span>
+                                </div>
+                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_settlement_status" ng-change="mtc.applyFilters()">
+                                    <option value="">All</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="settled">Settled</option>
+                                    <option value="on_hold">On hold</option>
+                                    <option value="excluded">Excluded</option>
+                                </select>
+                            </th>
                             <th ng-show="mtc.visibleColumns.card_holder_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Holder Name</span>
@@ -340,7 +358,7 @@
                     </thead>
                     <tbody>
                         <tr ng-if="mtc.transactions.length === 0">
-                            <td colspan="35" class="text-center text-danger py-4">No matching records found</td>
+                            <td colspan="37" class="text-center text-danger py-4">No matching records found</td>
                         </tr>
                         <tr ng-repeat="transaction in mtc.transactions | filter:mtc.dateMatches track by $index">
                             <td ng-show="mtc.visibleColumns.transaction_initiation_time.visible">@{{ transaction.transaction_initiation_time }}</td>
@@ -378,6 +396,21 @@
                             <td ng-show="mtc.visibleColumns.gst_paid_by_merchant.visible">@{{ transaction.gst_paid_by_merchant }}</td>
                             <td ng-show="mtc.visibleColumns.gst_paid_by_customer.visible">@{{ transaction.gst_paid_by_customer }}</td>
                             <td ng-show="mtc.visibleColumns.net_settlements_amount.visible">@{{ transaction.net_settlements_amount }}</td>
+                            <td ng-show="mtc.visibleColumns.settlement_batch_id.visible">
+                                <code class="small" ng-if="transaction.settlement_batch_id !== '-'">@{{ transaction.settlement_batch_id }}</code>
+                                <span ng-if="transaction.settlement_batch_id === '-'">—</span>
+                            </td>
+                            <td ng-show="mtc.visibleColumns.settlement_txn_status.visible">
+                                <span class="badge small" ng-if="transaction.settlement_txn_status !== '-'"
+                                      ng-class="{
+                                        'bg-success': transaction.settlement_txn_status === 'settled',
+                                        'bg-warning text-dark': transaction.settlement_txn_status === 'pending',
+                                        'bg-secondary': transaction.settlement_txn_status === 'on_hold' || transaction.settlement_txn_status === 'excluded'
+                                      }">
+                                    @{{ transaction.settlement_txn_status_label }}
+                                </span>
+                                <span ng-if="transaction.settlement_txn_status === '-'">—</span>
+                            </td>
                             <td ng-show="mtc.visibleColumns.card_holder_name.visible">@{{ transaction.card_holder_name }}</td>
                             <td ng-show="mtc.visibleColumns.card_number.visible">@{{ transaction.card_number }}</td>
                             <td ng-show="mtc.visibleColumns.customer_ip_address.visible">@{{ transaction.customer_ip_address }}</td>
@@ -467,6 +500,14 @@
                             <strong>Net Settlement:</strong><br>
                             @{{mtc.selectedTransaction.net_settlements_amount}}
                         </div>
+                        <div class="col-md-6" ng-if="mtc.selectedTransaction.settlement_batch_id && mtc.selectedTransaction.settlement_batch_id !== '-'">
+                            <strong>Settlement batch:</strong><br>
+                            <code>@{{ mtc.selectedTransaction.settlement_batch_id }}</code>
+                        </div>
+                        <div class="col-md-6" ng-if="mtc.selectedTransaction.settlement_txn_status && mtc.selectedTransaction.settlement_txn_status !== '-'">
+                            <strong>Settlement (this txn):</strong><br>
+                            <span class="badge" ng-class="{'bg-success': mtc.selectedTransaction.settlement_txn_status==='settled', 'bg-warning text-dark': mtc.selectedTransaction.settlement_txn_status==='pending'}">@{{ mtc.selectedTransaction.settlement_txn_status_label }}</span>
+                        </div>
                         <div class="col-12" ng-if="mtc.selectedTransaction.card_number !== '-'">
                             <strong>Card:</strong> @{{mtc.selectedTransaction.card_number}}
                         </div>
@@ -526,6 +567,8 @@
                     gst_paid_by_merchant: { visible: true, label: 'GST Paid By Merchant' },
                     gst_paid_by_customer: { visible: true, label: 'GST Paid By Customer' },
                     net_settlements_amount: { visible: true, label: 'Net Settlements Amount' },
+                    settlement_batch_id: { visible: true, label: 'Settlement batch' },
+                    settlement_txn_status: { visible: true, label: 'Settlement (txn)' },
                     card_holder_name: { visible: true, label: 'Card Holder Name' },
                     card_number: { visible: true, label: 'Card Number' },
                     customer_ip_address: { visible: true, label: 'Customer IP Address' },

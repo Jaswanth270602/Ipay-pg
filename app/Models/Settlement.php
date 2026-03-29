@@ -44,6 +44,7 @@ class Settlement extends Model
         'settlement_date',
         'payout_amount',
         'settlement_status',
+        'test_mode',
     ];
 
     protected $casts = [
@@ -59,6 +60,7 @@ class Settlement extends Model
         'payment_start_date' => 'date',
         'payment_end_date' => 'date',
         'settlement_date' => 'date',
+        'test_mode' => 'boolean',
     ];
 
     /**

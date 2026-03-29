@@ -29,6 +29,13 @@ class PendingSettlementController extends Controller
                 ->select('settlements.*', 'merchants.name as merchant_name', 'merchants.id as merchant_id_val')
                 ->where('settlements.status', 'pending');
 
+            $mode = $request->get('mode');
+            if ($mode === 'test') {
+                $query->where('settlements.test_mode', true);
+            } elseif ($mode === 'live') {
+                $query->where('settlements.test_mode', false);
+            }
+
             // Filters
             if ($request->has('filter_settlement_id') && $request->get('filter_settlement_id')) {
                 $query->where('settlements.settlement_id', 'like', "%{$request->get('filter_settlement_id')}%");
