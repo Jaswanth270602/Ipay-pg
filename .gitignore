@@ -1,4 +1,4 @@
-#.env
+.env
 
 /vendor
 /node_modules
@@ -6,21 +6,20 @@
 /storage/*
 !/storage/app
 !/storage/app/public
-/storage/app/public/*
 !/storage/app/public/.gitkeep
-!/storage/framework
 
-!/storage/framework/.gitignore
 /storage/framework/*
 !/storage/framework/cache
-!/storage/framework/cache/data
-!/storage/framework/cache/data/.gitkeep
-!/storage/framework/sessions
+!/storage/framework/cache/.gitkeep
+
+/storage/framework/sessions/*
 !/storage/framework/sessions/.gitkeep
-!/storage/framework/testing
-!/storage/framework/testing/.gitkeep
-!/storage/framework/views
+
+/storage/framework/views/*
 !/storage/framework/views/.gitkeep
+
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
 
 /storage/logs/*
 !/storage/logs/.gitkeep
