@@ -99,11 +99,20 @@ class TransactionsController extends Controller
                 $query->orderBy($sortBy, $sortDirection);
             }
 
-            $transactions = $query->paginate($perPage);
+            $page = max(1, (int) $request->get('page', 1));
+            $total = (clone $query)->count();
+            $lastPage = max(1, (int) ceil($total / max(1, $perPage)));
+            if ($page > $lastPage) {
+                $page = $lastPage;
+            }
+
+            $transactions = $query
+                ->forPage($page, $perPage)
+                ->get();
 
             $this->logInfo('Admin payments transactions retrieved', [
                 'count' => $transactions->count(),
-                'total' => $transactions->total(),
+                'total' => $total,
                 'per_page' => $perPage,
                 'query_sql' => $query->toSql(),
                 'filters_applied' => $request->all()
@@ -194,12 +203,12 @@ class TransactionsController extends Controller
                 'success' => true,
                 'data' => $data->values()->all(), // Ensure array is properly indexed
                 'pagination' => [
-                    'current_page' => $transactions->currentPage(),
-                    'per_page' => $transactions->perPage(),
-                    'total' => $transactions->total(),
-                    'last_page' => $transactions->lastPage(),
-                    'from' => $transactions->firstItem(),
-                    'to' => $transactions->lastItem(),
+                    'current_page' => $page,
+                    'per_page' => (int) $perPage,
+                    'total' => (int) $total,
+                    'last_page' => (int) $lastPage,
+                    'from' => $total > 0 ? (($page - 1) * $perPage) + 1 : null,
+                    'to' => $total > 0 ? min($page * $perPage, $total) : null,
                 ],
             ]);
         } catch (\Exception $e) {

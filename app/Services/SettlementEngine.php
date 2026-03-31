@@ -49,6 +49,13 @@ class SettlementEngine
                 $results[] = $result;
             }
 
+            // Vendor settlements are additive and do not change merchant batches.
+            // We keep them optional and isolated via VendorSettlementService.
+            if (! $dryRun && class_exists(\App\Services\Settlements\VendorSettlementService::class)) {
+                app(\App\Services\Settlements\VendorSettlementService::class)
+                    ->processDailyVendorSettlements($date, $merchantId, $mode);
+            }
+
             Log::info('Daily settlement processing completed', [
                 'date' => $date->toDateString(),
                 'merchants_processed' => count($results),

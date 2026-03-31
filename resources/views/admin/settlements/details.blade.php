@@ -183,6 +183,29 @@
             </div>
         </div>
     </div>
+
+    <!-- View Settlement Detail Modal -->
+    <div class="modal fade" id="viewSettlementDetailModal" tabindex="-1" aria-labelledby="viewSettlementDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewSettlementDetailModalLabel">Settlement Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" ng-if="asdc.selectedDetail">
+                        <div class="col-md-6" ng-repeat="field in asdc.detailFields track by $index">
+                            <strong ng-bind="field.label + ':'"></strong>
+                            <span ng-bind="asdc.selectedDetail[field.key] || '-'"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Create Settlement Detail Modal -->
@@ -345,6 +368,7 @@
                 vm.dateRange = '';
                 vm.mode = 'all';
                 vm.form = {};
+                vm.selectedDetail = null;
                 
                 vm.visibleColumns = {
                     merchant_id: { visible: true, label: 'Merchant Id' },
@@ -356,6 +380,40 @@
                     amount_paid_by_customer: { visible: true, label: 'Amount Paid by Customer' },
                     settlement_amount: { visible: true, label: 'Settlement Amount' }
                 };
+
+                vm.detailFields = [
+                    { key: 'merchant_id', label: 'Merchant Id' },
+                    { key: 'merchant_name', label: 'Merchant Name' },
+                    { key: 'order_id', label: 'Order Id' },
+                    { key: 'transaction_id', label: 'Transaction Id' },
+                    { key: 'tran_seq_id', label: 'Tran Seq Id' },
+                    { key: 'transaction_date', label: 'Transaction Date' },
+                    { key: 'transaction_qualifier', label: 'Transaction Qualifier' },
+                    { key: 'settlement_qualifier', label: 'Settlement Qualifier' },
+                    { key: 'setl_id', label: 'Setl Id' },
+                    { key: 'amount_paid_by_customer', label: 'Amount Paid by Customer' },
+                    { key: 'settlement_amount', label: 'Settlement Amount' },
+                    { key: 'bank_settlement_date', label: 'Bank Settlement Date' },
+                    { key: 'bank_settlement_amount', label: 'Bank Settlement Amount' },
+                    { key: 'bank_reference', label: 'Bank Reference' },
+                    { key: 'settlement_account_name', label: 'Settlement Account Name' },
+                    { key: 'settlement_account_number', label: 'Settlement Account Number' },
+                    { key: 'settlement_ifsc_code', label: 'Settlement IFSC Code' },
+                    { key: 'settlement_bank_name', label: 'Settlement Bank Name' },
+                    { key: 'settlement_bank_branch', label: 'Settlement Bank Branch' },
+                    { key: 'payment_mode', label: 'Payment Mode' },
+                    { key: 'payment_channel', label: 'Payment Channel' },
+                    { key: 'tdr_percentage', label: 'TDR Percentage' },
+                    { key: 'tdr_fixed_fee', label: 'TDR Fixed Fee' },
+                    { key: 'tdr_amount', label: 'TDR Amount' },
+                    { key: 'earliest_priority_settlement_date', label: 'Earliest Priority Settlement Date' },
+                    { key: 'latest_priority_settlement_date', label: 'Latest Priority Settlement Date' },
+                    { key: 'tax_amount', label: 'Tax Amount' },
+                    { key: 'setd_id', label: 'Setd Id' },
+                    { key: 'provider', label: 'Provider' },
+                    { key: 'account_id', label: 'Account ID' },
+                    { key: 'acq_payment_id', label: 'Acq Payment Id' }
+                ];
 
                 vm.loadDetails = function() {
                     vm.loading = true;
@@ -464,7 +522,9 @@
                 };
 
                 vm.viewDetail = function(detail) {
-                    alert('View detail: ' + detail.id);
+                    vm.selectedDetail = detail;
+                    var modal = new bootstrap.Modal(document.getElementById('viewSettlementDetailModal'));
+                    modal.show();
                 };
 
                 vm.loadDetails();

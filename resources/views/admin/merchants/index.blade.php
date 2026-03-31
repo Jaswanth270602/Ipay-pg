@@ -142,6 +142,73 @@
         </div>
     </div>
 
+    <!-- Merchant details modal -->
+    <div class="modal fade" id="merchantDetailModal" tabindex="-1" aria-labelledby="merchantDetailLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="merchantDetailLabel">
+                        <i class="bi bi-building me-1"></i> Merchant Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" ng-if="amc.merchantDetail">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Merchant ID:</strong> @{{ amc.merchantDetail.id }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Name:</strong> @{{ amc.merchantDetail.name }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Email:</strong> @{{ amc.merchantDetail.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Status:</strong>
+                            <span class="badge" ng-class="{
+                                'bg-success': amc.merchantDetail.status === 'active',
+                                'bg-danger': amc.merchantDetail.status === 'inactive',
+                                'bg-warning': amc.merchantDetail.status === 'pending'
+                            }">
+                                @{{ amc.merchantDetail.status | uppercase }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Mode:</strong>
+                            <span class="badge" ng-class="{'bg-warning': amc.merchantDetail.test_mode, 'bg-info': !amc.merchantDetail.test_mode}">
+                                @{{ amc.merchantDetail.test_mode ? 'TEST' : 'LIVE' }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Created At:</strong> @{{ amc.merchantDetail.created_at | date:'MMM d, y HH:mm' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3" ng-if="amc.merchantDetail.acquirer_account">
+                        <div class="col-md-6">
+                            <strong>Acquirer:</strong> @{{ amc.merchantDetail.acquirer_account.acquirer_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Acquirer Mode:</strong> @{{ amc.merchantDetail.acquirer_account.mode | uppercase }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-body text-center py-4" ng-if="!amc.merchantDetail">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading merchant details...</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bulk action confirmation modal (inside controller scope) -->
     <div class="modal fade" id="bulkConfirmModal" tabindex="-1" aria-labelledby="bulkConfirmLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

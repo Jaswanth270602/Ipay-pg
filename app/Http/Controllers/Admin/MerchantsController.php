@@ -170,5 +170,18 @@ class MerchantsController extends Controller
             'message' => "{$deletedCount} merchant(s) deleted successfully",
         ]);
     }
+
+    /**
+     * Show single merchant details for admin view modal.
+     */
+    public function show(int $id): JsonResponse
+    {
+        $merchant = Merchant::with('acquirerAccount')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $merchant,
+        ]);
+    }
 }
 

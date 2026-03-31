@@ -165,7 +165,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <!-- View Settlement Detail Modal -->
 <div class="modal fade" id="viewSettlementDetailModal" tabindex="-1" aria-labelledby="viewSettlementDetailModalLabel" aria-hidden="true">
@@ -177,40 +176,10 @@
             </div>
             <div class="modal-body">
                 <div class="row g-3" ng-if="msdc.selectedDetail">
-                    <div class="col-md-6"><strong>Order Id:</strong> @{{ msdc.selectedDetail.order_id }}</div>
-                    <div class="col-md-6"><strong>Transaction Id:</strong> @{{ msdc.selectedDetail.transaction_id }}</div>
-                    <div class="col-md-6"><strong>Tran Seq Id:</strong> @{{ msdc.selectedDetail.tran_seq_id }}</div>
-                    <div class="col-md-6"><strong>Transaction Date:</strong> @{{ msdc.selectedDetail.transaction_date }}</div>
-                    <div class="col-md-6"><strong>Transaction Qualifier:</strong> @{{ msdc.selectedDetail.transaction_qualifier }}</div>
-                    <div class="col-md-6"><strong>Settlement Qualifier:</strong> @{{ msdc.selectedDetail.settlement_qualifier }}</div>
-                    <div class="col-md-6"><strong>Setl Id:</strong> @{{ msdc.selectedDetail.setl_id }}</div>
-                    <div class="col-md-6"><strong>Amount Paid by Customer:</strong> @{{ msdc.selectedDetail.amount_paid_by_customer }}</div>
-                    <div class="col-md-6"><strong>Settlement Amount:</strong> @{{ msdc.selectedDetail.settlement_amount }}</div>
-                    <div class="col-md-6"><strong>Bank Settlement Date:</strong> @{{ msdc.selectedDetail.bank_settlement_date }}</div>
-                    <div class="col-md-6"><strong>Bank Settlement Amount:</strong> @{{ msdc.selectedDetail.bank_settlement_amount }}</div>
-                    <div class="col-md-6"><strong>Bank Reference:</strong> @{{ msdc.selectedDetail.bank_reference }}</div>
-                    <div class="col-md-6"><strong>Settlement Account Name:</strong> @{{ msdc.selectedDetail.settlement_account_name }}</div>
-                    <div class="col-md-6"><strong>Settlement Account Number:</strong> @{{ msdc.selectedDetail.settlement_account_number }}</div>
-                    <div class="col-md-6"><strong>Settlement IFSC Code:</strong> @{{ msdc.selectedDetail.settlement_ifsc_code }}</div>
-                    <div class="col-md-6"><strong>Settlement Bank Name:</strong> @{{ msdc.selectedDetail.settlement_bank_name }}</div>
-                    <div class="col-md-6"><strong>Settlement Bank Branch:</strong> @{{ msdc.selectedDetail.settlement_bank_branch }}</div>
-                    <div class="col-md-6"><strong>Payment Mode:</strong> @{{ msdc.selectedDetail.payment_mode }}</div>
-                    <div class="col-md-6"><strong>Payment Channel:</strong> @{{ msdc.selectedDetail.payment_channel }}</div>
-                    <div class="col-md-6"><strong>TDR Percentage:</strong> @{{ msdc.selectedDetail.tdr_percentage }}</div>
-                    <div class="col-md-6"><strong>TDR Fixed Fee:</strong> @{{ msdc.selectedDetail.tdr_fixed_fee }}</div>
-                    <div class="col-md-6"><strong>TDR Amount:</strong> @{{ msdc.selectedDetail.tdr_amount }}</div>
-                    <div class="col-md-6"><strong>Earliest Priority Settlement Date:</strong> @{{ msdc.selectedDetail.earliest_priority_settlement_date }}</div>
-                    <div class="col-md-6"><strong>Latest Priority Settlement Date:</strong> @{{ msdc.selectedDetail.latest_priority_settlement_date }}</div>
-                    <div class="col-md-6"><strong>Tax Amount:</strong> @{{ msdc.selectedDetail.tax_amount }}</div>
-                    <div class="col-md-6"><strong>Setd Id:</strong> @{{ msdc.selectedDetail.setd_id }}</div>
-                    <div class="col-md-6"><strong>Provider:</strong> @{{ msdc.selectedDetail.provider }}</div>
-                    <div class="col-md-6"><strong>Account ID:</strong> @{{ msdc.selectedDetail.account_id }}</div>
-                    <div class="col-md-6"><strong>Acq Payment Id:</strong> @{{ msdc.selectedDetail.acq_payment_id }}</div>
-                    <div class="col-md-6"><strong>UDF1:</strong> @{{ msdc.selectedDetail.udf1 }}</div>
-                    <div class="col-md-6"><strong>UDF2:</strong> @{{ msdc.selectedDetail.udf2 }}</div>
-                    <div class="col-md-6"><strong>UDF3:</strong> @{{ msdc.selectedDetail.udf3 }}</div>
-                    <div class="col-md-6"><strong>UDF4:</strong> @{{ msdc.selectedDetail.udf4 }}</div>
-                    <div class="col-md-6"><strong>UDF5:</strong> @{{ msdc.selectedDetail.udf5 }}</div>
+                    <div class="col-md-6" ng-repeat="field in msdc.detailFields track by $index">
+                        <strong ng-bind="field.label + ':'"></strong>
+                        <span ng-bind="msdc.selectedDetail[field.key] || '-'"></span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -218,6 +187,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 
@@ -250,6 +220,43 @@
                     amount_paid_by_customer: { visible: true, label: 'Amount Paid by Customer' },
                     settlement_amount: { visible: true, label: 'Settlement Amount' }
                 };
+
+                vm.detailFields = [
+                    { key: 'order_id', label: 'Order Id' },
+                    { key: 'transaction_id', label: 'Transaction Id' },
+                    { key: 'tran_seq_id', label: 'Tran Seq Id' },
+                    { key: 'transaction_date', label: 'Transaction Date' },
+                    { key: 'transaction_qualifier', label: 'Transaction Qualifier' },
+                    { key: 'settlement_qualifier', label: 'Settlement Qualifier' },
+                    { key: 'setl_id', label: 'Setl Id' },
+                    { key: 'amount_paid_by_customer', label: 'Amount Paid by Customer' },
+                    { key: 'settlement_amount', label: 'Settlement Amount' },
+                    { key: 'bank_settlement_date', label: 'Bank Settlement Date' },
+                    { key: 'bank_settlement_amount', label: 'Bank Settlement Amount' },
+                    { key: 'bank_reference', label: 'Bank Reference' },
+                    { key: 'settlement_account_name', label: 'Settlement Account Name' },
+                    { key: 'settlement_account_number', label: 'Settlement Account Number' },
+                    { key: 'settlement_ifsc_code', label: 'Settlement IFSC Code' },
+                    { key: 'settlement_bank_name', label: 'Settlement Bank Name' },
+                    { key: 'settlement_bank_branch', label: 'Settlement Bank Branch' },
+                    { key: 'payment_mode', label: 'Payment Mode' },
+                    { key: 'payment_channel', label: 'Payment Channel' },
+                    { key: 'tdr_percentage', label: 'TDR Percentage' },
+                    { key: 'tdr_fixed_fee', label: 'TDR Fixed Fee' },
+                    { key: 'tdr_amount', label: 'TDR Amount' },
+                    { key: 'earliest_priority_settlement_date', label: 'Earliest Priority Settlement Date' },
+                    { key: 'latest_priority_settlement_date', label: 'Latest Priority Settlement Date' },
+                    { key: 'tax_amount', label: 'Tax Amount' },
+                    { key: 'setd_id', label: 'Setd Id' },
+                    { key: 'provider', label: 'Provider' },
+                    { key: 'account_id', label: 'Account ID' },
+                    { key: 'acq_payment_id', label: 'Acq Payment Id' },
+                    { key: 'udf1', label: 'UDF1' },
+                    { key: 'udf2', label: 'UDF2' },
+                    { key: 'udf3', label: 'UDF3' },
+                    { key: 'udf4', label: 'UDF4' },
+                    { key: 'udf5', label: 'UDF5' }
+                ];
 
                 vm.loadDetails = function() {
                     vm.loading = true;

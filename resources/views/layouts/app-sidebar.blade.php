@@ -969,6 +969,10 @@
             <i class="bi bi-link-45deg"></i>
             <span>Payment Links</span>
         </a>
+        <a href="{{ route('merchant.vendors.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.vendors.*') ? 'active' : '' }}">
+            <i class="bi bi-people"></i>
+            <span>Vendors</span>
+        </a>
         <a href="{{ route('merchant.subscriptions.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.subscriptions.*') || request()->routeIs('merchant.plans.*') ? 'active' : '' }}">
             <i class="bi bi-receipt"></i>
             <span>Subscriptions</span>

@@ -10,6 +10,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'vendor' => [
+            'driver' => 'session',
+            'provider' => 'vendors',
+        ],
         'api' => [
             'driver' => 'sanctum',
             'provider' => 'users',
@@ -19,6 +23,10 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
+        ],
+        'vendors' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\MerchantVendor::class,
         ],
     ],
     'passwords' => [

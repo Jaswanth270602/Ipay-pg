@@ -104,35 +104,16 @@ class RefundsController extends Controller
                 'currency' => ['required', 'string', 'size:3', Rule::in(config('ipay.supported_currencies', ['INR', 'USD', 'EUR', 'GBP']))],
                 'reason' => 'nullable|string|max:500',
             ]);
-
-            // Find transaction by txn_id (not database id)
-            $transaction = $merchant->transactions()
-                ->where('txn_id', $request->transaction_id)
-                ->where('test_mode', $merchant->test_mode)
-                ->firstOrFail();
-
-            // Validate transaction status
-            if ($transaction->status !== 'success') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot refund unsuccessful transaction. Only successful transactions can be refunded.',
-                ], 400);
-            }
-
-            if (strtoupper($request->currency) !== strtoupper($transaction->currency)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Currency must match the original transaction currency ('.$transaction->currency.').',
-                ], 422);
-            }
-
-            $refund = $this->refundService->createRefund(
-                $transaction,
-                $request->amount,
+            
+            $refund = $this->refundService->createRefundByTransactionId(
                 $request->user(),
+                $request->transaction_id,
+                (float) $request->amount,
                 $request->reason,
-                $request->currency
+                $merchant->id,
+                (bool) $merchant->test_mode
             );
+            $transaction = $refund->transaction;
 
             $wasSuccessful = $refund->status !== 'failed';
 

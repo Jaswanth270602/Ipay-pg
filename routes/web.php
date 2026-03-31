@@ -14,6 +14,7 @@ use App\Http\Controllers\Merchant\ProfileController;
 use App\Http\Controllers\Merchant\ApiKeysController;
 use App\Http\Controllers\Merchant\IntegrationController;
 use App\Http\Controllers\Merchant\SubscriptionsController as MerchantSubscriptionsController;
+use App\Http\Controllers\Merchant\VendorsController as MerchantPortalVendorsController;
 use App\Http\Controllers\Merchant\WebhooksController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\MerchantsController;
@@ -54,6 +55,8 @@ use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AcquirerAccountsController;
 use App\Http\Controllers\Admin\AcquirerAccountUploadController;
 use App\Http\Controllers\Admin\AcquirerRatesController;
+use App\Http\Controllers\Vendor\AuthController as VendorAuthController;
+use App\Http\Controllers\Vendor\DashboardController as VendorDashboardController;
 use App\Http\Controllers\DocsController;
 use Illuminate\Support\Facades\Route;
 
@@ -101,6 +104,21 @@ Route::middleware('guest')->group(function () {
     Route::post('/signup', [RegistrationController::class, 'register'])->name('signup.post');
 });
 
+// Vendor authentication routes
+Route::middleware('guest:vendor')->group(function () {
+    Route::get('/vendor/login', [VendorAuthController::class, 'showLogin'])->name('vendor.login');
+    Route::post('/vendor/login', [VendorAuthController::class, 'login'])->name('vendor.login.post');
+});
+
+Route::middleware('vendor')->prefix('vendor')->group(function () {
+    Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('vendor.dashboard');
+    Route::get('/payment-links', [VendorDashboardController::class, 'paymentLinks'])->name('vendor.payment-links');
+    Route::get('/orders', [VendorDashboardController::class, 'orders'])->name('vendor.orders');
+    Route::get('/refunds', [VendorDashboardController::class, 'refunds'])->name('vendor.refunds');
+    Route::get('/settlements', [VendorDashboardController::class, 'settlements'])->name('vendor.settlements');
+    Route::post('/logout', [VendorAuthController::class, 'logout'])->name('vendor.logout');
+});
+
 // Logout route (only when authenticated)
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
@@ -124,6 +142,25 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payment_links.store');
         Route::get('/payment-links/data', [PaymentLinksController::class, 'getData'])
             ->name('merchant.payment_links.data');
+        Route::get('/payment-links/vendors', [PaymentLinksController::class, 'getVendors'])
+            ->name('merchant.payment_links.vendors');
+
+        // Merchant Vendors
+        Route::get('/vendors', [MerchantPortalVendorsController::class, 'index'])
+            ->name('merchant.vendors.index');
+        Route::get('/vendors/data', [MerchantPortalVendorsController::class, 'getData'])
+            ->name('merchant.vendors.data');
+        Route::get('/vendors/{id}', [MerchantPortalVendorsController::class, 'show'])
+            ->whereNumber('id')
+            ->name('merchant.vendors.show');
+        Route::post('/vendors', [MerchantPortalVendorsController::class, 'store'])
+            ->name('merchant.vendors.store');
+        Route::post('/vendors/{id}', [MerchantPortalVendorsController::class, 'update'])
+            ->whereNumber('id')
+            ->name('merchant.vendors.update');
+        Route::post('/vendors/{id}/verify-kyc', [MerchantPortalVendorsController::class, 'verifyKyc'])
+            ->whereNumber('id')
+            ->name('merchant.vendors.verify-kyc');
 
         // Transactions
         Route::get('/transactions', [MerchantTransactionsController::class, 'index'])
@@ -184,6 +221,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.federal-vpa');
         Route::get('/payments/federal-vpa/data', [\App\Http\Controllers\Merchant\FederalVPAController::class, 'getData'])
             ->name('merchant.payments.federal-vpa.data');
+        Route::get('/payments/federal-vpa/{id}', [\App\Http\Controllers\Merchant\FederalVPAController::class, 'show'])
+            ->whereNumber('id')
+            ->name('merchant.payments.federal-vpa.show');
 
         // Settlements
         Route::get('/settlements', [SettlementsController::class, 'index'])
@@ -280,6 +320,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchants.index');
         Route::get('/merchants/data', [MerchantsController::class, 'getData'])
             ->name('admin.merchants.data');
+        Route::get('/merchants/{id}', [MerchantsController::class, 'show'])
+            ->whereNumber('id')
+            ->name('admin.merchants.show');
         Route::post('/merchants/bulk-approve', [MerchantsController::class, 'bulkApprove'])
             ->name('admin.merchants.bulk-approve');
         Route::post('/merchants/bulk-reject', [MerchantsController::class, 'bulkReject'])
@@ -447,6 +490,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.payments.federal-vpa');
         Route::get('/payments/federal-vpa/data', [FederalVPAController::class, 'getData'])
             ->name('admin.payments.federal-vpa.data');
+        Route::get('/payments/federal-vpa/{id}', [FederalVPAController::class, 'show'])
+            ->whereNumber('id')
+            ->name('admin.payments.federal-vpa.show');
 
         // Settlements Module
         Route::get('/settlements/summary', [SettlementSummaryController::class, 'index'])

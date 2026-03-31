@@ -290,15 +290,15 @@
                 @csrf
 
                 <div class="li-form-row">
-                    <label for="email" class="li-label">Email address</label>
+                    <label for="login" class="li-label">Email address</label>
                     <input
-                        type="email"
+                        type="text"
                         class="li-input"
-                        id="email"
-                        name="email"
-                        value="{{ old('email') }}"
+                        id="login"
+                        name="login"
+                        value="{{ old('login') }}"
                         placeholder="you@example.com"
-                        maxlength="60"
+                        maxlength="255"
                         required
                         autofocus
                     >
@@ -312,7 +312,7 @@
                         id="password"
                         name="password"
                         placeholder="Enter your password"
-                        maxlength="50"
+                        maxlength="100"
                         required
                     >
                 </div>
@@ -363,25 +363,25 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         (function () {
-            const emailInput = document.getElementById('email');
+            const loginInput = document.getElementById('login');
             const passwordInput = document.getElementById('password');
             const submitButton = document.getElementById('login-submit');
 
-            if (!emailInput || !passwordInput || !submitButton) {
+            if (!loginInput || !passwordInput || !submitButton) {
                 return;
             }
 
             // Client-side max lengths (match backend rules)
-            const MAX_EMAIL = 60;
-            const MAX_PASSWORD = 50;
+            const MAX_LOGIN = 255;
+            const MAX_PASSWORD = 100;
 
             // Inline validation messages
-            const emailError = document.createElement('div');
-            emailError.style.color = '#dc2626';
-            emailError.style.fontSize = '12px';
-            emailError.style.marginTop = '4px';
-            emailError.style.display = 'none';
-            emailInput.parentNode.appendChild(emailError);
+            const loginError = document.createElement('div');
+            loginError.style.color = '#dc2626';
+            loginError.style.fontSize = '12px';
+            loginError.style.marginTop = '4px';
+            loginError.style.display = 'none';
+            loginInput.parentNode.appendChild(loginError);
 
             const passwordError = document.createElement('div');
             passwordError.style.color = '#dc2626';
@@ -391,36 +391,34 @@
             passwordInput.parentNode.appendChild(passwordError);
 
             function validateFields() {
-                let emailVal = emailInput.value;
+                let loginVal = loginInput.value;
                 let passwordVal = passwordInput.value;
 
                 // Hard‑enforce max lengths on the client by trimming extra characters
-                if (emailVal.length > MAX_EMAIL) {
-                    emailVal = emailVal.substring(0, MAX_EMAIL);
-                    emailInput.value = emailVal;
+                if (loginVal.length > MAX_LOGIN) {
+                    loginVal = loginVal.substring(0, MAX_LOGIN);
+                    loginInput.value = loginVal;
                 }
                 if (passwordVal.length > MAX_PASSWORD) {
                     passwordVal = passwordVal.substring(0, MAX_PASSWORD);
                     passwordInput.value = passwordVal;
                 }
 
-                emailVal = emailVal.trim();
+                loginVal = loginVal.trim();
                 passwordVal = passwordVal.trim();
 
-                let emailOk = emailVal.length > 0;
+                let loginOk = loginVal.length > 0;
                 let passwordOk = passwordVal.length > 0;
 
-                if (emailVal.length === MAX_EMAIL) {
-                    emailOk = false;
-                    emailError.textContent = `Email must be at most ${MAX_EMAIL} characters.`;
-                    emailError.style.display = 'block';
+                if (loginVal.length === MAX_LOGIN) {
+                    loginError.textContent = `Login ID/email must be at most ${MAX_LOGIN} characters.`;
+                    loginError.style.display = 'block';
                 } else {
-                    emailError.textContent = '';
-                    emailError.style.display = 'none';
+                    loginError.textContent = '';
+                    loginError.style.display = 'none';
                 }
 
                 if (passwordVal.length === MAX_PASSWORD) {
-                    passwordOk = false;
                     passwordError.textContent = `Password must be at most ${MAX_PASSWORD} characters.`;
                     passwordError.style.display = 'block';
                 } else {
@@ -428,10 +426,10 @@
                     passwordError.style.display = 'none';
                 }
 
-                submitButton.disabled = !(emailOk && passwordOk);
+                submitButton.disabled = !(loginOk && passwordOk);
             }
 
-            emailInput.addEventListener('input', validateFields);
+            loginInput.addEventListener('input', validateFields);
             passwordInput.addEventListener('input', validateFields);
 
             validateFields();

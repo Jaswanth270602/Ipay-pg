@@ -4,7 +4,7 @@
 @section('page-title', 'Merchant Vendors')
 
 @section('content')
-<div ng-app="badlicashApp" ng-controller="AdminMerchantVendorsController as mvc">
+<div ng-app="ipayApp" ng-controller="AdminMerchantVendorsController as mvc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Merchants'],
@@ -217,9 +217,12 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Merchant Name <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="mvc.form.merchant_id" required>
-                                    <option value="">Select an merchant</option>
-                                    <option ng-repeat="m in mvc.merchants" value="@{{ m.id }}">@{{ m.name }}</option>
+                                <select class="form-select"
+                                        ng-model="mvc.form.merchant_id"
+                                        ng-options="m.id as m.name for m in mvc.merchants"
+                                        ng-init="mvc.form.merchant_id = mvc.form.merchant_id || ''"
+                                        required>
+                                    <option value="">Select a merchant</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -334,7 +337,7 @@
         }
 
         try {
-            var app = angular.module('badlicashApp');
+            var app = angular.module('ipayApp');
             app.controller('AdminMerchantVendorsController', ['$http', function ($http) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
@@ -527,6 +530,27 @@
                             showToast('Please fill all required fields', 'error');
                         } else {
                             alert('Please fill all required fields');
+                        }
+                        return;
+                    }
+
+                    // Basic format validation for email and mobile
+                    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(vm.form.vendor_email)) {
+                        if (typeof showToast === 'function') {
+                            showToast('Please enter a valid vendor email id (must contain @ and domain).', 'error');
+                        } else {
+                            alert('Please enter a valid vendor email id (must contain @ and domain).');
+                        }
+                        return;
+                    }
+
+                    var mobileRegex = /^[0-9]{10}$/;
+                    if (!mobileRegex.test(vm.form.vendor_phone)) {
+                        if (typeof showToast === 'function') {
+                            showToast('Please enter a valid 10-digit vendor mobile number.', 'error');
+                        } else {
+                            alert('Please enter a valid 10-digit vendor mobile number.');
                         }
                         return;
                     }

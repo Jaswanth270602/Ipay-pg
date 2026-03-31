@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\BankProviders\BankProviderInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class RefundService
 {
@@ -29,7 +30,15 @@ class RefundService
      *
      * @param  string|null  $currency  ISO 4217 code; must match transaction currency when provided.
      */
-    public function createRefund(Transaction $transaction, float $amount, User $initiator, ?string $reason = null, ?string $currency = null): Refund
+    public function createRefund(
+        Transaction $transaction,
+        float $amount,
+        User $initiator,
+        ?string $reason = null,
+        ?string $currency = null,
+        ?string $strategy = null,
+        ?int $vendorId = null
+    ): Refund
     {
         return DB::transaction(function () use ($transaction, $amount, $initiator, $reason, $currency) {
             $refundableAmount = $transaction->refundableAmount();
@@ -43,18 +52,21 @@ class RefundService
             }
 
             $currencyCode = strtoupper($currency ?? $transaction->currency);
+            $refundStrategy = $strategy ?? 'proportional';
 
             $mode = $this->refundMode($transaction);
 
             if ($this->requiresAdminApproval($amount)) {
-                $refund = Refund::create([
+                    $refund = Refund::create([
                     'transaction_id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
+                        'vendor_id' => $vendorId,
                     'refund_id' => Refund::generateRefundId(),
                     'amount' => $amount,
                     'currency' => $currencyCode,
                     'status' => 'pending_approval',
                     'mode' => $mode,
+                        'refund_strategy' => $refundStrategy,
                     'reason' => $reason,
                     'initiated_by' => $initiator->id,
                     'is_partial' => $amount < $transaction->amount,
@@ -69,11 +81,13 @@ class RefundService
                 $refund = Refund::create([
                     'transaction_id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
+                    'vendor_id' => $vendorId,
                     'refund_id' => Refund::generateRefundId(),
                     'amount' => $amount,
                     'currency' => $currencyCode,
                     'status' => 'completed',
                     'mode' => 'test',
+                    'refund_strategy' => $refundStrategy,
                     'reason' => $reason,
                     'initiated_by' => $initiator->id,
                     'is_partial' => $amount < $transaction->amount,
@@ -93,11 +107,13 @@ class RefundService
             $refund = Refund::create([
                 'transaction_id' => $transaction->id,
                 'merchant_id' => $transaction->merchant_id,
+                'vendor_id' => $vendorId,
                 'refund_id' => Refund::generateRefundId(),
                 'amount' => $amount,
                 'currency' => $currencyCode,
                 'status' => 'pending_processing',
                 'mode' => $mode,
+                'refund_strategy' => $refundStrategy,
                 'reason' => $reason,
                 'initiated_by' => $initiator->id,
                 'is_partial' => $amount < $transaction->amount,
@@ -226,6 +242,9 @@ class RefundService
                 'processed_at' => now(),
             ]);
             event(new RefundCreated($refund));
+
+            // Apply vendor-side effects (in test mode we treat completion as final)
+            app(\App\Services\RefundSplitService::class)->applyForCompletedRefund($refund);
         } else {
             $refund->update(['status' => 'pending_processing']);
             $this->initiateLiveRefundProcessing($refund, $transaction);
@@ -366,6 +385,41 @@ class RefundService
         }
 
         return Refund::find($approval->model_id);
+    }
+
+    /**
+     * Unified refund creator used by merchant form and bulk upload.
+     * This reuses createRefund() after applying the same lookup/validation flow.
+     *
+     * @throws ModelNotFoundException
+     * @throws \Exception
+     */
+    public function createRefundByTransactionId(
+        User $initiator,
+        string $transactionId,
+        float $amount,
+        ?string $reason = null,
+        ?int $merchantId = null,
+        ?bool $testMode = null
+    ): Refund {
+        $query = Transaction::query()->where('txn_id', $transactionId);
+        if ($merchantId !== null) {
+            $query->where('merchant_id', $merchantId);
+        }
+        if ($testMode !== null) {
+            $query->where('test_mode', $testMode);
+        }
+
+        $transaction = $query->first();
+        if (!$transaction) {
+            throw new ModelNotFoundException('Transaction not found');
+        }
+
+        if ($transaction->status !== 'success') {
+            throw new \Exception('Cannot refund unsuccessful transaction. Only successful transactions can be refunded.');
+        }
+
+        return $this->createRefund($transaction, $amount, $initiator, $reason);
     }
 
     /**

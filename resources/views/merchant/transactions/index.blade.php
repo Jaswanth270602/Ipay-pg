@@ -439,14 +439,14 @@
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 
-                            ng-click="mtc.changePage(mtc.pagination.current_page - 1)" 
-                            ng-disabled="mtc.pagination.current_page === 1">
+                            ng-click="mtc.prevPage()" 
+                            ng-disabled="mtc.loading || (mtc.pagination.current_page <= 1)">
                         Previous
                     </button>
                     <span class="mx-2">...</span>
                     <button class="btn btn-sm btn-outline-secondary" 
-                            ng-click="mtc.changePage(mtc.pagination.current_page + 1)" 
-                            ng-disabled="mtc.pagination.current_page === mtc.pagination.last_page">
+                            ng-click="mtc.nextPage()" 
+                            ng-disabled="mtc.loading || (mtc.pagination.current_page >= mtc.pagination.last_page)">
                         Next
                     </button>
                 </div>
@@ -623,10 +623,19 @@
                 };
 
                 vm.changePage = function(page) {
+                    page = parseInt(page, 10);
                     if (page >= 1 && page <= vm.pagination.last_page) {
                         vm.pagination.current_page = page;
                         vm.loadTransactions();
                     }
+                };
+
+                vm.prevPage = function() {
+                    vm.changePage((parseInt(vm.pagination.current_page, 10) || 1) - 1);
+                };
+
+                vm.nextPage = function() {
+                    vm.changePage((parseInt(vm.pagination.current_page, 10) || 1) + 1);
                 };
 
                 vm.applyFilters = function() {

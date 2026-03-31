@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('currency', 3)->default('USD');
             $table->enum('status', [
                 'pending',
+                'pending_approval',
+                'pending_processing',
                 'processing',
                 'completed',
                 'failed',

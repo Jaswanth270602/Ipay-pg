@@ -119,6 +119,7 @@ class MerchantVendorsController extends Controller
             'vendor_phone' => 'required|string|max:20',
             'vendor_address' => 'required|string|max:500',
             'vendor_pan_no' => 'required|string|max:20',
+            'vendor_login_id' => 'nullable|string|max:255',
             'bank_account_number' => 'required|string|max:50',
             'bank_account_ifsc' => 'required|string|max:20',
             'bank_name' => 'required|string|max:255',
@@ -157,11 +158,13 @@ class MerchantVendorsController extends Controller
         $vendor = MerchantVendor::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
+            'merchant_id' => 'sometimes|exists:merchants,id',
             'vendor_name' => 'sometimes|string|max:255',
             'vendor_email' => 'sometimes|email|max:255',
             'vendor_phone' => 'sometimes|string|max:20',
             'vendor_address' => 'sometimes|string|max:500',
             'vendor_pan_no' => 'sometimes|string|max:20',
+            'vendor_login_id' => 'nullable|string|max:255',
             'bank_account_number' => 'sometimes|string|max:50',
             'bank_account_ifsc' => 'sometimes|string|max:20',
             'bank_name' => 'sometimes|string|max:255',

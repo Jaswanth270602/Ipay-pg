@@ -25,10 +25,17 @@ class BulkRefundUpdateController extends Controller
     {
         try {
             $request->validate([
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:10240',
+                'file' => 'required|file|mimes:csv,txt|max:10240',
             ]);
 
             $file = $request->file('file');
+            if (!$this->hasValidRefundHeaders($file->getRealPath())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file format - column mismatch with refund form',
+                ], 422);
+            }
+
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('bulk_refunds', $fileName, 'local');
 
@@ -123,15 +130,10 @@ class BulkRefundUpdateController extends Controller
 
         $callback = function () {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Refund ID', 'Status', 'Notes', 'Reason', 'Amount', 'Currency']);
-            fputcsv($file, [
-                'RFD_REPLACE_WITH_YOUR_REFUND_ID',
-                'completed',
-                '',
-                '',
-                '100.00',
-                'USD',
-            ]);
+            // Strict format aligned with merchant create refund form.
+            fputcsv($file, ['transaction_id', 'amount', 'reason']);
+            fputcsv($file, ['TXN_SAMPLE_001', '100.00', 'SAMPLE - Replace with valid transaction_id']);
+            fputcsv($file, ['TXN_SAMPLE_002', '50.00', 'SAMPLE - Replace with valid transaction_id']);
             fclose($file);
         };
 
@@ -155,31 +157,107 @@ class BulkRefundUpdateController extends Controller
         $user = DB::table('users')->where('id', $job->user_id ?? null)->first();
         
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="bulk_refund_job_' . $id . '_status.csv"',
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="bulk_refund_job_' . $id . '_status.xls"',
         ];
 
         $callback = function() use ($job, $user) {
             $file = fopen('php://output', 'w');
-            
-            // Write section header
-            fputcsv($file, ['BULK REFUND UPDATE JOB DETAILS']);
-            fputcsv($file, []);
-            
-            // Write job information with all columns
-            fputcsv($file, ['Job Id', $job->id ?? 'N/A']);
-            fputcsv($file, ['Job Name', $job->job_name ?? 'N/A']);
-            fputcsv($file, ['Progress', ($job->progress ?? 0) . '%']);
-            fputcsv($file, ['Status', strtoupper($job->status ?? 'N/A')]);
-            fputcsv($file, ['Started At', $job->started_at ? date('Y-m-d H:i:s', strtotime($job->started_at)) : 'N/A']);
-            fputcsv($file, ['Finished At', $job->finished_at ? date('Y-m-d H:i:s', strtotime($job->finished_at)) : 'N/A']);
-            fputcsv($file, ['Error', $job->error ?? 'None']);
-            fputcsv($file, ['Status Info', $job->status_info ?? 'N/A']);
-            fputcsv($file, ['User Name', $user->name ?? 'Admin']);
+            $formatDate = static function ($value): string {
+                if (empty($value)) {
+                    return 'N/A';
+                }
+                return date('d-m-Y H:i:s', strtotime((string) $value));
+            };
+            $formatStatus = static function ($value): string {
+                $status = strtoupper((string) $value);
+                return match ($status) {
+                    'SUCCESS' => 'SUCCESS (OK)',
+                    'FAILED' => 'FAILED (ERROR)',
+                    'COMPLETED' => 'COMPLETED (DONE)',
+                    'PROCESSING' => 'PROCESSING (IN PROGRESS)',
+                    'PENDING' => 'PENDING (QUEUED)',
+                    default => $status === '' ? 'N/A' : $status,
+                };
+            };
+
+            $esc = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+            $status = strtoupper((string) ($job->status ?? 'N/A'));
+            $statusBg = in_array($status, ['COMPLETED', 'SUCCESS'], true) ? '#e8f5e9' : ($status === 'FAILED' ? '#ffebee' : '#fff8e1');
+            $statusFg = in_array($status, ['COMPLETED', 'SUCCESS'], true) ? '#1b5e20' : ($status === 'FAILED' ? '#b71c1c' : '#8a6d1d');
+
+            $html = '<html><head><meta charset="UTF-8"></head><body>'
+                . '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:12px;">'
+                . '<tr><th colspan="4" style="background:#0d6efd;color:#fff;font-size:14px;text-align:left;">BULK REFUND STATUS REPORT</th></tr>'
+                . '<tr><td><b>Generated At</b></td><td colspan="3">' . $esc(now()->format('d-m-Y H:i:s')) . '</td></tr>'
+                . '<tr><td colspan="4" style="background:#f3f4f6;"><b>JOB DETAILS</b></td></tr>'
+                . '<tr><td><b>Job ID</b></td><td>' . $esc($job->id ?? 'N/A') . '</td><td><b>Job Name</b></td><td>' . $esc($job->job_name ?? 'N/A') . '</td></tr>'
+                . '<tr><td><b>Progress</b></td><td>' . $esc(($job->progress ?? 0) . '%') . '</td><td><b>Status</b></td><td style="font-weight:700;background:' . $statusBg . ';color:' . $statusFg . ';">' . $esc($formatStatus($status)) . '</td></tr>'
+                . '<tr><td><b>Started At</b></td><td>' . $esc($formatDate($job->started_at ?? null)) . '</td><td><b>Finished At</b></td><td>' . $esc($formatDate($job->finished_at ?? null)) . '</td></tr>'
+                . '<tr><td><b>Error</b></td><td colspan="3">' . $esc($job->error ?? 'None') . '</td></tr>'
+                . '<tr><td><b>Status Info</b></td><td colspan="3">' . $esc($job->status_info ?? 'N/A') . '</td></tr>'
+                . '<tr><td><b>User Name</b></td><td colspan="3">' . $esc($user->name ?? 'Admin') . '</td></tr>'
+                . '</table></body></html>';
+
+            fwrite($file, $html);
             
             fclose($file);
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function hasValidRefundHeaders(string $path): bool
+    {
+        $h = @fopen($path, 'r');
+        if (!$h) {
+            return false;
+        }
+
+        [, $header] = $this->readHeaderRow($h);
+        fclose($h);
+
+        if (!is_array($header)) {
+            return false;
+        }
+
+        $normalized = array_map(static function ($v) {
+            $value = trim((string) $v);
+            $value = preg_replace('/^\xEF\xBB\xBF/', '', $value); // strip UTF-8 BOM
+            return strtolower($value);
+        }, $header);
+
+        return $normalized === ['transaction_id', 'amount', 'reason'];
+    }
+
+    /**
+     * @param resource $h
+     * @return array{0:string,1:array<int,string>|null}
+     */
+    private function readHeaderRow($h): array
+    {
+        $firstLine = fgets($h);
+        if ($firstLine === false) {
+            return [',', null];
+        }
+
+        $firstLine = trim($firstLine);
+        $delimiter = ',';
+
+        // Excel may prepend "sep=," or "sep=;" on line 1.
+        if (stripos($firstLine, 'sep=') === 0) {
+            $delimiter = substr($firstLine, 4, 1) ?: ',';
+            $header = fgetcsv($h, 0, $delimiter);
+            return [$delimiter, $header ?: null];
+        }
+
+        $commaCount = substr_count($firstLine, ',');
+        $semiCount = substr_count($firstLine, ';');
+        $delimiter = $semiCount > $commaCount ? ';' : ',';
+
+        // Rewind and read actual header using detected delimiter.
+        rewind($h);
+        $header = fgetcsv($h, 0, $delimiter);
+        return [$delimiter, $header ?: null];
     }
 }

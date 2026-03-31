@@ -61,6 +61,7 @@ class Transaction extends Model
         'processed_at' => 'datetime',
         'authorized_at' => 'datetime',
         'captured_at' => 'datetime',
+        'settled_at' => 'datetime',
     ];
 
     /**

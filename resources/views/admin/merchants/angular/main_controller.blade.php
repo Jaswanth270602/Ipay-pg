@@ -267,8 +267,29 @@
                 };
 
                 vm.viewMerchant = function(merchant) {
-                    // TODO: Implement merchant detail view
-                    alert('View merchant: ' + merchant.name);
+                    vm.merchantDetail = null;
+                    var modalEl = document.getElementById('merchantDetailModal');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+
+                    $http.get('/admin/merchants/' + merchant.id).then(function(response) {
+                        if (response.data && response.data.success && response.data.data) {
+                            vm.merchantDetail = response.data.data;
+                        } else if (typeof showToast === 'function') {
+                            showToast(response.data.message || 'Failed to load merchant details', 'error');
+                        } else {
+                            alert((response.data && response.data.message) || 'Failed to load merchant details');
+                        }
+                    }, function(error) {
+                        if (typeof showToast === 'function') {
+                            showToast('Failed to load merchant details', 'error');
+                        } else {
+                            alert('Failed to load merchant details');
+                        }
+                        console.error('Error loading merchant details', error);
+                    });
                 };
 
                 vm.loadMerchants();

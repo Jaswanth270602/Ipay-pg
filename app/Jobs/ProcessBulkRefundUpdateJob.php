@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Refund;
+use App\Models\User;
+use App\Services\RefundService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -31,7 +32,7 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(RefundService $refundService): void
     {
         try {
             // Update job status to processing
@@ -49,289 +50,163 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                 throw new \Exception("File not found: {$fullPath}");
             }
 
-            // Read CSV file
-            $handle = fopen($fullPath, 'r');
-            if (!$handle) {
-                throw new \Exception("Cannot open file: {$fullPath}");
+            $rows = $this->readCsvRows($fullPath);
+            if (count($rows) < 1) {
+                throw new \Exception('Invalid file format - column mismatch with refund form');
             }
 
-            // Read header row
-            $headers = fgetcsv($handle);
-            if (!$headers) {
-                throw new \Exception("Invalid CSV file: No headers found");
+            $headers = array_map(static function ($h) {
+                $value = trim((string) $h);
+                $value = preg_replace('/^\xEF\xBB\xBF/', '', $value); // strip UTF-8 BOM
+                return strtolower($value);
+            }, $rows[0]);
+            $expectedHeaders = ['transaction_id', 'amount', 'reason'];
+            if ($headers !== $expectedHeaders) {
+                throw new \Exception('Invalid file format - column mismatch with refund form');
             }
 
-            // Normalize headers (trim and lowercase)
-            $headers = array_map(function($h) {
-                return strtolower(trim($h));
-            }, $headers);
-
-            // Expected columns
-            $expectedColumns = ['refund id', 'status', 'notes', 'reason', 'amount', 'currency'];
-            $columnIndexes = [];
-            foreach ($expectedColumns as $col) {
-                $index = array_search($col, $headers);
-                if ($index !== false) {
-                    $columnIndexes[$col] = $index;
-                }
-            }
-
-            // Refund ID is required
-            if (!isset($columnIndexes['refund id'])) {
-                throw new \Exception("Required column 'Refund ID' not found in CSV");
+            $job = DB::table('bulk_refund_jobs')->where('id', $this->jobId)->first();
+            $initiator = User::find($job->user_id ?? 0);
+            if (!$initiator) {
+                throw new \Exception('Unable to resolve refund initiator for this job');
             }
 
             $results = [];
-            $rowNumber = 1; // Start from 1 (header is row 0)
             $successCount = 0;
             $errorCount = 0;
-            $totalRows = 0;
+            $dataRows = array_slice($rows, 1);
+            $totalRows = count($dataRows);
+            $seenKeys = [];
 
-            // Process each row
-            while (($row = fgetcsv($handle)) !== false) {
-                $rowNumber++;
-                $totalRows++;
+            foreach ($dataRows as $idx => $row) {
+                $rowNumber = $idx + 2; // include header line
 
-                // Skip empty rows
-                if (empty(array_filter($row))) {
+                if (empty(array_filter($row, static fn($v) => trim((string) $v) !== ''))) {
                     continue;
                 }
 
-                // Get refund ID (required)
-                $refundId = trim($row[$columnIndexes['refund id']] ?? '');
-                
-                if (empty($refundId)) {
+                $transactionId = trim((string) ($row[0] ?? ''));
+                $amountRaw = trim((string) ($row[1] ?? ''));
+                $reason = trim((string) ($row[2] ?? ''));
+
+                if ($transactionId === '' || $amountRaw === '') {
                     $results[] = [
                         'row' => $rowNumber,
-                        'refund_id' => '',
-                        'status' => 'error',
-                        'message' => 'Refund ID is required',
+                        'transaction_id' => $transactionId,
+                        'status' => 'FAILED',
+                        'message' => 'transaction_id and amount are required',
                     ];
                     $errorCount++;
                     continue;
                 }
 
-                // Find refund
-                $refund = Refund::where('refund_id', $refundId)->first();
-                
-                if (!$refund) {
+                $amount = filter_var($amountRaw, FILTER_VALIDATE_FLOAT);
+                if ($amount === false || (float) $amount <= 0) {
                     $results[] = [
                         'row' => $rowNumber,
-                        'refund_id' => $refundId,
-                        'status' => 'error',
-                        'message' => "Refund not found: {$refundId}",
+                        'transaction_id' => $transactionId,
+                        'status' => 'FAILED',
+                        'message' => "Invalid amount: {$amountRaw}",
                     ];
                     $errorCount++;
                     continue;
                 }
 
-                // Prepare update data
-                $updateData = [];
-
-                // Update Status (if provided)
-                if (isset($columnIndexes['status'])) {
-                    $status = trim($row[$columnIndexes['status']] ?? '');
-                    if (!empty($status)) {
-                        $validStatuses = [
-                            'pending',
-                            'pending_approval',
-                            'pending_processing',
-                            'processing',
-                            'completed',
-                            'failed',
-                            'cancelled',
-                        ];
-                        if (in_array(strtolower($status), $validStatuses)) {
-                            $updateData['status'] = strtolower($status);
-                            
-                            // If status is completed, set processed_at
-                            if (strtolower($status) === 'completed' && !$refund->processed_at) {
-                                $updateData['processed_at'] = now();
-                            }
-                        } else {
-                            $results[] = [
-                                'row' => $rowNumber,
-                                'refund_id' => $refundId,
-                                'status' => 'error',
-                                'message' => "Invalid status: {$status}. Must be one of: " . implode(', ', $validStatuses),
-                            ];
-                            $errorCount++;
-                            continue;
-                        }
-                    }
+                $dupKey = strtolower($transactionId) . '|' . number_format((float) $amount, 2, '.', '') . '|' . strtolower($reason);
+                if (isset($seenKeys[$dupKey])) {
+                    $results[] = [
+                        'row' => $rowNumber,
+                        'transaction_id' => $transactionId,
+                        'status' => 'FAILED',
+                        'message' => 'Duplicate row detected',
+                    ];
+                    $errorCount++;
+                    continue;
                 }
+                $seenKeys[$dupKey] = true;
 
-                // Update Notes (if provided)
-                if (isset($columnIndexes['notes'])) {
-                    $notes = trim($row[$columnIndexes['notes']] ?? '');
-                    if (!empty($notes)) {
-                        $updateData['notes'] = $notes;
-                    }
-                }
+                try {
+                    $refund = $refundService->createRefundByTransactionId(
+                        $initiator,
+                        $transactionId,
+                        (float) $amount,
+                        $reason !== '' ? $reason : null,
+                        $job->merchant_id ?? null,
+                        isset($job->merchant_id) && $job->merchant_id ? (bool) optional($initiator->merchant)->test_mode : null
+                    );
 
-                // Update Reason (if provided)
-                if (isset($columnIndexes['reason'])) {
-                    $reason = trim($row[$columnIndexes['reason']] ?? '');
-                    if (!empty($reason)) {
-                        $updateData['reason'] = $reason;
-                    }
-                }
-
-                // Update Amount (if provided)
-                if (isset($columnIndexes['amount'])) {
-                    $amount = trim($row[$columnIndexes['amount']] ?? '');
-                    if (!empty($amount)) {
-                        $amount = filter_var($amount, FILTER_VALIDATE_FLOAT);
-                        if ($amount !== false && $amount > 0) {
-                            $updateData['amount'] = $amount;
-                        } else {
-                            $results[] = [
-                                'row' => $rowNumber,
-                                'refund_id' => $refundId,
-                                'status' => 'error',
-                                'message' => "Invalid amount: {$row[$columnIndexes['amount']]}",
-                            ];
-                            $errorCount++;
-                            continue;
-                        }
-                    }
-                }
-
-                // Update Currency (if provided)
-                if (isset($columnIndexes['currency'])) {
-                    $currency = trim($row[$columnIndexes['currency']] ?? '');
-                    if (!empty($currency)) {
-                        if (strlen($currency) === 3) {
-                            $updateData['currency'] = strtoupper($currency);
-                        } else {
-                            $results[] = [
-                                'row' => $rowNumber,
-                                'refund_id' => $refundId,
-                                'status' => 'error',
-                                'message' => "Invalid currency: {$currency}. Must be 3 characters (e.g., USD)",
-                            ];
-                            $errorCount++;
-                            continue;
-                        }
-                    }
-                }
-
-                // Update refund if we have data to update
-                if (!empty($updateData)) {
-                    try {
-                        $refund->update($updateData);
+                    if ($refund->status === 'completed') {
                         $results[] = [
                             'row' => $rowNumber,
-                            'refund_id' => $refundId,
-                            'status' => 'success',
-                            'message' => 'Refund updated successfully',
+                            'transaction_id' => $transactionId,
+                            'status' => 'SUCCESS',
+                            'message' => 'Refund created successfully',
                         ];
                         $successCount++;
-                    } catch (\Exception $e) {
+                    } else {
                         $results[] = [
                             'row' => $rowNumber,
-                            'refund_id' => $refundId,
-                            'status' => 'error',
-                            'message' => 'Update failed: ' . $e->getMessage(),
+                            'transaction_id' => $transactionId,
+                            'status' => 'FAILED',
+                            'message' => $refund->gateway_response['message'] ?? $refund->gateway_response['error'] ?? 'Refund could not be processed',
                         ];
                         $errorCount++;
                     }
-                } else {
+                } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                     $results[] = [
                         'row' => $rowNumber,
-                        'refund_id' => $refundId,
-                        'status' => 'skipped',
-                        'message' => 'No data to update',
+                        'transaction_id' => $transactionId,
+                        'status' => 'FAILED',
+                        'message' => 'Transaction not found',
                     ];
+                    $errorCount++;
+                } catch (\Exception $e) {
+                    $results[] = [
+                        'row' => $rowNumber,
+                        'transaction_id' => $transactionId,
+                        'status' => 'FAILED',
+                        'message' => $e->getMessage(),
+                    ];
+                    $errorCount++;
                 }
 
-                // Update progress
-                $progress = (int)(($rowNumber / max($totalRows, 1)) * 100);
+                $progress = (int) ((($idx + 1) / max(1, $totalRows)) * 100);
                 DB::table('bulk_refund_jobs')
                     ->where('id', $this->jobId)
-                    ->update(['progress' => min($progress, 100)]);
-            }
-
-            fclose($handle);
-
-            // Generate status report CSV
-            $exportFileName = 'bulk_refund_status_' . $this->jobId . '_' . time() . '.csv';
-            $exportPath = 'bulk_refunds/export/' . $exportFileName;
-            $exportFullPath = Storage::disk('local')->path($exportPath);
-            
-            // Create export directory if it doesn't exist
-            $exportDir = dirname($exportFullPath);
-            if (!is_dir($exportDir)) {
-                mkdir($exportDir, 0755, true);
-            }
-
-            // Get fresh job information
-            $job = DB::table('bulk_refund_jobs')->where('id', $this->jobId)->first();
-            $user = DB::table('users')->where('id', $job->user_id ?? null)->first();
-
-            $exportHandle = fopen($exportFullPath, 'w');
-            if ($exportHandle) {
-                // Write section header
-                fputcsv($exportHandle, ['BULK REFUND UPDATE JOB DETAILS']);
-                fputcsv($exportHandle, []);
-                
-                // Write job information with all columns in a clear format
-                fputcsv($exportHandle, ['Job Id', $job->id ?? 'N/A']);
-                fputcsv($exportHandle, ['Job Name', $job->job_name ?? 'N/A']);
-                fputcsv($exportHandle, ['Progress', ($job->progress ?? 0) . '%']);
-                fputcsv($exportHandle, ['Status', strtoupper($job->status ?? 'N/A')]);
-                fputcsv($exportHandle, ['Started At', $job->started_at ? date('Y-m-d H:i:s', strtotime($job->started_at)) : 'N/A']);
-                fputcsv($exportHandle, ['Finished At', $job->finished_at ? date('Y-m-d H:i:s', strtotime($job->finished_at)) : 'N/A']);
-                fputcsv($exportHandle, ['Error', $job->error ?? 'None']);
-                fputcsv($exportHandle, ['Status Info', $job->status_info ?? 'N/A']);
-                fputcsv($exportHandle, ['User Name', $user->name ?? 'Admin']);
-                
-                // Empty row separator
-                fputcsv($exportHandle, []);
-                fputcsv($exportHandle, []);
-                
-                // Write summary section
-                fputcsv($exportHandle, ['PROCESSING SUMMARY']);
-                fputcsv($exportHandle, ['Total Rows Processed', $totalRows]);
-                fputcsv($exportHandle, ['Successful Updates', $successCount]);
-                fputcsv($exportHandle, ['Errors', $errorCount]);
-                fputcsv($exportHandle, ['Skipped', count($results) - $successCount - $errorCount]);
-                
-                // Empty row separator
-                fputcsv($exportHandle, []);
-                fputcsv($exportHandle, []);
-                
-                // Write detailed results header
-                fputcsv($exportHandle, ['DETAILED PROCESSING RESULTS']);
-                fputcsv($exportHandle, ['Row', 'Refund ID', 'Status', 'Message']);
-                
-                // Write results
-                foreach ($results as $result) {
-                    fputcsv($exportHandle, [
-                        $result['row'],
-                        $result['refund_id'],
-                        strtoupper($result['status']),
-                        $result['message'],
-                    ]);
-                }
-                fclose($exportHandle);
+                    ->update(['progress' => min($progress, 99)]);
             }
 
             // Update job status
             $finalStatus = $errorCount > 0 && $successCount === 0 ? 'failed' : 'completed';
             $statusInfo = "Processed: {$totalRows} rows | Success: {$successCount} | Errors: {$errorCount}";
+            $finishedAt = now();
+
+            // Prepare export file path first so we can persist it with final status.
+            $exportFileName = 'bulk_refund_status_' . $this->jobId . '_' . time() . '.xls';
+            $exportPath = 'bulk_refunds/export/' . $exportFileName;
+            $exportFullPath = Storage::disk('local')->path($exportPath);
+            $exportDir = dirname($exportFullPath);
+            if (!is_dir($exportDir)) {
+                mkdir($exportDir, 0755, true);
+            }
 
             DB::table('bulk_refund_jobs')
                 ->where('id', $this->jobId)
                 ->update([
                     'status' => $finalStatus,
                     'progress' => 100,
-                    'finished_at' => now(),
+                    'finished_at' => $finishedAt,
                     'export_file_path' => $exportPath,
                     'status_info' => $statusInfo,
                 ]);
 
-            Log::info("Bulk refund update job {$this->jobId} completed", [
+            // Read fresh values (including finished_at) and build report.
+            $job = DB::table('bulk_refund_jobs')->where('id', $this->jobId)->first();
+            $user = DB::table('users')->where('id', $job->user_id ?? null)->first();
+            $html = $this->buildStyledStatusReportHtml($job, $user, $results, $totalRows, $successCount, $errorCount);
+            file_put_contents($exportFullPath, $html);
+
+            Log::info("Bulk refund upload job {$this->jobId} completed", [
                 'total_rows' => $totalRows,
                 'success_count' => $successCount,
                 'error_count' => $errorCount,
@@ -348,13 +223,103 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                     'error' => $e->getMessage(),
                 ]);
 
-            Log::error("Bulk refund update job {$this->jobId} failed", [
+            Log::error("Bulk refund upload job {$this->jobId} failed", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
         }
+    }
+
+    /**
+     * @return array<int, array<int, string>>
+     */
+    private function readCsvRows(string $fullPath): array
+    {
+        $delimiter = $this->detectCsvDelimiter($fullPath);
+        if (!$delimiter) {
+            throw new \Exception("Cannot detect CSV delimiter for file: {$fullPath}");
+        }
+
+        $rows = [];
+        $handle = fopen($fullPath, 'r');
+        if (!$handle) {
+            throw new \Exception("Cannot open file: {$fullPath}");
+        }
+
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+            $rows[] = array_map(static fn($v) => trim((string) $v), $row);
+        }
+
+        fclose($handle);
+        return $rows;
+    }
+
+    private function detectCsvDelimiter(string $path): ?string
+    {
+        $h = @fopen($path, 'r');
+        if (!$h) {
+            return null;
+        }
+        $firstLine = fgets($h);
+        fclose($h);
+        if ($firstLine === false) {
+            return null;
+        }
+
+        $commaCount = substr_count($firstLine, ',');
+        $semiCount = substr_count($firstLine, ';');
+
+        return $semiCount > $commaCount ? ';' : ',';
+    }
+
+    private function buildStyledStatusReportHtml(object $job, ?object $user, array $results, int $totalRows, int $successCount, int $errorCount): string
+    {
+        $fmtDate = static function ($value): string {
+            if (empty($value)) {
+                return 'N/A';
+            }
+            return date('d-m-Y H:i:s', strtotime((string) $value));
+        };
+        $esc = static fn($v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+
+        $jobStatus = strtoupper((string) ($job->status ?? 'N/A'));
+        $statusBg = in_array($jobStatus, ['COMPLETED', 'SUCCESS'], true) ? '#e8f5e9' : ($jobStatus === 'FAILED' ? '#ffebee' : '#fff8e1');
+        $statusFg = in_array($jobStatus, ['COMPLETED', 'SUCCESS'], true) ? '#1b5e20' : ($jobStatus === 'FAILED' ? '#b71c1c' : '#8a6d1d');
+
+        $rowsHtml = '';
+        foreach ($results as $result) {
+            $status = strtoupper((string) ($result['status'] ?? 'N/A'));
+            $isSuccess = $status === 'SUCCESS';
+            $bg = $isSuccess ? '#e8f5e9' : '#ffebee';
+            $fg = $isSuccess ? '#1b5e20' : '#b71c1c';
+            $rowsHtml .= '<tr>'
+                . '<td>' . $esc($result['row'] ?? '') . '</td>'
+                . '<td>' . $esc($result['transaction_id'] ?? '') . '</td>'
+                . '<td style="font-weight:700;background:' . $bg . ';color:' . $fg . ';">' . $esc($status) . '</td>'
+                . '<td>' . $esc($result['message'] ?? '') . '</td>'
+                . '</tr>';
+        }
+
+        return '<html><head><meta charset="UTF-8"></head><body>'
+            . '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:12px;">'
+            . '<tr><th colspan="4" style="background:#0d6efd;color:#fff;font-size:14px;text-align:left;">BULK REFUND STATUS REPORT</th></tr>'
+            . '<tr><td><b>Generated At</b></td><td colspan="3">' . $esc(now()->format('d-m-Y H:i:s')) . '</td></tr>'
+            . '<tr><td colspan="4" style="background:#f3f4f6;"><b>JOB DETAILS</b></td></tr>'
+            . '<tr><td><b>Job ID</b></td><td>' . $esc($job->id ?? 'N/A') . '</td><td><b>Job Name</b></td><td>' . $esc($job->job_name ?? 'N/A') . '</td></tr>'
+            . '<tr><td><b>Progress</b></td><td>' . $esc(($job->progress ?? 0) . '%') . '</td><td><b>Status</b></td><td style="font-weight:700;background:' . $statusBg . ';color:' . $statusFg . ';">' . $esc($jobStatus) . '</td></tr>'
+            . '<tr><td><b>Started At</b></td><td>' . $esc($fmtDate($job->started_at ?? null)) . '</td><td><b>Finished At</b></td><td>' . $esc($fmtDate($job->finished_at ?? null)) . '</td></tr>'
+            . '<tr><td><b>Error</b></td><td colspan="3">' . $esc($job->error ?? 'None') . '</td></tr>'
+            . '<tr><td><b>Status Info</b></td><td colspan="3">' . $esc($job->status_info ?? 'N/A') . '</td></tr>'
+            . '<tr><td><b>User Name</b></td><td colspan="3">' . $esc($user->name ?? 'Admin') . '</td></tr>'
+            . '<tr><td colspan="4" style="background:#f3f4f6;"><b>PROCESSING SUMMARY</b></td></tr>'
+            . '<tr><td><b>Total Rows</b></td><td>' . $esc($totalRows) . '</td><td><b>Successful</b></td><td style="background:#e8f5e9;color:#1b5e20;font-weight:700;">' . $esc($successCount) . '</td></tr>'
+            . '<tr><td><b>Errors</b></td><td style="background:#ffebee;color:#b71c1c;font-weight:700;">' . $esc($errorCount) . '</td><td><b>Skipped</b></td><td>' . $esc(count($results) - $successCount - $errorCount) . '</td></tr>'
+            . '<tr><td colspan="4" style="background:#f3f4f6;"><b>DETAILED PROCESSING RESULTS</b></td></tr>'
+            . '<tr><th>#</th><th>Txn ID</th><th>Result</th><th>Details</th></tr>'
+            . $rowsHtml
+            . '</table></body></html>';
     }
 }
 

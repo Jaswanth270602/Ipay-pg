@@ -26,10 +26,17 @@ class BulkRefundUpdateController extends Controller
             $merchant = $request->user()->merchant;
             
             $request->validate([
-                'file' => 'required|file|mimes:csv,xlsx,xls|max:10240',
+                'file' => 'required|file|mimes:csv,txt|max:10240',
             ]);
 
             $file = $request->file('file');
+            if (!$this->hasValidRefundHeaders($file->getRealPath())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file format - column mismatch with refund form',
+                ], 422);
+            }
+
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('bulk_refunds', $fileName, 'local');
 
@@ -128,15 +135,10 @@ class BulkRefundUpdateController extends Controller
 
         $callback = function () {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Refund ID', 'Status', 'Notes', 'Reason', 'Amount', 'Currency']);
-            fputcsv($file, [
-                'RFD_REPLACE_WITH_YOUR_REFUND_ID',
-                'completed',
-                '',
-                '',
-                '100.00',
-                'USD',
-            ]);
+            // Strict format aligned with merchant create refund form.
+            fputcsv($file, ['transaction_id', 'amount', 'reason']);
+            fputcsv($file, ['TXN_SAMPLE_001', '100.00', 'SAMPLE - Replace with valid transaction_id']);
+            fputcsv($file, ['TXN_SAMPLE_002', '50.00', 'SAMPLE - Replace with valid transaction_id']);
             fclose($file);
         };
 
@@ -173,6 +175,60 @@ class BulkRefundUpdateController extends Controller
                 'message' => 'Failed to download file',
             ], 500);
         }
+    }
+
+    private function hasValidRefundHeaders(string $path): bool
+    {
+        $h = @fopen($path, 'r');
+        if (!$h) {
+            return false;
+        }
+
+        [, $header] = $this->readHeaderRow($h);
+        fclose($h);
+
+        if (!is_array($header)) {
+            return false;
+        }
+
+        $normalized = array_map(static function ($v) {
+            $value = trim((string) $v);
+            $value = preg_replace('/^\xEF\xBB\xBF/', '', $value); // strip UTF-8 BOM
+            return strtolower($value);
+        }, $header);
+
+        return $normalized === ['transaction_id', 'amount', 'reason'];
+    }
+
+    /**
+     * @param resource $h
+     * @return array{0:string,1:array<int,string>|null}
+     */
+    private function readHeaderRow($h): array
+    {
+        $firstLine = fgets($h);
+        if ($firstLine === false) {
+            return [',', null];
+        }
+
+        $firstLine = trim($firstLine);
+        $delimiter = ',';
+
+        // Excel may prepend "sep=," or "sep=;" on line 1.
+        if (stripos($firstLine, 'sep=') === 0) {
+            $delimiter = substr($firstLine, 4, 1) ?: ',';
+            $header = fgetcsv($h, 0, $delimiter);
+            return [$delimiter, $header ?: null];
+        }
+
+        $commaCount = substr_count($firstLine, ',');
+        $semiCount = substr_count($firstLine, ';');
+        $delimiter = $semiCount > $commaCount ? ';' : ',';
+
+        // Rewind and read actual header using detected delimiter.
+        rewind($h);
+        $header = fgetcsv($h, 0, $delimiter);
+        return [$delimiter, $header ?: null];
     }
 }
 

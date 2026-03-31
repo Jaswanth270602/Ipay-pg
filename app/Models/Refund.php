@@ -14,9 +14,12 @@ class Refund extends Model
     protected $fillable = [
         'transaction_id',
         'merchant_id',
+        'vendor_id',
         'refund_id',
         'amount',
         'currency',
+        'mode',
+        'refund_strategy',
         'mode',
         'status',
         'reason',

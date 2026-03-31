@@ -25,7 +25,7 @@
                     <label class="form-label">Select File :</label>
                 </div>
                 <div class="col-md-4">
-                    <input type="file" class="form-control" id="refundFile" accept=".csv,.xlsx,.xls" ng-model="abruc.selectedFile" onchange="document.getElementById('fileNameDisplay').value = this.files[0]?.name || 'No Files Selected'">
+                    <input type="file" class="form-control" id="refundFile" accept=".csv" onchange="document.getElementById('fileNameDisplay').value = this.files[0]?.name || 'No Files Selected'">
                 </div>
                 <div class="col-md-3">
                     <input type="text" class="form-control" id="fileNameDisplay" placeholder="No Files Selected" readonly>
@@ -38,15 +38,13 @@
             </div>
             <div class="row mt-2">
                 <div class="col-md-12">
-                    <small class="text-muted d-block">(* Max number of rows/transactions allowed per file upload is 1000)</small>
-                    <small class="text-muted d-block mt-1">
-                        CSV columns: <strong>Refund ID</strong> (required), then optional <strong>Status</strong>, <strong>Notes</strong>, <strong>Reason</strong>, <strong>Amount</strong>, <strong>Currency</strong> (3-letter code, e.g. USD, INR).
-                    </small>
+                    <small class="text-muted d-block">(* Upload CSV only. Required columns: transaction_id, amount, reason)</small>
+                    <small class="text-warning d-block">Sample transaction IDs are included in the template for reference only. Replace them with valid transaction_id values before upload.</small>
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-md-12 text-center">
-                    <button type="button" class="btn btn-success btn-lg" ng-click="abruc.uploadFile()" ng-disabled="!abruc.selectedFile || abruc.uploading">
+                    <button type="button" class="btn btn-success btn-lg" ng-click="abruc.uploadFile()" ng-disabled="abruc.uploading">
                         <span ng-if="!abruc.uploading">Upload</span>
                         <span ng-if="abruc.uploading">
                             <span class="spinner-border spinner-border-sm me-2"></span>Uploading...
@@ -296,10 +294,17 @@
                 };
 
                 vm.uploadFile = function() {
+                    var notify = function(message, type) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(message, type || 'info');
+                        } else {
+                            console.warn('Toast unavailable:', message);
+                        }
+                    };
+
                     var fileInput = document.getElementById('refundFile');
                     if (!fileInput.files.length) {
-                        if (typeof showToast === 'function') showToast('Please select a file', 'warning');
-                        else if (typeof ipayAlert === 'function') ipayAlert('Please select a file', 'warning');
+                        notify('Please select a CSV file first.', 'warning');
                         return;
                     }
 
@@ -316,20 +321,21 @@
                     }).then(function(response) {
                         vm.uploading = false;
                         if (response.data.success) {
-                            if (typeof showToast === 'function') showToast('File uploaded successfully', 'success');
-                            else if (typeof ipayAlert === 'function') ipayAlert('File uploaded successfully', 'success');
+                            notify('File uploaded successfully.', 'success');
                             fileInput.value = '';
                             document.getElementById('fileNameDisplay').value = 'No Files Selected';
                             vm.loadJobs();
                         } else {
-                            var em = 'Upload failed: ' + (response.data.message || 'Unknown error');
-                            if (typeof showToast === 'function') showToast(em, 'error');
-                            else if (typeof ipayAlert === 'function') ipayAlert(em, 'danger');
+                            var failMessage = response.data.message || 'Unknown error';
+                            notify('Upload failed: ' + failMessage, 'error');
                         }
                     }, function(error) {
                         vm.uploading = false;
-                        if (typeof showToast === 'function') showToast('Upload failed', 'error');
-                        else if (typeof ipayAlert === 'function') ipayAlert('Upload failed', 'danger');
+                        var msg = 'Upload failed';
+                        if (error && error.data && error.data.message) {
+                            msg = error.data.message;
+                        }
+                        notify(msg, 'error');
                         console.error('Error:', error);
                     });
                 };

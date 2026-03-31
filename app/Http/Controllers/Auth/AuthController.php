@@ -33,7 +33,7 @@ class AuthController extends Controller
      */
     protected function ensureIsNotRateLimited(Request $request): void
     {
-        $key = 'login:' . strtolower($request->input('email')) . '|' . $request->ip();
+        $key = 'login:' . strtolower((string) $request->input('login')) . '|' . $request->ip();
 
         if (! RateLimiter::tooManyAttempts($key, 5)) {
             return;
@@ -42,7 +42,7 @@ class AuthController extends Controller
         $seconds = RateLimiter::availableIn($key);
 
         throw ValidationException::withMessages([
-            'email' => [__('Too many login attempts. Please try again in :seconds seconds.', ['seconds' => $seconds])],
+            'login' => [__('Too many login attempts. Please try again in :seconds seconds.', ['seconds' => $seconds])],
         ]);
     }
 
@@ -51,16 +51,21 @@ class AuthController extends Controller
      */
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email|max:60',
-            'password' => 'required|string|max:50',
+        $validated = $request->validate([
+            'login' => 'required|string|max:255',
+            'password' => 'required|string|max:100',
         ]);
 
         // Throttle brute-force attempts
-        $key = 'login:' . strtolower($request->input('email')) . '|' . $request->ip();
+        $key = 'login:' . strtolower((string) $request->input('login')) . '|' . $request->ip();
         $this->ensureIsNotRateLimited($request);
 
-        if (Auth::attempt($credentials, $request->filled('remember'))) {
+        $login = (string) $validated['login'];
+        $password = (string) $validated['password'];
+        $remember = $request->filled('remember');
+
+        // Try merchant/admin user login (email-based)
+        if (filter_var($login, FILTER_VALIDATE_EMAIL) && Auth::attempt(['email' => $login, 'password' => $password], $remember)) {
             $request->session()->regenerate();
 
             // Clear rate limiter on successful login
@@ -81,12 +86,34 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
+        // Try vendor login using vendor_login_id on the same form
+        if (Auth::guard('vendor')->attempt([
+            'vendor_login_id' => $login,
+            'password' => $password,
+            'status' => 'approved',
+        ], $remember)) {
+            $request->session()->regenerate();
+            RateLimiter::clear($key);
+            return redirect()->intended(route('vendor.dashboard'));
+        }
+
+        // Also allow vendor login by vendor email in the same form
+        if (Auth::guard('vendor')->attempt([
+            'vendor_email' => $login,
+            'password' => $password,
+            'status' => 'approved',
+        ], $remember)) {
+            $request->session()->regenerate();
+            RateLimiter::clear($key);
+            return redirect()->intended(route('vendor.dashboard'));
+        }
+
         // Record a failed attempt
         RateLimiter::hit($key, 60); // lock key for up to 60 seconds
 
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+            'login' => 'The provided credentials do not match our records.',
+        ])->onlyInput('login');
     }
 
     /**

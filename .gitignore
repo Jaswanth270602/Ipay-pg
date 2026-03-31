@@ -2,7 +2,7 @@
 
 /vendor
 /node_modules
-
+ 
 /storage/*
 !/storage/app
 !/storage/app/public

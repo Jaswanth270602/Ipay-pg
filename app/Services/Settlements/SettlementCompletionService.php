@@ -58,6 +58,15 @@ class SettlementCompletionService
                     'bank_reference' => $ref,
                     'updated_at' => now(),
                 ]);
+
+            // Keep transaction-level settlement status in sync for vendor/merchant dashboards.
+            DB::table('transactions')
+                ->where('settlement_id', $settlement->id)
+                ->update([
+                    'settlement_status' => 'settled',
+                    'settled_at' => now(),
+                    'updated_at' => now(),
+                ]);
         });
 
         if ($notify) {
