@@ -281,6 +281,16 @@
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount">
                             </th>
+                            <th ng-show="mtc.visibleColumns.admin_merchant_rate_pct.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Admin→Merchant Fee %</span>
+                                </div>
+                            </th>
+                            <th ng-show="mtc.visibleColumns.merchant_vendor_rate_pct.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Merchant→Vendor Share %</span>
+                                </div>
+                            </th>
                             <th ng-show="mtc.visibleColumns.settlement_batch_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Settlement batch</span>
@@ -358,7 +368,7 @@
                     </thead>
                     <tbody>
                         <tr ng-if="mtc.transactions.length === 0">
-                            <td colspan="37" class="text-center text-danger py-4">No matching records found</td>
+                            <td colspan="39" class="text-center text-danger py-4">No matching records found</td>
                         </tr>
                         <tr ng-repeat="transaction in mtc.transactions | filter:mtc.dateMatches track by $index">
                             <td ng-show="mtc.visibleColumns.transaction_initiation_time.visible">@{{ transaction.transaction_initiation_time }}</td>
@@ -396,6 +406,8 @@
                             <td ng-show="mtc.visibleColumns.gst_paid_by_merchant.visible">@{{ transaction.gst_paid_by_merchant }}</td>
                             <td ng-show="mtc.visibleColumns.gst_paid_by_customer.visible">@{{ transaction.gst_paid_by_customer }}</td>
                             <td ng-show="mtc.visibleColumns.net_settlements_amount.visible">@{{ transaction.net_settlements_amount }}</td>
+                            <td ng-show="mtc.visibleColumns.admin_merchant_rate_pct.visible">@{{ transaction.admin_merchant_rate_pct }}</td>
+                            <td ng-show="mtc.visibleColumns.merchant_vendor_rate_pct.visible">@{{ transaction.merchant_vendor_rate_pct }}</td>
                             <td ng-show="mtc.visibleColumns.settlement_batch_id.visible">
                                 <code class="small" ng-if="transaction.settlement_batch_id !== '-'">@{{ transaction.settlement_batch_id }}</code>
                                 <span ng-if="transaction.settlement_batch_id === '-'">—</span>
@@ -500,6 +512,14 @@
                             <strong>Net Settlement:</strong><br>
                             @{{mtc.selectedTransaction.net_settlements_amount}}
                         </div>
+                        <div class="col-md-6">
+                            <strong>Admin→Merchant Fee % snapshot:</strong><br>
+                            @{{ mtc.selectedTransaction.admin_merchant_rate_pct }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Merchant→Vendor Share % snapshot:</strong><br>
+                            @{{ mtc.selectedTransaction.merchant_vendor_rate_pct }}
+                        </div>
                         <div class="col-md-6" ng-if="mtc.selectedTransaction.settlement_batch_id && mtc.selectedTransaction.settlement_batch_id !== '-'">
                             <strong>Settlement batch:</strong><br>
                             <code>@{{ mtc.selectedTransaction.settlement_batch_id }}</code>
@@ -567,6 +587,8 @@
                     gst_paid_by_merchant: { visible: true, label: 'GST Paid By Merchant' },
                     gst_paid_by_customer: { visible: true, label: 'GST Paid By Customer' },
                     net_settlements_amount: { visible: true, label: 'Net Settlements Amount' },
+                    admin_merchant_rate_pct: { visible: true, label: 'Admin→Merchant Fee %' },
+                    merchant_vendor_rate_pct: { visible: true, label: 'Merchant→Vendor Share %' },
                     settlement_batch_id: { visible: true, label: 'Settlement batch' },
                     settlement_txn_status: { visible: true, label: 'Settlement (txn)' },
                     card_holder_name: { visible: true, label: 'Card Holder Name' },

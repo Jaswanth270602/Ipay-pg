@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\MerchantVendor;
 use Illuminate\Support\Facades\DB;
 
 class Merchant extends Model
@@ -159,6 +160,11 @@ class Merchant extends Model
     public function paymentLinks(): HasMany
     {
         return $this->hasMany(PaymentLink::class);
+    }
+
+    public function vendors(): HasMany
+    {
+        return $this->hasMany(MerchantVendor::class);
     }
 
     /**

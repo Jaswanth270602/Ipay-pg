@@ -103,6 +103,7 @@ class PaymentService
             $transaction = Transaction::create([
                 'order_id' => $order->id,
                 'merchant_id' => $order->merchant_id,
+                'vendor_id' => optional($order->paymentLink)->vendor_id,
                 'txn_id' => Transaction::generateTxnId(),
                 'payment_method' => $paymentData['payment_method'],
                 'amount' => $order->amount,
@@ -117,6 +118,28 @@ class PaymentService
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
+
+            try {
+                $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                    merchant: $order->merchant,
+                    paymentMethod: (string) $paymentData['payment_method'],
+                    amount: (float) $order->amount,
+                    feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                    percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                    flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                    gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                    baseRateId: $feeCalculation['rate_id'] ?? null
+                );
+                $transaction->update([
+                    'admin_rate_snapshot_id' => $snapshot->id,
+                    'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to snapshot admin->merchant rate', [
+                    'transaction_id' => $transaction->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Process payment through bank provider
             // PCI-DSS: Extract card data BEFORE sanitization for bank provider

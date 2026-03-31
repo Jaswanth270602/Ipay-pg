@@ -300,6 +300,12 @@
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_net_settlements_amount">
                             </th>
+                            <th ng-show="atc.visibleColumns.admin_merchant_rate_pct.visible">
+                                <span>Admin→Merchant Fee %</span>
+                            </th>
+                            <th ng-show="atc.visibleColumns.merchant_vendor_rate_pct.visible">
+                                <span>Merchant→Vendor Share %</span>
+                            </th>
                             <th ng-show="atc.visibleColumns.card_holder_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Holder Name</span>
@@ -359,7 +365,7 @@
                     </thead>
                     <tbody>
                         <tr ng-if="atc.transactions.length === 0">
-                            <td colspan="35" class="text-center text-danger py-4">No matching records found</td>
+                            <td colspan="37" class="text-center text-danger py-4">No matching records found</td>
                         </tr>
                         <tr ng-repeat="transaction in atc.transactions track by $index">
                             <td ng-show="atc.visibleColumns.merchant_id.visible">@{{ transaction.merchant_id }}</td>
@@ -399,6 +405,8 @@
                             <td ng-show="atc.visibleColumns.gst_paid_by_merchant.visible">@{{ transaction.gst_paid_by_merchant }}</td>
                             <td ng-show="atc.visibleColumns.gst_paid_by_customer.visible">@{{ transaction.gst_paid_by_customer }}</td>
                             <td ng-show="atc.visibleColumns.net_settlements_amount.visible">@{{ transaction.net_settlements_amount }}</td>
+                            <td ng-show="atc.visibleColumns.admin_merchant_rate_pct.visible">@{{ transaction.admin_merchant_rate_pct }}</td>
+                            <td ng-show="atc.visibleColumns.merchant_vendor_rate_pct.visible">@{{ transaction.merchant_vendor_rate_pct }}</td>
                             <td ng-show="atc.visibleColumns.card_holder_name.visible">@{{ transaction.card_holder_name }}</td>
                             <td ng-show="atc.visibleColumns.card_number.visible">@{{ transaction.card_number }}</td>
                             <td ng-show="atc.visibleColumns.customer_ip_address.visible">@{{ transaction.customer_ip_address }}</td>
@@ -553,6 +561,8 @@
                     gst_paid_by_merchant: { visible: true, label: 'GST Paid By Merchant' },
                     gst_paid_by_customer: { visible: true, label: 'GST Paid By Customer' },
                     net_settlements_amount: { visible: true, label: 'Net Settlements Amount' },
+                    admin_merchant_rate_pct: { visible: true, label: 'Admin→Merchant Fee %' },
+                    merchant_vendor_rate_pct: { visible: true, label: 'Merchant→Vendor Share %' },
                     card_holder_name: { visible: true, label: 'Card Holder Name' },
                     card_number: { visible: true, label: 'Card Number' },
                     customer_ip_address: { visible: true, label: 'Customer IP Address' },

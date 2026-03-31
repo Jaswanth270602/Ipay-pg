@@ -91,6 +91,9 @@ class RefundSplitService
                 'allocated_amount' => $amount,
                 'beneficiary_type' => $split->beneficiary_type,
                 'beneficiary_id' => $split->beneficiary_id,
+                'admin_rate_snapshot_id' => $split->admin_rate_snapshot_id ?? null,
+                'merchant_vendor_rate_snapshot_id' => $split->merchant_vendor_rate_snapshot_id ?? null,
+                'merchant_vendor_split_percentage_snapshot' => $split->merchant_vendor_split_percentage_snapshot ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -119,6 +122,9 @@ class RefundSplitService
                     'allocated_amount' => (float) $refund->amount,
                     'beneficiary_type' => 'vendor',
                     'beneficiary_id' => $split->beneficiary_id,
+                    'admin_rate_snapshot_id' => $split->admin_rate_snapshot_id ?? null,
+                    'merchant_vendor_rate_snapshot_id' => $split->merchant_vendor_rate_snapshot_id ?? null,
+                    'merchant_vendor_split_percentage_snapshot' => $split->merchant_vendor_split_percentage_snapshot ?? null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -143,6 +149,9 @@ class RefundSplitService
                     'allocated_amount' => (float) $refund->amount,
                     'beneficiary_type' => 'merchant',
                     'beneficiary_id' => $split->beneficiary_id,
+                    'admin_rate_snapshot_id' => $split->admin_rate_snapshot_id ?? null,
+                    'merchant_vendor_rate_snapshot_id' => $split->merchant_vendor_rate_snapshot_id ?? null,
+                    'merchant_vendor_split_percentage_snapshot' => $split->merchant_vendor_split_percentage_snapshot ?? null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

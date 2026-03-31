@@ -152,6 +152,12 @@ class TransactionsController extends Controller
                     'gst_paid_by_merchant' => number_format(($transaction->fee_amount ?? 0) * 0.18, 2),
                     'gst_paid_by_customer' => '0.00',
                     'net_settlements_amount' => number_format($transaction->net_amount ?? $transaction->amount, 2),
+                    'admin_merchant_rate_pct' => $transaction->admin_fee_percentage_snapshot !== null
+                        ? number_format((float) $transaction->admin_fee_percentage_snapshot, 4)
+                        : '-',
+                    'merchant_vendor_rate_pct' => $transaction->merchant_vendor_split_percentage_snapshot !== null
+                        ? number_format((float) $transaction->merchant_vendor_split_percentage_snapshot, 4)
+                        : '-',
                     'settlement_batch_id' => $transaction->status === 'success' && $transaction->relationLoaded('settlement') && $transaction->settlement
                         ? $transaction->settlement->settlement_id
                         : '-',

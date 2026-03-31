@@ -555,6 +555,7 @@ class PaymentCheckoutController extends Controller
                         $transaction = Transaction::create([
                             'order_id' => $order->id,
                             'merchant_id' => $order->merchant_id,
+                            'vendor_id' => $paymentLink->vendor_id,
                             'txn_id' => Transaction::generateTxnId(),
                             'amount' => $order->amount,
                             'fee_amount' => $feeCalculation['fee_amount'],
@@ -574,6 +575,27 @@ class PaymentCheckoutController extends Controller
                             'ip_address' => $request->ip(),
                             'user_agent' => $request->userAgent(),
                         ]);
+                        try {
+                            $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                                merchant: $merchant,
+                                paymentMethod: (string) $paymentMethod,
+                                amount: (float) $order->amount,
+                                feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                                percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                                flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                                gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                                baseRateId: $feeCalculation['rate_id'] ?? null
+                            );
+                            $transaction->update([
+                                'admin_rate_snapshot_id' => $snapshot->id,
+                                'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                            ]);
+                        } catch (\Throwable $e) {
+                            $this->logWarning('Could not snapshot rate for pending transaction', [
+                                'transaction_id' => $transaction->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
                         
                         return response()->json([
                             'success' => true,
@@ -827,6 +849,7 @@ class PaymentCheckoutController extends Controller
                     $transaction = Transaction::create([
                         'order_id' => $order->id,
                         'merchant_id' => $order->merchant_id,
+                        'vendor_id' => $paymentLink->vendor_id,
                         'txn_id' => Transaction::generateTxnId(),
                         'amount' => $order->amount,
                         'fee_amount' => $feeCalculation['fee_amount'],
@@ -842,6 +865,27 @@ class PaymentCheckoutController extends Controller
                         'user_agent' => $request->userAgent(),
                         'captured_at' => now(),
                     ]);
+                    try {
+                        $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                            merchant: $merchant,
+                            paymentMethod: 'card',
+                            amount: (float) $order->amount,
+                            feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                            percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                            flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                            gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                            baseRateId: $feeCalculation['rate_id'] ?? null
+                        );
+                        $transaction->update([
+                            'admin_rate_snapshot_id' => $snapshot->id,
+                            'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                        ]);
+                    } catch (\Throwable $e) {
+                        $this->logWarning('Could not snapshot rate for verified transaction', [
+                            'transaction_id' => $transaction->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                     
                     $this->logInfo('Transaction created successfully', [
                         'transaction_id' => $transaction->id,
@@ -1091,6 +1135,7 @@ class PaymentCheckoutController extends Controller
                     $transaction = Transaction::create([
                         'order_id' => $order->id,
                         'merchant_id' => $order->merchant_id,
+                        'vendor_id' => $paymentLink->vendor_id,
                         'txn_id' => Transaction::generateTxnId(),
                         'amount' => $order->amount,
                         'fee_amount' => $feeCalculation['fee_amount'],
@@ -1106,6 +1151,27 @@ class PaymentCheckoutController extends Controller
                         'user_agent' => $request->userAgent(),
                         'captured_at' => now(),
                     ]);
+                    try {
+                        $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                            merchant: $merchant,
+                            paymentMethod: 'card',
+                            amount: (float) $order->amount,
+                            feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                            percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                            flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                            gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                            baseRateId: $feeCalculation['rate_id'] ?? null
+                        );
+                        $transaction->update([
+                            'admin_rate_snapshot_id' => $snapshot->id,
+                            'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                        ]);
+                    } catch (\Throwable $e) {
+                        $this->logWarning('Could not snapshot rate for embedded callback transaction', [
+                            'transaction_id' => $transaction->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
 
                     $order->update(['status' => 'completed']);
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
 use App\Models\MerchantVendor;
+use App\Models\Rates\MerchantVendorBaseRate;
 use App\Models\Order;
 use App\Models\PaymentLink;
 use App\Models\Refund;
@@ -92,6 +93,16 @@ class VendorsController extends Controller
                 'refunds_count' => $refundsCount,
                 'refund_amount' => round($refundAmount, 2),
                 'vendor_login_id' => $vendor->vendor_login_id,
+                'vendor_base_rate_percentage' => (float) (
+                    MerchantVendorBaseRate::query()
+                        ->where('merchant_id', $merchant->id)
+                        ->where('vendor_id', $vendor->id)
+                        ->where('service_type', 'payment')
+                        ->where('is_active', true)
+                        ->orderByRaw('CASE WHEN payment_method IS NULL THEN 1 ELSE 0 END')
+                        ->latest('id')
+                        ->value('percentage_share') ?? 100.0
+                ),
                 'created_at' => optional($vendor->created_at)?->toIso8601String(),
             ];
         })->values();
@@ -133,6 +144,7 @@ class VendorsController extends Controller
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
             'note' => 'nullable|string|max:1000',
+            'vendor_base_rate_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -153,6 +165,7 @@ class VendorsController extends Controller
         unset($payload['vendor_password']);
 
         $vendor = MerchantVendor::create($payload);
+        $this->upsertVendorBaseRate($merchant->id, $vendor->id, $request->input('vendor_base_rate_percentage'));
 
         return response()->json([
             'success' => true,
@@ -190,10 +203,20 @@ class VendorsController extends Controller
     {
         $merchant = $request->user()->merchant;
         $vendor = MerchantVendor::where('merchant_id', optional($merchant)->id)->findOrFail($id);
+        $baseRatePct = MerchantVendorBaseRate::query()
+            ->where('merchant_id', optional($merchant)->id)
+            ->where('vendor_id', $vendor->id)
+            ->where('service_type', 'payment')
+            ->where('is_active', true)
+            ->orderByRaw('CASE WHEN payment_method IS NULL THEN 1 ELSE 0 END')
+            ->latest('id')
+            ->value('percentage_share');
 
         return response()->json([
             'success' => true,
-            'data' => $vendor,
+            'data' => array_merge($vendor->toArray(), [
+                'vendor_base_rate_percentage' => $baseRatePct !== null ? (float) $baseRatePct : 100.0,
+            ]),
         ]);
     }
 
@@ -225,6 +248,7 @@ class VendorsController extends Controller
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
             'note' => 'nullable|string|max:1000',
+            'vendor_base_rate_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         if ($validator->fails()) {
@@ -244,6 +268,7 @@ class VendorsController extends Controller
         $payload['kyc_verified_at'] = now();
 
         $vendor->update($payload);
+        $this->upsertVendorBaseRate($merchant->id, $vendor->id, $request->input('vendor_base_rate_percentage'));
 
         return response()->json([
             'success' => true,
@@ -264,6 +289,27 @@ class VendorsController extends Controller
             && !empty($vendor->bank_account_holder_name)
             && !empty($vendor->bank_name)
             && !empty($vendor->bank_branch);
+    }
+
+    private function upsertVendorBaseRate(int $merchantId, int $vendorId, ?float $percentage): void
+    {
+        if ($percentage === null) {
+            return;
+        }
+        MerchantVendorBaseRate::query()->updateOrCreate(
+            [
+                'merchant_id' => $merchantId,
+                'vendor_id' => $vendorId,
+                'payment_method' => null,
+                'service_type' => 'payment',
+                'is_active' => true,
+            ],
+            [
+                'currency' => 'INR',
+                'percentage_share' => round((float) $percentage, 4),
+                'flat_share' => 0,
+            ]
+        );
     }
 }
 

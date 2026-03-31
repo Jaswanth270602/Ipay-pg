@@ -5,11 +5,17 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\PaymentLink;
 use App\Models\Transaction;
+use App\Services\Rates\MerchantVendorRateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class SplitService
 {
+    public function __construct(
+        protected MerchantVendorRateService $vendorRateService
+    ) {
+    }
+
     public function createSplitsForSuccessfulTransaction(Transaction $transaction): void
     {
         if ($transaction->status !== 'success') {
@@ -45,6 +51,7 @@ class SplitService
         }
 
         DB::transaction(function () use ($transaction, $order, $merchant, $legs) {
+            $firstVendorLeg = null;
             foreach ($legs as $idx => $leg) {
                 $idempotencyKey = sprintf(
                     'split:%d:%s:%d',
@@ -65,6 +72,9 @@ class SplitService
                     'transaction_id' => $transaction->id,
                     'order_id' => $order->id,
                     'merchant_id' => $merchant->id,
+                    'admin_rate_snapshot_id' => $transaction->admin_rate_snapshot_id,
+                    'merchant_vendor_rate_snapshot_id' => $leg['vendor_rate_snapshot_id'] ?? null,
+                    'merchant_vendor_split_percentage_snapshot' => $leg['vendor_split_percentage_snapshot'] ?? null,
                     'beneficiary_type' => $leg['beneficiary_type'],
                     'beneficiary_id' => $leg['beneficiary_id'],
                     'split_rule_type' => $leg['split_rule_type'],
@@ -78,6 +88,18 @@ class SplitService
                     'idempotency_key' => $idempotencyKey,
                     'created_at' => now(),
                     'updated_at' => now(),
+                ]);
+
+                if ($leg['beneficiary_type'] === 'vendor' && $firstVendorLeg === null) {
+                    $firstVendorLeg = $leg;
+                }
+            }
+
+            if ($firstVendorLeg) {
+                $transaction->update([
+                    'vendor_id' => $firstVendorLeg['beneficiary_id'] ?? $transaction->vendor_id,
+                    'merchant_vendor_rate_snapshot_id' => $firstVendorLeg['vendor_rate_snapshot_id'] ?? null,
+                    'merchant_vendor_split_percentage_snapshot' => $firstVendorLeg['vendor_split_percentage_snapshot'] ?? null,
                 ]);
             }
         });
@@ -114,10 +136,22 @@ class SplitService
                 ];
             }
         } elseif ($paymentLink && $paymentLink->vendor_id) {
-            // Simple case: single vendor for the entire net amount
+            // Simple case: single vendor from payment link; use merchant->vendor configured share.
+            $vendorPct = $this->vendorRateService->resolveVendorSharePercentage(
+                (int) $transaction->merchant_id,
+                (int) $paymentLink->vendor_id,
+                (string) ($transaction->payment_method ?? 'card')
+            );
+            $vendorSnapshot = $this->vendorRateService->snapshotVendorRate(
+                (int) $transaction->merchant_id,
+                (int) $paymentLink->vendor_id,
+                (string) ($transaction->payment_method ?? 'card'),
+                $vendorPct
+            );
             $vendorSplits[] = [
                 'vendor_id' => (int) $paymentLink->vendor_id,
-                'percentage' => 100.0,
+                'percentage' => $vendorPct,
+                'vendor_rate_snapshot_id' => $vendorSnapshot->id,
             ];
         }
 
@@ -129,12 +163,24 @@ class SplitService
                 'split_rule_type' => 'percentage',
                 'split_rule_value' => 100.0,
                 'net_amount' => round($net, 2),
+                'vendor_rate_snapshot_id' => null,
+                'vendor_split_percentage_snapshot' => null,
             ], $net];
         }
 
         $legs = [];
         $allocated = 0.0;
         foreach ($vendorSplits as $row) {
+            $snapshotId = $row['vendor_rate_snapshot_id'] ?? null;
+            if (! $snapshotId) {
+                $snap = $this->vendorRateService->snapshotVendorRate(
+                    (int) $transaction->merchant_id,
+                    (int) $row['vendor_id'],
+                    (string) ($transaction->payment_method ?? 'card'),
+                    (float) $row['percentage']
+                );
+                $snapshotId = $snap->id;
+            }
             $portion = round(($net * $row['percentage']) / 100, 2);
             $allocated += $portion;
             $legs[] = [
@@ -143,6 +189,8 @@ class SplitService
                 'split_rule_type' => 'percentage',
                 'split_rule_value' => $row['percentage'],
                 'net_amount' => $portion,
+                'vendor_rate_snapshot_id' => $snapshotId,
+                'vendor_split_percentage_snapshot' => (float) $row['percentage'],
             ];
         }
 
@@ -155,6 +203,8 @@ class SplitService
                 'split_rule_type' => 'percentage',
                 'split_rule_value' => max(0.0, 100.0 - array_sum(array_column($vendorSplits, 'percentage'))),
                 'net_amount' => $merchantShare,
+                'vendor_rate_snapshot_id' => null,
+                'vendor_split_percentage_snapshot' => null,
             ];
             $allocated += $merchantShare;
         }

@@ -36,6 +36,7 @@
                 <tr>
                     <th>Vendor</th>
                     <th>Vendor Login</th>
+                    <th>Vendor Base Rate %</th>
                     <th>Approval</th>
                     <th>Payment Links</th>
                     <th>Orders</th>
@@ -48,7 +49,7 @@
                 </thead>
                 <tbody>
                 <tr ng-if="mvc.vendors.length === 0">
-                    <td colspan="10" class="text-center text-muted py-4">No vendors yet</td>
+                    <td colspan="11" class="text-center text-muted py-4">No vendors yet</td>
                 </tr>
                 <tr ng-repeat="v in mvc.vendors track by v.id">
                     <td>
@@ -58,6 +59,9 @@
                     <td>
                         <div class="small"><strong>ID:</strong> @{{ v.vendor_login_id || '-' }}</div>
                         <div class="small text-muted">Use Login ID + Password</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">@{{ v.vendor_base_rate_percentage | number:2 }}%</span>
                     </td>
                     <td>
                         <span class="badge" ng-class="{
@@ -129,6 +133,7 @@
                             </select>
                         </div>
                         <div class="col-md-6"><input class="form-control" ng-model="mvc.form.upi_id" placeholder="UPI ID" maxlength="255"></div>
+                        <div class="col-md-6"><input type="number" step="0.01" class="form-control" ng-model="mvc.form.vendor_base_rate_percentage" placeholder="Vendor Base Rate % (default 100)"></div>
                     </div>
                     <small class="text-muted d-block mt-2">Password must be strong: uppercase + lowercase + number + special character.</small>
                 </div>
@@ -204,6 +209,7 @@
                             </select>
                         </div>
                         <div class="col-md-6"><input class="form-control" ng-model="mvc.editForm.upi_id" placeholder="UPI ID" maxlength="255"></div>
+                        <div class="col-md-6"><input type="number" step="0.01" class="form-control" ng-model="mvc.editForm.vendor_base_rate_percentage" placeholder="Vendor Base Rate %"></div>
                     </div>
                     <small class="text-muted d-block mt-2">If setting new password, use strong password with uppercase + lowercase + number + special character.</small>
                 </div>
@@ -259,10 +265,14 @@
                     vm.form = { account_type: 'Savings Account' };
                     vm.form.vendor_password = '';
                     vm.form.vendor_password_confirmation = '';
+                    vm.form.vendor_base_rate_percentage = 100;
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('merchantVendorModal')).show();
                 };
 
                 vm.createVendor = function () {
+                    // Handle browser autofill cases where Angular model is stale
+                    vm.form.vendor_password = vm.form.vendor_password || document.getElementById('create_vendor_password')?.value || '';
+                    vm.form.vendor_password_confirmation = vm.form.vendor_password_confirmation || document.getElementById('create_vendor_password_confirmation')?.value || '';
                     vm.saving = true;
                     $http.post("{{ route('merchant.vendors.store') }}", vm.form, {
                         headers: { 'X-CSRF-TOKEN': csrf }
@@ -298,11 +308,14 @@
                         vm.editForm = (res.data && res.data.data) ? angular.copy(res.data.data) : {};
                         vm.editForm.vendor_password = '';
                         vm.editForm.vendor_password_confirmation = '';
+                        vm.editForm.vendor_base_rate_percentage = vm.editForm.vendor_base_rate_percentage || 100;
                         bootstrap.Modal.getOrCreateInstance(document.getElementById('merchantVendorEditModal')).show();
                     });
                 };
 
                 vm.updateVendor = function () {
+                    vm.editForm.vendor_password = vm.editForm.vendor_password || document.getElementById('edit_vendor_password')?.value || '';
+                    vm.editForm.vendor_password_confirmation = vm.editForm.vendor_password_confirmation || document.getElementById('edit_vendor_password_confirmation')?.value || '';
                     vm.saving = true;
                     $http.post("{{ url('/merchant/vendors') }}/" + vm.editForm.id, vm.editForm, {
                         headers: { 'X-CSRF-TOKEN': csrf }
