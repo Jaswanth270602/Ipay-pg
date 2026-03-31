@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use App\Models\Refund;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RefundsController extends Controller
 {
@@ -142,7 +143,7 @@ class RefundsController extends Controller
         }
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         try {
             $adminViewMode = session('admin_view_mode', 'test');
@@ -170,14 +171,8 @@ class RefundsController extends Controller
 
             $refunds = $query->latest()->get();
 
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="refunds_' . now()->format('Y-m-d_His') . '.csv"',
-            ];
-
-            $callback = function() use ($refunds) {
-                $file = fopen('php://output', 'w');
-                
+            $fileName = 'refunds_' . now()->format('Y-m-d_His') . '.csv';
+            $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($refunds): void {
                 fputcsv($file, [
                     'Refund ID', 'Merchant ID', 'Merchant Name', 'Payment ID', 'Transaction ID',
                     'Order ID', 'Refund Status', 'Refund Amount', 'Transaction Amount',
@@ -204,11 +199,13 @@ class RefundsController extends Controller
                         $refund->reason ?? '-',
                     ]);
                 }
+            });
 
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
+            return $fileLifecycleService->downloadAndDelete(
+                $relativePath,
+                $fileName,
+                ['Content-Type' => 'text/csv']
+            );
         } catch (\Exception $e) {
             $this->logError('Error exporting refunds', ['error' => $e->getMessage()]);
             abort(500, 'Failed to export refunds');

@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessAcquirerAccountUploadJob;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class AcquirerAccountUploadController extends Controller
 {
     use LogsConditionally;
+
+    public function __construct(
+        protected FileLifecycleService $fileLifecycleService
+    ) {
+    }
 
     /**
      * Display the upload page.
@@ -155,12 +160,11 @@ class AcquirerAccountUploadController extends Controller
             ]);
 
             $file = $request->file('file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('acquirer_account_uploads', $fileName, 'local');
+            $filePath = $this->fileLifecycleService->storeTempUpload($file, 'acquirer_account_upload');
 
             // Create job record
             $jobId = DB::table('acquirer_account_upload_jobs')->insertGetId([
-                'job_name' => 'Acquirer Account Upload - ' . $fileName,
+                'job_name' => 'Acquirer Account Upload - ' . basename($filePath),
                 'file_path' => $filePath,
                 'payment_mode' => $request->get('payment_mode'),
                 'bank_codes' => json_encode($request->get('bank_codes', [])),
@@ -178,7 +182,7 @@ class AcquirerAccountUploadController extends Controller
             $this->logInfo('Acquirer account upload job created', [
                 'user_id' => auth()->id(),
                 'job_id' => $jobId,
-                'file' => $fileName,
+                'file' => basename($filePath),
             ]);
 
             return response()->json([
@@ -272,7 +276,7 @@ class AcquirerAccountUploadController extends Controller
     /**
      * Download status file.
      */
-    public function downloadStatusFile($id): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadStatusFile($id): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $job = DB::table('acquirer_account_upload_jobs')->where('id', $id)->first();
         
@@ -280,20 +284,10 @@ class AcquirerAccountUploadController extends Controller
             abort(404, 'Job not found');
         }
 
-        // If export file exists, download it
-        if ($job->export_file_path && Storage::disk('local')->exists($job->export_file_path)) {
-            return Storage::download($job->export_file_path);
-        }
-
-        // Otherwise, generate a status file on-the-fly
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="acquirer_upload_job_' . $id . '_status.csv"',
-        ];
-
-        $callback = function() use ($job) {
-            $file = fopen('php://output', 'w');
-            
+        // Always generate a fresh status file from DB data.
+        $rowResults = $this->decodeRowResults($job->row_results_json ?? null);
+        $fileName = 'acquirer_upload_job_' . $id . '_status.csv';
+        $relativePath = $this->fileLifecycleService->createCsvReport($fileName, function ($file) use ($job, $rowResults): void {
             fputcsv($file, ['ACQUIRER ACCOUNT UPLOAD JOB DETAILS']);
             fputcsv($file, []);
             
@@ -305,25 +299,34 @@ class AcquirerAccountUploadController extends Controller
             fputcsv($file, ['Finished At', $job->finished_at ? date('Y-m-d H:i:s', strtotime($job->finished_at)) : 'N/A']);
             fputcsv($file, ['Error', $job->error ?? 'None']);
             fputcsv($file, ['Status Info', $job->status_info ?? 'N/A']);
-            
-            fclose($file);
-        };
 
-        return response()->stream($callback, 200, $headers);
+            fputcsv($file, []);
+            fputcsv($file, ['DETAILED PROCESSING RESULTS']);
+            fputcsv($file, ['Row', 'Account ID', 'Status', 'Message']);
+            foreach ($rowResults as $rowResult) {
+                fputcsv($file, [
+                    $rowResult['row'] ?? '',
+                    $rowResult['account_id'] ?? '',
+                    strtoupper((string) ($rowResult['status'] ?? 'N/A')),
+                    $rowResult['message'] ?? '',
+                ]);
+            }
+        });
+
+        return $this->fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
     }
 
     /**
      * Download template file.
      */
-    public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadTemplate(): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="acquirer_account_upload_template.csv"',
-        ];
-
-        $callback = function() {
-            $file = fopen('php://output', 'w');
+        $fileName = 'acquirer_account_upload_template.csv';
+        $relativePath = $this->fileLifecycleService->createCsvReport($fileName, function ($file): void {
             fputcsv($file, [
                 'acquirer name',
                 'account id',
@@ -354,9 +357,22 @@ class AcquirerAccountUploadController extends Controller
                 'type',
                 'owner team name'
             ]);
-            fclose($file);
-        };
+        });
 
-        return response()->stream($callback, 200, $headers);
+        return $this->fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
+    }
+
+    private function decodeRowResults(?string $rowResultsJson): array
+    {
+        if (! $rowResultsJson) {
+            return [];
+        }
+
+        $decoded = json_decode($rowResultsJson, true);
+        return is_array($decoded) ? $decoded : [];
     }
 }

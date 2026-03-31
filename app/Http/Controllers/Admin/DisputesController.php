@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Models\Dispute;
 use App\Models\DisputeEvidence;
 use App\Models\DisputeTimeline;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DisputesController extends Controller
 {
@@ -518,7 +519,7 @@ class DisputesController extends Controller
     /**
      * Export disputes to CSV
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse|JsonResponse
     {
         try {
             $query = Dispute::with(['merchant', 'transaction', 'payment']);
@@ -562,14 +563,8 @@ class DisputesController extends Controller
 
             $disputes = $query->orderBy('updated_at', 'desc')->get();
 
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="disputes_' . now()->format('Y-m-d_His') . '.csv"',
-            ];
-
-            $callback = function() use ($disputes) {
-                $file = fopen('php://output', 'w');
-                
+            $fileName = 'disputes_' . now()->format('Y-m-d_His') . '.csv';
+            $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($disputes): void {
                 fputcsv($file, [
                     'Dispute ID', 'Merchant ID', 'Merchant Name', 'Payment ID', 'Order ID',
                     'Transaction ID', 'Card Network', 'Reason', 'Status', 'Amount', 'Currency',
@@ -598,11 +593,13 @@ class DisputesController extends Controller
                         $dispute->updated_at->format('Y-m-d H:i:s'),
                     ]);
                 }
+            });
 
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
+            return $fileLifecycleService->downloadAndDelete(
+                $relativePath,
+                $fileName,
+                ['Content-Type' => 'text/csv']
+            );
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

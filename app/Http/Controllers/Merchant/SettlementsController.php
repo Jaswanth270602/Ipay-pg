@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SettlementsController extends Controller
 {
@@ -64,7 +65,7 @@ class SettlementsController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         $merchant = $request->user()->merchant;
 
@@ -97,14 +98,8 @@ class SettlementsController extends Controller
 
         $settlements = $query->latest()->get();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="settlements_' . now()->format('Y-m-d_His') . '.csv"',
-        ];
-
-        $callback = function() use ($settlements) {
-            $file = fopen('php://output', 'w');
-            
+        $fileName = 'settlements_' . now()->format('Y-m-d_His') . '.csv';
+        $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($settlements): void {
             fputcsv($file, [
                 'Settlement ID', 'Amount', 'Fee Amount', 'Refund Amount', 'Net Amount',
                 'Currency', 'Transaction Count', 'Refund Count', 'Status',
@@ -129,11 +124,13 @@ class SettlementsController extends Controller
                     $settlement->utr_number ?? '-',
                 ]);
             }
+        });
 
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
     }
 }
 

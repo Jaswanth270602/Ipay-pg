@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TransactionsController extends Controller
 {
@@ -229,7 +230,7 @@ class TransactionsController extends Controller
         }
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         try {
             $adminViewMode = session('admin_view_mode', 'test');
@@ -275,14 +276,8 @@ class TransactionsController extends Controller
 
             $transactions = $query->latest()->get();
 
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="transactions_' . now()->format('Y-m-d_His') . '.csv"',
-            ];
-
-            $callback = function() use ($transactions) {
-                $file = fopen('php://output', 'w');
-                
+            $fileName = 'transactions_' . now()->format('Y-m-d_His') . '.csv';
+            $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($transactions): void {
                 // CSV Headers
                 fputcsv($file, [
                     'Merchant ID', 'Transaction Initiation Time', 'Merchant Name', 'Transaction Sequence ID',
@@ -344,11 +339,13 @@ class TransactionsController extends Controller
                         $transaction->failure_reason ?? '-',
                     ]);
                 }
+            });
 
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
+            return $fileLifecycleService->downloadAndDelete(
+                $relativePath,
+                $fileName,
+                ['Content-Type' => 'text/csv']
+            );
         } catch (\Exception $e) {
             $this->logError('Error exporting transactions', ['error' => $e->getMessage()]);
             abort(500, 'Failed to export transactions');

@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Services\RefundService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class RefundsController extends Controller
 {
@@ -154,7 +155,7 @@ class RefundsController extends Controller
         }
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         $merchant = $request->user()->merchant;
 
@@ -192,14 +193,8 @@ class RefundsController extends Controller
 
         $refunds = $query->latest()->get();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="refunds_' . now()->format('Y-m-d_His') . '.csv"',
-        ];
-
-        $callback = function() use ($refunds) {
-            $file = fopen('php://output', 'w');
-            
+        $fileName = 'refunds_' . now()->format('Y-m-d_His') . '.csv';
+        $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($refunds): void {
             fputcsv($file, [
                 'Refund ID', 'Transaction ID', 'Order ID', 'Amount', 'Currency',
                 'Status', 'Reason', 'Is Partial', 'Created At', 'Processed At'
@@ -220,11 +215,13 @@ class RefundsController extends Controller
                     $refund->processed_at ? $refund->processed_at->format('Y-m-d H:i:s') : '-',
                 ]);
             }
+        });
 
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
     }
 }
 

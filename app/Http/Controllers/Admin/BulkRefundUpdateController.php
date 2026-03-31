@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\ProcessBulkRefundUpdateJob;
 
 class BulkRefundUpdateController extends Controller
 {
     use LogsConditionally;
+
+    public function __construct(
+        protected FileLifecycleService $fileLifecycleService
+    ) {
+    }
 
     public function index(): View
     {
@@ -36,12 +41,11 @@ class BulkRefundUpdateController extends Controller
                 ], 422);
             }
 
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('bulk_refunds', $fileName, 'local');
+            $filePath = $this->fileLifecycleService->storeTempUpload($file, 'bulk_refunds');
 
             // Process file and create job record
             $job = DB::table('bulk_refund_jobs')->insertGetId([
-                'job_name' => 'Bulk Refund Update - ' . $fileName,
+                'job_name' => 'Bulk Refund Update - ' . basename($filePath),
                 'file_path' => $filePath,
                 'status' => 'pending',
                 'progress' => 0,
@@ -94,7 +98,7 @@ class BulkRefundUpdateController extends Controller
                     'job_name' => $job->job_name ?? '-',
                     'progress' => $job->progress ?? 0,
                     'status' => $job->status ?? 'pending',
-                    'export_files' => $job->export_file_path ?? '-',
+                    'export_files' => in_array($job->status ?? '', ['completed', 'completed_with_errors', 'failed'], true) ? 'available' : '-',
                     'started_at' => $job->started_at ? date('Y-m-d H:i:s', strtotime($job->started_at)) : '-',
                     'finished_at' => $job->finished_at ? date('Y-m-d H:i:s', strtotime($job->finished_at)) : '-',
                     'error' => $job->error ?? '-',
@@ -121,26 +125,23 @@ class BulkRefundUpdateController extends Controller
         }
     }
 
-    public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadTemplate(): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="bulk_refund_template.csv"',
-        ];
-
-        $callback = function () {
-            $file = fopen('php://output', 'w');
+        $relativePath = $this->fileLifecycleService->createCsvReport('bulk_refund_template.csv', function ($file): void {
             // Strict format aligned with merchant create refund form.
             fputcsv($file, ['transaction_id', 'amount', 'reason']);
             fputcsv($file, ['TXN_SAMPLE_001', '100.00', 'SAMPLE - Replace with valid transaction_id']);
             fputcsv($file, ['TXN_SAMPLE_002', '50.00', 'SAMPLE - Replace with valid transaction_id']);
-            fclose($file);
-        };
+        });
 
-        return response()->stream($callback, 200, $headers);
+        return $this->fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            'bulk_refund_template.csv',
+            ['Content-Type' => 'text/csv']
+        );
     }
 
-    public function downloadStatusFile($id): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadStatusFile($id): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $job = DB::table('bulk_refund_jobs')->where('id', $id)->first();
         
@@ -148,21 +149,12 @@ class BulkRefundUpdateController extends Controller
             abort(404, 'Job not found');
         }
 
-        // If export file exists, download it
-        if ($job->export_file_path && Storage::disk('local')->exists($job->export_file_path)) {
-            return Storage::download($job->export_file_path);
-        }
-
-        // Otherwise, generate a status file on-the-fly with current job information
+        // Always generate status file on-the-fly from DB job data.
         $user = DB::table('users')->where('id', $job->user_id ?? null)->first();
+        $rowResults = $this->decodeRowResults($job->row_results_json ?? null);
         
-        $headers = [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="bulk_refund_job_' . $id . '_status.xls"',
-        ];
-
-        $callback = function() use ($job, $user) {
-            $file = fopen('php://output', 'w');
+        $fileName = 'bulk_refund_job_' . $id . '_status.xls';
+        $relativePath = $this->fileLifecycleService->createCsvReport($fileName, function ($file) use ($job, $user, $rowResults): void {
             $formatDate = static function ($value): string {
                 if (empty($value)) {
                     return 'N/A';
@@ -175,9 +167,10 @@ class BulkRefundUpdateController extends Controller
                     'SUCCESS' => 'SUCCESS (OK)',
                     'FAILED' => 'FAILED (ERROR)',
                     'COMPLETED' => 'COMPLETED (DONE)',
+                    'COMPLETED_WITH_ERRORS' => 'COMPLETED WITH ERRORS (PARTIAL)',
                     'PROCESSING' => 'PROCESSING (IN PROGRESS)',
                     'PENDING' => 'PENDING (QUEUED)',
-                    default => $status === '' ? 'N/A' : $status,
+                    default => $status === '' ? 'N/A' : str_replace('_', ' ', $status),
                 };
             };
 
@@ -197,14 +190,32 @@ class BulkRefundUpdateController extends Controller
                 . '<tr><td><b>Error</b></td><td colspan="3">' . $esc($job->error ?? 'None') . '</td></tr>'
                 . '<tr><td><b>Status Info</b></td><td colspan="3">' . $esc($job->status_info ?? 'N/A') . '</td></tr>'
                 . '<tr><td><b>User Name</b></td><td colspan="3">' . $esc($user->name ?? 'Admin') . '</td></tr>'
-                . '</table></body></html>';
+                . '<tr><td colspan="4" style="background:#f3f4f6;"><b>DETAILED PROCESSING RESULTS</b></td></tr>'
+                . '<tr><th>#</th><th>Txn ID</th><th>Result</th><th>Details</th></tr>';
+
+            foreach ($rowResults as $result) {
+                $rStatus = strtoupper((string) ($result['status'] ?? 'N/A'));
+                $isSuccess = $rStatus === 'SUCCESS';
+                $bg = $isSuccess ? '#e8f5e9' : '#ffebee';
+                $fg = $isSuccess ? '#1b5e20' : '#b71c1c';
+                $html .= '<tr>'
+                    . '<td>' . $esc($result['row'] ?? '') . '</td>'
+                    . '<td>' . $esc($result['transaction_id'] ?? '') . '</td>'
+                    . '<td style="font-weight:700;background:' . $bg . ';color:' . $fg . ';">' . $esc($rStatus) . '</td>'
+                    . '<td>' . $esc($result['message'] ?? '') . '</td>'
+                    . '</tr>';
+            }
+
+            $html .= '</table></body></html>';
 
             fwrite($file, $html);
-            
-            fclose($file);
-        };
+        });
 
-        return response()->stream($callback, 200, $headers);
+        return $this->fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'application/vnd.ms-excel; charset=UTF-8']
+        );
     }
 
     private function hasValidRefundHeaders(string $path): bool
@@ -259,5 +270,15 @@ class BulkRefundUpdateController extends Controller
         rewind($h);
         $header = fgetcsv($h, 0, $delimiter);
         return [$delimiter, $header ?: null];
+    }
+
+    private function decodeRowResults(?string $rowResultsJson): array
+    {
+        if (! $rowResultsJson) {
+            return [];
+        }
+
+        $decoded = json_decode($rowResultsJson, true);
+        return is_array($decoded) ? $decoded : [];
     }
 }

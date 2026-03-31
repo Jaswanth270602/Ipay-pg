@@ -26,6 +26,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('settlements:auto-complete-test')
             ->everyMinute()
             ->withoutOverlapping();
+
+        // Cleanup stale temp/report CSV lifecycle files.
+        $schedule->command('csv:cleanup-lifecycle-files')
+            ->hourly()
+            ->withoutOverlapping();
     }
 
     /**

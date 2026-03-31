@@ -315,6 +315,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.dashboard');
         Route::get('/dashboard/data', [AdminDashboardController::class, 'getData'])
             ->name('admin.dashboard.data');
+
+        // CSV lifecycle (temp upload processing + report download)
+        Route::post('/csv-lifecycle/upload', [\App\Http\Controllers\Admin\CsvLifecycleController::class, 'upload'])
+            ->name('admin.csv-lifecycle.upload');
+        Route::get('/csv-lifecycle/report/download', [\App\Http\Controllers\Admin\CsvLifecycleController::class, 'downloadReport'])
+            ->name('admin.csv-lifecycle.report.download');
         
         Route::get('/merchants', [MerchantsController::class, 'index'])
             ->name('admin.merchants.index');

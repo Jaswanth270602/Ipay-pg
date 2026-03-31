@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TransactionsController extends Controller
 {
@@ -300,7 +301,7 @@ class TransactionsController extends Controller
         }
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         $merchant = $request->user()->merchant;
 
@@ -342,14 +343,8 @@ class TransactionsController extends Controller
 
         $transactions = $query->latest()->get();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="transactions_' . now()->format('Y-m-d_His') . '.csv"',
-        ];
-
-        $callback = function() use ($transactions) {
-            $file = fopen('php://output', 'w');
-            
+        $fileName = 'transactions_' . now()->format('Y-m-d_His') . '.csv';
+        $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($transactions): void {
             fputcsv($file, [
                 'Transaction ID', 'Order ID', 'Amount', 'Fee Amount', 'Net Amount',
                 'Currency', 'Payment Method', 'Status', 'Customer Email', 'Customer Phone',
@@ -374,11 +369,13 @@ class TransactionsController extends Controller
                     $transaction->failure_reason ?? '-',
                 ]);
             }
+        });
 
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
     }
 
     protected function merchantTxnSettlementLabel(string $status): string

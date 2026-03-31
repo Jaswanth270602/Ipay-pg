@@ -4,7 +4,97 @@
 @section('page-title', 'Bulk Update Refund Status')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantBulkRefundUpdateController as mbruc">
+<style>
+    .bulk-refund-page {
+        font-size: 13px;
+    }
+    .bulk-refund-page h2 {
+        font-size: 28px;
+        margin-bottom: 0;
+    }
+    .bulk-refund-page .stat-card {
+        padding: 14px 16px;
+    }
+    .bulk-refund-page .stat-card h5 {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+    .bulk-refund-page .form-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .bulk-refund-page .form-control,
+    .bulk-refund-page .form-select,
+    .bulk-refund-page .btn {
+        font-size: 12px;
+    }
+    .bulk-refund-page .btn.btn-lg {
+        padding: 6px 18px;
+        font-size: 13px;
+    }
+    .bulk-refund-page small {
+        font-size: 11px;
+        line-height: 1.2;
+    }
+    .bulk-refund-jobs-table {
+        min-width: 1320px;
+        width: 100%;
+        font-size: 12px;
+    }
+    .bulk-refund-jobs-table th,
+    .bulk-refund-jobs-table td {
+        padding: 6px 8px !important;
+    }
+    .bulk-refund-jobs-table thead th {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .2px;
+    }
+    .bulk-refund-jobs-table .form-control.form-control-sm,
+    .bulk-refund-jobs-table .form-select.form-select-sm {
+        height: 28px;
+        min-height: 28px;
+        padding: 2px 6px;
+        font-size: 11px;
+    }
+    .bulk-refund-jobs-table .job-detail-cell {
+        max-width: 240px;
+        max-height: 72px;
+        overflow-y: auto;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.25;
+        font-size: 11px;
+        padding-right: 6px;
+    }
+    .bulk-refund-jobs-table .job-name-cell {
+        min-width: 170px;
+        max-width: 190px;
+        white-space: normal;
+        word-break: break-word;
+    }
+    .bulk-refund-jobs-table .compact-cell {
+        white-space: nowrap;
+        min-width: 88px;
+    }
+    .bulk-refund-jobs-table .status-cell {
+        min-width: 140px;
+        white-space: nowrap;
+    }
+    .bulk-refund-jobs-table .download-cell {
+        min-width: 130px;
+        white-space: nowrap;
+    }
+    .bulk-refund-jobs-table td {
+        vertical-align: middle;
+    }
+    .bulk-refund-jobs-table .badge {
+        font-size: 10px;
+        padding: 4px 7px;
+    }
+</style>
+<div class="bulk-refund-page" ng-app="ipayApp" ng-controller="MerchantBulkRefundUpdateController as mbruc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Bulk Upload for refund Status']
@@ -103,7 +193,7 @@
 
         <div ng-hide="mbruc.loading">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover bulk-refund-jobs-table">
                     <thead>
                         <tr>
                             <th ng-show="mbruc.visibleColumns.job_id.visible">
@@ -134,6 +224,7 @@
                                     <option value="pending">Pending</option>
                                     <option value="processing">Processing</option>
                                     <option value="completed">Completed</option>
+                                    <option value="completed_with_errors">Completed With Errors</option>
                                     <option value="failed">Failed</option>
                                 </select>
                             </th>
@@ -173,29 +264,48 @@
                             <td colspan="9" class="text-center text-danger py-4">No data available in table</td>
                         </tr>
                         <tr ng-repeat="job in mbruc.jobs track by $index">
-                            <td ng-show="mbruc.visibleColumns.job_id.visible">@{{ job.job_id }}</td>
-                            <td ng-show="mbruc.visibleColumns.job_name.visible">@{{ job.job_name }}</td>
-                            <td ng-show="mbruc.visibleColumns.progress.visible">@{{ job.progress }}%</td>
+                            <td ng-show="mbruc.visibleColumns.job_id.visible">
+                                <div class="compact-cell">@{{ job.job_id }}</div>
+                            </td>
+                            <td ng-show="mbruc.visibleColumns.job_name.visible">
+                                <div class="job-name-cell">@{{ job.job_name }}</div>
+                            </td>
+                            <td ng-show="mbruc.visibleColumns.progress.visible">
+                                <div class="compact-cell">@{{ job.progress }}%</div>
+                            </td>
                             <td ng-show="mbruc.visibleColumns.status.visible">
-                                <span class="badge" ng-class="{
-                                    'bg-success': job.status === 'completed',
-                                    'bg-warning': job.status === 'pending',
-                                    'bg-info': job.status === 'processing',
-                                    'bg-danger': job.status === 'failed'
-                                }">
-                                    @{{ job.status | uppercase }}
-                                </span>
+                                <div class="status-cell">
+                                    <span class="badge" ng-class="{
+                                        'bg-success': job.status === 'completed',
+                                        'bg-warning': job.status === 'pending',
+                                        'bg-info': job.status === 'processing',
+                                        'bg-warning text-dark': job.status === 'completed_with_errors',
+                                        'bg-danger': job.status === 'failed'
+                                    }">
+                                        @{{ ((job.status || '').split('_').join(' ')) | uppercase }}
+                                    </span>
+                                </div>
                             </td>
                             <td ng-show="mbruc.visibleColumns.download_status_file.visible">
-                                <button class="btn btn-sm btn-outline-primary" ng-click="mbruc.downloadStatusFile(job)" ng-if="job.export_files !== '-'">
-                                    <i class="bi bi-download"></i> Download
-                                </button>
-                                <span ng-if="job.export_files === '-'">-</span>
+                                <div class="download-cell">
+                                    <button class="btn btn-sm btn-outline-primary" ng-click="mbruc.downloadStatusFile(job)" ng-if="job.export_files !== '-'">
+                                        <i class="bi bi-download"></i> Download
+                                    </button>
+                                    <span ng-if="job.export_files === '-'">-</span>
+                                </div>
                             </td>
-                            <td ng-show="mbruc.visibleColumns.started_at.visible">@{{ job.started_at }}</td>
-                            <td ng-show="mbruc.visibleColumns.finished_at.visible">@{{ job.finished_at }}</td>
-                            <td ng-show="mbruc.visibleColumns.error.visible">@{{ job.error }}</td>
-                            <td ng-show="mbruc.visibleColumns.status_info.visible">@{{ job.status_info }}</td>
+                            <td ng-show="mbruc.visibleColumns.started_at.visible">
+                                <div class="compact-cell">@{{ job.started_at }}</div>
+                            </td>
+                            <td ng-show="mbruc.visibleColumns.finished_at.visible">
+                                <div class="compact-cell">@{{ job.finished_at }}</div>
+                            </td>
+                            <td ng-show="mbruc.visibleColumns.error.visible">
+                                <div class="job-detail-cell">@{{ job.error }}</div>
+                            </td>
+                            <td ng-show="mbruc.visibleColumns.status_info.visible">
+                                <div class="job-detail-cell">@{{ job.status_info }}</div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

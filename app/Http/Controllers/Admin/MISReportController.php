@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,7 @@ class MISReportController extends Controller
         return view('admin.manage-settlements.mis-report');
     }
 
-    public function download(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function download(Request $request, FileLifecycleService $fileLifecycleService): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
     {
         try {
             $request->validate([
@@ -44,13 +45,7 @@ class MISReportController extends Controller
             $filename = 'mis_report_' . date('Y-m-d') . '.' . $format;
 
             if ($format === 'csv') {
-                $headers = [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                ];
-
-                $callback = function() use ($settlements) {
-                    $file = fopen('php://output', 'w');
+                $relativePath = $fileLifecycleService->createCsvReport($filename, function ($file) use ($settlements): void {
                     fputcsv($file, [
                         'Settlement ID', 'Merchant ID', 'Merchant Name', 'Payout Amount', 
                         'Settlement Status', 'Settlement Date', 'Bank Reference', 
@@ -73,10 +68,13 @@ class MISReportController extends Controller
                             $settlement->bank_branch ?? '-',
                         ]);
                     }
-                    fclose($file);
-                };
+                });
 
-                return response()->stream($callback, 200, $headers);
+                return $fileLifecycleService->downloadAndDelete(
+                    $relativePath,
+                    $filename,
+                    ['Content-Type' => 'text/csv']
+                );
             }
 
             return response()->json(['success' => false, 'message' => 'Format not supported'], 400);

@@ -40,7 +40,7 @@ class RefundService
         ?int $vendorId = null
     ): Refund
     {
-        return DB::transaction(function () use ($transaction, $amount, $initiator, $reason, $currency) {
+        return DB::transaction(function () use ($transaction, $amount, $initiator, $reason, $currency, $strategy, $vendorId) {
             $refundableAmount = $transaction->refundableAmount();
 
             if ($amount > $refundableAmount) {

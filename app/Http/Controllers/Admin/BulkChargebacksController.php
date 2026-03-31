@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
 class BulkChargebacksController extends Controller
 {
     use LogsConditionally;
+
+    public function __construct(
+        protected FileLifecycleService $fileLifecycleService
+    ) {
+    }
 
     public function index(): View
     {
@@ -22,19 +27,20 @@ class BulkChargebacksController extends Controller
 
     public function upload(Request $request): JsonResponse
     {
+        $tempPath = null;
+
         try {
             $request->validate([
                 'file' => 'required|file|mimes:csv,xlsx,xls|max:10240',
             ]);
 
             $file = $request->file('file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('bulk_chargebacks', $fileName, 'local');
+            $tempPath = $this->fileLifecycleService->storeTempUpload($file, 'bulk_chargebacks');
 
             // Process file and create job record
             $job = DB::table('bulk_chargeback_jobs')->insertGetId([
-                'job_name' => 'Bulk Chargeback Upload - ' . $fileName,
-                'file_path' => $filePath,
+                'job_name' => 'Bulk Chargeback Upload - ' . basename($tempPath),
+                'file_path' => $tempPath,
                 'status' => 'processing',
                 'progress' => 0,
                 'started_at' => now(),
@@ -49,6 +55,10 @@ class BulkChargebacksController extends Controller
                 'job_id' => $job,
             ]);
         } catch (\Exception $e) {
+            if ($tempPath) {
+                $this->fileLifecycleService->moveToFailedUploads($tempPath, $e->getMessage());
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload file: ' . $e->getMessage(),
@@ -102,19 +112,16 @@ class BulkChargebacksController extends Controller
         }
     }
 
-    public function downloadTemplate(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadTemplate(): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="bulk_chargeback_template.csv"',
-        ];
-
-        $callback = function() {
-            $file = fopen('php://output', 'w');
+        $relativePath = $this->fileLifecycleService->createCsvReport('bulk_chargeback_template.csv', function ($file): void {
             fputcsv($file, ['Chargeback Request ID', 'Merchant ID', 'Transaction ID', 'Amount', 'Status']);
-            fclose($file);
-        };
+        });
 
-        return response()->stream($callback, 200, $headers);
+        return $this->fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            'bulk_chargeback_template.csv',
+            ['Content-Type' => 'text/csv']
+        );
     }
 }

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\FileLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class OrdersController extends Controller
 {
@@ -65,7 +66,7 @@ class OrdersController extends Controller
         ]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         $merchant = $request->user()->merchant;
 
@@ -98,14 +99,8 @@ class OrdersController extends Controller
 
         $orders = $query->latest()->get();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="orders_' . now()->format('Y-m-d_His') . '.csv"',
-        ];
-
-        $callback = function() use ($orders) {
-            $file = fopen('php://output', 'w');
-            
+        $fileName = 'orders_' . now()->format('Y-m-d_His') . '.csv';
+        $relativePath = $fileLifecycleService->createCsvReport($fileName, function ($file) use ($orders): void {
             fputcsv($file, [
                 'Order ID', 'Description', 'Amount', 'Currency', 'Status',
                 'Payment Link', 'Created At', 'Updated At'
@@ -123,11 +118,13 @@ class OrdersController extends Controller
                     $order->updated_at->format('Y-m-d H:i:s'),
                 ]);
             }
+        });
 
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $fileLifecycleService->downloadAndDelete(
+            $relativePath,
+            $fileName,
+            ['Content-Type' => 'text/csv']
+        );
     }
 }
 

@@ -11,6 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Services\FileLifecycleService;
 
 class ProcessAcquirerAccountUploadJob implements ShouldQueue
 {
@@ -33,6 +34,9 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
      */
     public function handle(): void
     {
+        /** @var FileLifecycleService $fileLifecycle */
+        $fileLifecycle = app(FileLifecycleService::class);
+
         try {
             // Update job status to processing
             DB::table('acquirer_account_upload_jobs')
@@ -65,10 +69,18 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
             $processed = 0;
             $failed = 0;
             $errors = [];
+            $rowResults = [];
+            $rowNumber = 1; // header row
 
             // Process each row
             while (($row = fgetcsv($file)) !== false) {
+                $rowNumber++;
                 if (count($row) < count($headers)) {
+                    $rowResults[] = [
+                        'row' => $rowNumber,
+                        'status' => 'FAILED',
+                        'message' => 'Incomplete row',
+                    ];
                     continue; // Skip incomplete rows
                 }
 
@@ -115,9 +127,21 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
                     if ($existing) {
                         // Update existing account
                         $existing->update($accountData);
+                        $rowResults[] = [
+                            'row' => $rowNumber,
+                            'account_id' => $accountData['account_id'],
+                            'status' => 'SUCCESS',
+                            'message' => 'Updated existing acquirer account',
+                        ];
                     } else {
                         // Create new account
                         AcquirerAccount::create($accountData);
+                        $rowResults[] = [
+                            'row' => $rowNumber,
+                            'account_id' => $accountData['account_id'],
+                            'status' => 'SUCCESS',
+                            'message' => 'Created new acquirer account',
+                        ];
                     }
 
                     $processed++;
@@ -131,6 +155,11 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
                 } catch (\Exception $e) {
                     $failed++;
                     $errors[] = 'Row ' . ($processed + $failed) . ': ' . $e->getMessage();
+                    $rowResults[] = [
+                        'row' => $rowNumber,
+                        'status' => 'FAILED',
+                        'message' => $e->getMessage(),
+                    ];
                     
                     if (count($errors) > 100) {
                         $errors[] = '... and more errors (truncated)';
@@ -150,7 +179,11 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
                     'finished_at' => now(),
                     'status_info' => "Processed: {$processed}, Failed: {$failed}",
                     'error' => $failed > 0 ? implode("\n", array_slice($errors, 0, 10)) : null,
+                    'row_results_json' => json_encode($rowResults, JSON_UNESCAPED_UNICODE),
                 ]);
+
+            // Success lifecycle: remove temp upload source
+            $fileLifecycle->deleteIfExists($this->filePath);
 
         } catch (\Exception $e) {
             Log::error('Acquirer account upload job failed', [
@@ -165,7 +198,15 @@ class ProcessAcquirerAccountUploadJob implements ShouldQueue
                     'status' => 'failed',
                     'finished_at' => now(),
                     'error' => $e->getMessage(),
+                    'row_results_json' => json_encode([[
+                        'row' => 0,
+                        'status' => 'FAILED',
+                        'message' => $e->getMessage(),
+                    ]], JSON_UNESCAPED_UNICODE),
                 ]);
+
+            // Failure lifecycle: move source file for debugging
+            $fileLifecycle->moveToFailedUploads($this->filePath, $e->getMessage());
         }
     }
 
