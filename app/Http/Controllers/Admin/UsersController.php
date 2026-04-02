@@ -61,14 +61,11 @@ class UsersController extends Controller
                 // $query->where('timezone', $request->get('filter_time_zone'));
             }
 
-            // Organization/Vendor filters (from merchant)
+            // Organization filters (from merchant)
             if ($request->has('filter_organization_name') && $request->get('filter_organization_name')) {
                 $query->whereHas('merchant', function($q) use ($request) {
                     $q->where('organization_name', 'like', "%{$request->get('filter_organization_name')}%");
                 });
-            }
-            if ($request->has('filter_vendor_codes') && $request->get('filter_vendor_codes')) {
-                // Add vendor code filter if exists
             }
             if ($request->has('filter_2factor_auth') && $request->get('filter_2factor_auth') !== 'all') {
                 if ($request->get('filter_2factor_auth') === 'yes') {
@@ -101,7 +98,6 @@ class UsersController extends Controller
                     'merchant_id' => $user->merchant_id,
                     'merchant_name' => $user->merchant ? $user->merchant->name : '-',
                     'organization_name' => $user->merchant ? ($user->merchant->organization_name ?? '-') : '-',
-                    'vendor_codes' => $user->merchant ? ($user->merchant->vendor_codes ?? '-') : '-',
                     'time_zone' => $user->timezone ?? 'Asia/Kolkata',
                     'last_login_at' => $user->last_login_at ? $user->last_login_at->format('Y-m-d H:i:s') : '-',
                     'two_factor_enabled' => $user->two_factor_enabled ?? false,

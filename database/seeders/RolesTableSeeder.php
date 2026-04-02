@@ -22,6 +22,10 @@ class RolesTableSeeder extends Seeder
                 'description' => 'Merchant user with access to their merchant data',
             ],
             [
+                'name' => 'reseller',
+                'description' => 'Reseller user with access to assigned merchants',
+            ],
+            [
                 'name' => 'user',
                 'description' => 'Regular user with limited access',
             ],

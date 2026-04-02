@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\MerchantVendor;
 use Illuminate\Support\Facades\DB;
 
 class Merchant extends Model
@@ -92,6 +91,7 @@ class Merchant extends Model
         'approval_status',
         'registration_date',
         'acquirer_account_id',
+        'reseller_id',
     ];
 
     protected $casts = [
@@ -162,9 +162,24 @@ class Merchant extends Model
         return $this->hasMany(PaymentLink::class);
     }
 
-    public function vendors(): HasMany
+    public function resellerSplits(): HasMany
     {
-        return $this->hasMany(MerchantVendor::class);
+        return $this->hasMany(MerchantResellerSplit::class);
+    }
+
+    public function reseller(): BelongsTo
+    {
+        return $this->belongsTo(Reseller::class);
+    }
+
+    /**
+     * Legacy pivot (kept in sync when assigning reseller from admin merchant form).
+     */
+    public function resellers(): BelongsToMany
+    {
+        return $this->belongsToMany(Reseller::class, 'reseller_merchant')
+            ->withPivot(['status', 'assigned_by'])
+            ->withTimestamps();
     }
 
     /**

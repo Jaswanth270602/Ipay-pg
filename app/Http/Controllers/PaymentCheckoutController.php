@@ -555,7 +555,6 @@ class PaymentCheckoutController extends Controller
                         $transaction = Transaction::create([
                             'order_id' => $order->id,
                             'merchant_id' => $order->merchant_id,
-                            'vendor_id' => $paymentLink->vendor_id,
                             'txn_id' => Transaction::generateTxnId(),
                             'amount' => $order->amount,
                             'fee_amount' => $feeCalculation['fee_amount'],
@@ -849,7 +848,6 @@ class PaymentCheckoutController extends Controller
                     $transaction = Transaction::create([
                         'order_id' => $order->id,
                         'merchant_id' => $order->merchant_id,
-                        'vendor_id' => $paymentLink->vendor_id,
                         'txn_id' => Transaction::generateTxnId(),
                         'amount' => $order->amount,
                         'fee_amount' => $feeCalculation['fee_amount'],
@@ -1135,7 +1133,6 @@ class PaymentCheckoutController extends Controller
                     $transaction = Transaction::create([
                         'order_id' => $order->id,
                         'merchant_id' => $order->merchant_id,
-                        'vendor_id' => $paymentLink->vendor_id,
                         'txn_id' => Transaction::generateTxnId(),
                         'amount' => $order->amount,
                         'fee_amount' => $feeCalculation['fee_amount'],

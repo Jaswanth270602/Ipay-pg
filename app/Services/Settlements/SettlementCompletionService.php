@@ -59,7 +59,7 @@ class SettlementCompletionService
                     'updated_at' => now(),
                 ]);
 
-            // Keep transaction-level settlement status in sync for vendor/merchant dashboards.
+            // Keep transaction-level settlement status in sync for merchant dashboards.
             DB::table('transactions')
                 ->where('settlement_id', $settlement->id)
                 ->update([
@@ -156,4 +156,5 @@ class SettlementCompletionService
             ]);
         }
     }
+
 }

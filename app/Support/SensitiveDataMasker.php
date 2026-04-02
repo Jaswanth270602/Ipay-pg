@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Merchant;
-use App\Models\MerchantVendor;
 
 /**
  * TC_03 — Sensitive bank data masking for list/view responses.
@@ -70,17 +69,4 @@ class SensitiveDataMasker
         return $arr;
     }
 
-    /**
-     * Vendor payload for list/grid APIs (masked bank fields).
-     *
-     * @return array<string, mixed>
-     */
-    public static function maskVendorAttributes(MerchantVendor $vendor): array
-    {
-        $arr = $vendor->toArray();
-        $arr['bank_account_number'] = self::maskBankAccountNumber($vendor->bank_account_number);
-        $arr['bank_account_ifsc'] = self::maskIfsc($vendor->bank_account_ifsc);
-
-        return $arr;
-    }
 }

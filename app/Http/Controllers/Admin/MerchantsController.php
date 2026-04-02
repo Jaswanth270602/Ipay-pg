@@ -35,7 +35,7 @@ class MerchantsController extends Controller
             $status = $request->get('status');
             $search = $request->get('search');
 
-            $query = Merchant::with('acquirerAccount')->latest();
+            $query = Merchant::with(['acquirerAccount', 'resellers'])->latest();
 
             // Filter by test_mode based on admin view mode
             // When in live mode, only show merchants with test_mode = false
@@ -57,6 +57,18 @@ class MerchantsController extends Controller
                              ->orWhere('mode', 'like', "%{$search}%");
                       });
                 });
+            }
+
+            if ($request->filled('reseller_id')) {
+                $resellerFilter = $request->get('reseller_id');
+                if ($resellerFilter === 'none') {
+                    $query->whereDoesntHave('resellers');
+                } elseif (is_numeric($resellerFilter)) {
+                    $rid = (int) $resellerFilter;
+                    $query->whereHas('resellers', function ($q) use ($rid) {
+                        $q->where('resellers.id', $rid);
+                    });
+                }
             }
 
             $merchants = $query->paginate($perPage);
@@ -176,7 +188,7 @@ class MerchantsController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $merchant = Merchant::with('acquirerAccount')->findOrFail($id);
+        $merchant = Merchant::with(['acquirerAccount', 'resellers'])->findOrFail($id);
 
         return response()->json([
             'success' => true,

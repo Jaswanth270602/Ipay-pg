@@ -77,35 +77,16 @@ class AuthController extends Controller
             $user->last_login_at = now();
             $user->save();
 
-            // Check role_id and redirect accordingly
-            if ($user->role_id === 1) {
+            if ($user->isAdmin()) {
                 return redirect()->intended(route('admin.dashboard'));
+            }
+
+            if ($user->isReseller()) {
+                return redirect()->intended(route('reseller.dashboard'));
             }
 
             // For merchants or normal users
             return redirect()->intended(route('dashboard'));
-        }
-
-        // Try vendor login using vendor_login_id on the same form
-        if (Auth::guard('vendor')->attempt([
-            'vendor_login_id' => $login,
-            'password' => $password,
-            'status' => 'approved',
-        ], $remember)) {
-            $request->session()->regenerate();
-            RateLimiter::clear($key);
-            return redirect()->intended(route('vendor.dashboard'));
-        }
-
-        // Also allow vendor login by vendor email in the same form
-        if (Auth::guard('vendor')->attempt([
-            'vendor_email' => $login,
-            'password' => $password,
-            'status' => 'approved',
-        ], $remember)) {
-            $request->session()->regenerate();
-            RateLimiter::clear($key);
-            return redirect()->intended(route('vendor.dashboard'));
         }
 
         // Record a failed attempt

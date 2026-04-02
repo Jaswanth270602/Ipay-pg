@@ -13,7 +13,8 @@
                 var vm = this;
                 vm.merchants = [];
                 vm.pagination = { current_page: 1, per_page: 10, total: 0, last_page: 1 };
-                vm.filters = { status: 'all', search: '' };
+                vm.filters = { status: 'all', search: '', reseller_id: '' };
+                vm.resellers = [];
                 vm.loading = false;
                 vm.selected = {};
                 vm.selectedIds = [];
@@ -24,6 +25,18 @@
                 vm.bulkConfirmBtnClass = 'btn-primary';
                 vm.pendingBulkAction = null;
 
+                vm.loadResellers = function() {
+                    $http.get('/admin/merchant-accounts/resellers').then(function(res) {
+                        if (res.data && res.data.success && res.data.data) {
+                            vm.resellers = res.data.data;
+                        } else {
+                            vm.resellers = [];
+                        }
+                    }, function() {
+                        vm.resellers = [];
+                    });
+                };
+
                 vm.loadMerchants = function() {
                     vm.loading = true;
                     var params = {
@@ -32,7 +45,10 @@
                         status: vm.filters.status === 'all' ? '' : vm.filters.status,
                         search: vm.filters.search || ''
                     };
-                    
+                    if (vm.filters.reseller_id) {
+                        params.reseller_id = vm.filters.reseller_id;
+                    }
+
                     $http.get('/admin/merchants/data', { params: params }).then(function(response) {
                         vm.merchants = response.data.data || [];
                         vm.selected = {};
@@ -64,7 +80,7 @@
                 };
 
                 vm.clearFilters = function() {
-                    vm.filters = { status: 'all', search: '' };
+                    vm.filters = { status: 'all', search: '', reseller_id: '' };
                     vm.applyFilters();
                 };
 
@@ -292,6 +308,7 @@
                     });
                 };
 
+                vm.loadResellers();
                 vm.loadMerchants();
             }]);
         } catch(e) {

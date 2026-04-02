@@ -5,9 +5,6 @@
 @section('page-title','Payment Links')
 
 @section('content')
-<script>
-    window.ipayInitialVendors = @json($initialVendors ?? []);
-</script>
 <div id="paymentLinksApp" ng-app="ipayApp" ng-controller="PaymentLinksController as plc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('dashboard')],

@@ -14,13 +14,11 @@ use App\Http\Controllers\Merchant\ProfileController;
 use App\Http\Controllers\Merchant\ApiKeysController;
 use App\Http\Controllers\Merchant\IntegrationController;
 use App\Http\Controllers\Merchant\SubscriptionsController as MerchantSubscriptionsController;
-use App\Http\Controllers\Merchant\VendorsController as MerchantPortalVendorsController;
 use App\Http\Controllers\Merchant\WebhooksController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\MerchantsController;
 use App\Http\Controllers\Admin\MerchantAccountsController;
 use App\Http\Controllers\Admin\MerchantRegistrationKeysController;
-use App\Http\Controllers\Admin\MerchantVendorsController;
 use App\Http\Controllers\Admin\PartnersController;
 use App\Http\Controllers\Admin\PartnerTDRController;
 use App\Http\Controllers\Admin\PartnerSettlementsController;
@@ -55,8 +53,12 @@ use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AcquirerAccountsController;
 use App\Http\Controllers\Admin\AcquirerAccountUploadController;
 use App\Http\Controllers\Admin\AcquirerRatesController;
-use App\Http\Controllers\Vendor\AuthController as VendorAuthController;
-use App\Http\Controllers\Vendor\DashboardController as VendorDashboardController;
+use App\Http\Controllers\Admin\ResellersController as AdminResellersController;
+use App\Http\Controllers\Reseller\DashboardController as ResellerDashboardController;
+use App\Http\Controllers\Reseller\EarningsController as ResellerEarningsController;
+use App\Http\Controllers\Reseller\MerchantsController as ResellerMerchantsController;
+use App\Http\Controllers\Reseller\ProfileController as ResellerProfileController;
+use App\Http\Controllers\Reseller\TransactionsController as ResellerTransactionsController;
 use App\Http\Controllers\DocsController;
 use Illuminate\Support\Facades\Route;
 
@@ -104,20 +106,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/signup', [RegistrationController::class, 'register'])->name('signup.post');
 });
 
-// Vendor authentication routes
-Route::middleware('guest:vendor')->group(function () {
-    Route::get('/vendor/login', [VendorAuthController::class, 'showLogin'])->name('vendor.login');
-    Route::post('/vendor/login', [VendorAuthController::class, 'login'])->name('vendor.login.post');
-});
-
-Route::middleware('vendor')->prefix('vendor')->group(function () {
-    Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('vendor.dashboard');
-    Route::get('/payment-links', [VendorDashboardController::class, 'paymentLinks'])->name('vendor.payment-links');
-    Route::get('/orders', [VendorDashboardController::class, 'orders'])->name('vendor.orders');
-    Route::get('/refunds', [VendorDashboardController::class, 'refunds'])->name('vendor.refunds');
-    Route::get('/settlements', [VendorDashboardController::class, 'settlements'])->name('vendor.settlements');
-    Route::post('/logout', [VendorAuthController::class, 'logout'])->name('vendor.logout');
-});
 
 // Logout route (only when authenticated)
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -142,25 +130,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payment_links.store');
         Route::get('/payment-links/data', [PaymentLinksController::class, 'getData'])
             ->name('merchant.payment_links.data');
-        Route::get('/payment-links/vendors', [PaymentLinksController::class, 'getVendors'])
-            ->name('merchant.payment_links.vendors');
-
-        // Merchant Vendors
-        Route::get('/vendors', [MerchantPortalVendorsController::class, 'index'])
-            ->name('merchant.vendors.index');
-        Route::get('/vendors/data', [MerchantPortalVendorsController::class, 'getData'])
-            ->name('merchant.vendors.data');
-        Route::get('/vendors/{id}', [MerchantPortalVendorsController::class, 'show'])
-            ->whereNumber('id')
-            ->name('merchant.vendors.show');
-        Route::post('/vendors', [MerchantPortalVendorsController::class, 'store'])
-            ->name('merchant.vendors.store');
-        Route::post('/vendors/{id}', [MerchantPortalVendorsController::class, 'update'])
-            ->whereNumber('id')
-            ->name('merchant.vendors.update');
-        Route::post('/vendors/{id}/verify-kyc', [MerchantPortalVendorsController::class, 'verifyKyc'])
-            ->whereNumber('id')
-            ->name('merchant.vendors.verify-kyc');
 
         // Transactions
         Route::get('/transactions', [MerchantTransactionsController::class, 'index'])
@@ -309,6 +278,24 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/profile', [ProfileController::class, 'update'])->name('merchant.profile.update');
     });
 
+    // Reseller routes
+    Route::middleware(['reseller'])->prefix('reseller')->group(function () {
+        Route::get('/dashboard', [ResellerDashboardController::class, 'index'])
+            ->name('reseller.dashboard');
+        Route::get('/profile', [ResellerProfileController::class, 'index'])
+            ->name('reseller.profile.index');
+        Route::get('/merchants', [ResellerMerchantsController::class, 'index'])
+            ->name('reseller.merchants.index');
+        Route::get('/transactions', [ResellerTransactionsController::class, 'index'])
+            ->name('reseller.transactions.index');
+        Route::get('/transactions/data', [ResellerTransactionsController::class, 'getData'])
+            ->name('reseller.transactions.data');
+        Route::get('/earnings', [ResellerEarningsController::class, 'index'])
+            ->name('reseller.earnings.index');
+        Route::get('/earnings/data', [ResellerEarningsController::class, 'getData'])
+            ->name('reseller.earnings.data');
+    });
+
     // Admin routes
     Route::middleware(['admin'])->prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])
@@ -343,6 +330,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchant-accounts.data');
         Route::get('/merchant-accounts/acquirers', [MerchantAccountsController::class, 'getAcquirersForSelect'])
             ->name('admin.merchant-accounts.acquirers');
+        Route::get('/merchant-accounts/resellers', [MerchantAccountsController::class, 'getResellersForSelect'])
+            ->name('admin.merchant-accounts.resellers');
         Route::get('/merchant-accounts/{id}', [MerchantAccountsController::class, 'show'])
             ->name('admin.merchant-accounts.show');
         Route::post('/merchant-accounts', [MerchantAccountsController::class, 'store'])
@@ -369,25 +358,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchant-registration-keys.store');
         Route::post('/merchant-registration-keys/{id}', [MerchantRegistrationKeysController::class, 'update'])
             ->name('admin.merchant-registration-keys.update');
-
-        // Merchant Vendors
-        Route::get('/merchant-vendors', [MerchantVendorsController::class, 'index'])
-            ->name('admin.merchant-vendors.index');
-        Route::get('/merchant-vendors/data', [MerchantVendorsController::class, 'getData'])
-            ->name('admin.merchant-vendors.data');
-        Route::get('/merchant-vendors/merchants', [MerchantVendorsController::class, 'getMerchants'])
-            ->name('admin.merchant-vendors.merchants');
-        Route::get('/merchant-vendors/{id}', [MerchantVendorsController::class, 'show'])
-            ->whereNumber('id')
-            ->name('admin.merchant-vendors.show');
-        Route::post('/merchant-vendors/bulk-status', [MerchantVendorsController::class, 'bulkStatus'])
-            ->name('admin.merchant-vendors.bulk-status');
-        Route::post('/merchant-vendors', [MerchantVendorsController::class, 'store'])
-            ->name('admin.merchant-vendors.store');
-        Route::post('/merchant-vendors/{id}', [MerchantVendorsController::class, 'update'])
-            ->name('admin.merchant-vendors.update');
-        Route::delete('/merchant-vendors/{id}', [MerchantVendorsController::class, 'destroy'])
-            ->name('admin.merchant-vendors.destroy');
 
         // Partners
         Route::get('/partners', [PartnersController::class, 'index'])
@@ -845,6 +815,22 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.users.merchants');
         Route::get('/users/teams', [UsersController::class, 'getTeams'])
             ->name('admin.users.teams');
+
+        // Resellers
+        Route::get('/resellers', [AdminResellersController::class, 'index'])
+            ->name('admin.resellers.index');
+        Route::get('/resellers/data', [AdminResellersController::class, 'getData'])
+            ->name('admin.resellers.data');
+        Route::get('/resellers/{id}', [AdminResellersController::class, 'show'])
+            ->name('admin.resellers.show');
+        Route::get('/resellers/{id}/data', [AdminResellersController::class, 'getOne'])
+            ->name('admin.resellers.one');
+        Route::post('/resellers', [AdminResellersController::class, 'store'])
+            ->name('admin.resellers.store');
+        Route::put('/resellers/{id}', [AdminResellersController::class, 'update'])
+            ->name('admin.resellers.update');
+        Route::delete('/resellers/{id}', [AdminResellersController::class, 'destroy'])
+            ->name('admin.resellers.destroy');
     });
 });
 

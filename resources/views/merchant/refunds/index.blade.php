@@ -4,6 +4,74 @@
 @section('page-title','Refunds')
 
 @section('content')
+<style>
+    .refund-create-modal .modal-content {
+        border: 0;
+        border-radius: 14px;
+        box-shadow: 0 16px 40px rgba(17, 24, 39, 0.18);
+        overflow: hidden;
+    }
+    .refund-create-modal .modal-header {
+        border-bottom: 1px solid #eef0f4;
+        background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+        padding: 1rem 1.25rem;
+    }
+    .refund-create-modal .modal-title {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .refund-create-modal .modal-body {
+        padding: 1rem 1.25rem 0.75rem;
+    }
+    .refund-create-modal .refund-approval-note {
+        border: 1px solid #dbeafe;
+        background: #eff6ff;
+        color: #1e3a8a;
+        border-radius: 10px;
+        padding: 0.7rem 0.85rem;
+        margin-bottom: 0.9rem;
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+    .refund-create-modal .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.35rem;
+    }
+    .refund-create-modal .form-control,
+    .refund-create-modal .form-select {
+        border-radius: 10px;
+        border-color: #d8dee9;
+        min-height: 44px;
+    }
+    .refund-create-modal textarea.form-control {
+        min-height: 96px;
+    }
+    .refund-create-modal .form-control:focus,
+    .refund-create-modal .form-select:focus {
+        border-color: #9b87f5;
+        box-shadow: 0 0 0 0.2rem rgba(155, 135, 245, 0.16);
+    }
+    .refund-create-modal .field-hint {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 0.35rem;
+    }
+    .refund-create-modal .modal-footer {
+        border-top: 1px solid #eef0f4;
+        padding: 0.9rem 1.25rem 1rem;
+        gap: 0.45rem;
+    }
+    .refund-create-modal .btn {
+        border-radius: 10px;
+        min-width: 110px;
+        font-weight: 600;
+    }
+</style>
 <div ng-app="ipayApp" ng-controller="RefundsController as rc">
     <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
         <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
@@ -197,21 +265,23 @@
     </div>
 
     <!-- Create Refund Modal -->
-    <div class="modal fade" id="createRefundModal" tabindex="-1">
+    <div class="modal fade refund-create-modal" id="createRefundModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Create Refund</h5>
+                    <h5 class="modal-title"><i class="bi bi-arrow-counterclockwise"></i> Create Refund</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">
+                    <div class="refund-approval-note">
+                        <i class="bi bi-info-circle me-1"></i>
                         Amounts <strong>≥ {{ number_format($refundApprovalThreshold, 0) }}</strong> (same currency as the transaction) require <strong>admin approval</strong> before processing.
-                    </p>
+                    </div>
                     <form ng-submit="rc.createRefund(); $event.preventDefault();">
                         <div class="mb-3">
                             <label class="form-label">Transaction ID *</label>
                             <input type="text" class="form-control" ng-model="rc.newRefund.transaction_id" required id="refundTransactionId">
+                            <div class="field-hint">Enter original payment transaction ID.</div>
                         </div>
                         <div class="row">
                             <div class="col-md-8">
@@ -226,13 +296,14 @@
                                     <select class="form-select" id="refundCurrency" ng-model="rc.newRefund.currency" required>
                                         @include('components.currency-options')
                                     </select>
-                                    <small class="text-muted">Must match the original transaction currency.</small>
+                                    <div class="field-hint">Must match original transaction currency.</div>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Reason</label>
                             <textarea class="form-control" rows="3" ng-model="rc.newRefund.reason" id="refundReason"></textarea>
+                            <div class="field-hint">Optional note for reference/audit trail.</div>
                         </div>
                     </form>
                 </div>

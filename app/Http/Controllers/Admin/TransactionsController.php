@@ -176,9 +176,6 @@ class TransactionsController extends Controller
                     'admin_merchant_rate_pct' => $transaction->admin_fee_percentage_snapshot !== null
                         ? number_format((float) $transaction->admin_fee_percentage_snapshot, 4)
                         : '-',
-                    'merchant_vendor_rate_pct' => $transaction->merchant_vendor_split_percentage_snapshot !== null
-                        ? number_format((float) $transaction->merchant_vendor_split_percentage_snapshot, 4)
-                        : '-',
                     'card_holder_name' => $paymentDetails['card_holder_name'] ?? $paymentDetails['card_holder'] ?? '-',
                     // PCI-DSS: Use last4 from sanitized data (card_number never stored)
                     'card_number' => isset($paymentDetails['last4']) ? '****' . $paymentDetails['last4'] : '-',

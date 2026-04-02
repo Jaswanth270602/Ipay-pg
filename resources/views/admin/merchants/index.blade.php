@@ -18,15 +18,17 @@
     </div>
 
     <div class="stat-card mb-4">
-        <div class="row g-3 mb-3">
-            <div class="col-md-4">
+        <div class="row g-3 mb-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Search</label>
                 <input type="text"
                        class="form-control"
-                       placeholder="Search by merchant name, email, ID or acquirer type..."
+                       placeholder="Name, email, ID, acquirer..."
                        ng-model="amc.filters.search"
                        ng-change="amc.applyFilters()">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Status</label>
                 <select class="form-select" ng-model="amc.filters.status" ng-change="amc.applyFilters()">
                     <option value="all">All Status</option>
                     <option value="active">Active</option>
@@ -34,8 +36,16 @@
                     <option value="pending">Pending</option>
                 </select>
             </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Reseller</label>
+                <select class="form-select" ng-model="amc.filters.reseller_id" ng-change="amc.applyFilters()">
+                    <option value="">All resellers</option>
+                    <option value="none">No reseller</option>
+                    <option ng-repeat="r in amc.resellers" value="@{{ r.id }}">@{{ r.name }}</option>
+                </select>
+            </div>
             <div class="col-md-2">
-                <button class="btn btn-outline-secondary w-100" ng-click="amc.clearFilters()">
+                <button type="button" class="btn btn-outline-secondary w-100" ng-click="amc.clearFilters()">
                     <i class="bi bi-x-circle"></i> Clear
                 </button>
             </div>
@@ -85,6 +95,7 @@
                             <th>Merchant ID</th>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Reseller</th>
                             <th>Status</th>
                             <th>Test Mode</th>
                             <th>Created At</th>
@@ -93,7 +104,7 @@
                     </thead>
                     <tbody>
                         <tr ng-if="amc.merchants.length === 0">
-                            <td colspan="8" class="text-center text-muted py-4">No merchants found</td>
+                            <td colspan="9" class="text-center text-muted py-4">No merchants found</td>
                         </tr>
                         <tr ng-repeat="merchant in amc.merchants track by $index">
                             <td>
@@ -105,6 +116,10 @@
                             <td><code>@{{ merchant.id }}</code></td>
                             <td><strong>@{{ merchant.name }}</strong></td>
                             <td>@{{ merchant.email }}</td>
+                            <td>
+                                <span ng-if="merchant.resellers && merchant.resellers.length">@{{ merchant.resellers[0].name }}</span>
+                                <span ng-if="!merchant.resellers || !merchant.resellers.length" class="text-muted">—</span>
+                            </td>
                             <td>
                                 <span class="badge" ng-class="{'bg-success': merchant.status==='active', 'bg-danger': merchant.status==='inactive', 'bg-warning': merchant.status==='pending'}">
                                     @{{ merchant.status | uppercase }}
@@ -185,6 +200,13 @@
                         </div>
                         <div class="col-md-6">
                             <strong>Created At:</strong> @{{ amc.merchantDetail.created_at | date:'MMM d, y HH:mm' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3" ng-if="amc.merchantDetail.resellers && amc.merchantDetail.resellers.length">
+                        <div class="col-md-12">
+                            <strong>Reseller:</strong>
+                            @{{ amc.merchantDetail.resellers[0].name }}
+                            <span class="text-muted small" ng-if="amc.merchantDetail.resellers[0].company_name">(@{{ amc.merchantDetail.resellers[0].company_name }})</span>
                         </div>
                     </div>
                     <div class="row mb-3" ng-if="amc.merchantDetail.acquirer_account">

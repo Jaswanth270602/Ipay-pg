@@ -9,13 +9,10 @@ use Illuminate\Http\Request;
 
 class NotificationsController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    private function payloadForUserIdAndRole(int $userId, string $role): JsonResponse
     {
-        $user = auth()->user();
-        $role = $user->isAdmin() ? 'admin' : 'merchant';
-
         $items = Notification::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $userId)
             ->where('role', $role)
             ->latest()
             ->limit(20)
@@ -40,13 +37,10 @@ class NotificationsController extends Controller
         ]);
     }
 
-    public function unreadCount(): JsonResponse
+    private function unreadCountForUserIdAndRole(int $userId, string $role): JsonResponse
     {
-        $user = auth()->user();
-        $role = $user->isAdmin() ? 'admin' : 'merchant';
-
         $count = Notification::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $userId)
             ->where('role', $role)
             ->where('is_read', false)
             ->count();
@@ -57,11 +51,8 @@ class NotificationsController extends Controller
         ]);
     }
 
-    public function markAsRead(Request $request): JsonResponse
+    private function markAsReadForUserIdAndRole(Request $request, int $userId, string $role): JsonResponse
     {
-        $user = auth()->user();
-        $role = $user->isAdmin() ? 'admin' : 'merchant';
-
         $ids = $request->input('ids', []);
         if (!is_array($ids) || empty($ids)) {
             return response()->json([
@@ -71,7 +62,7 @@ class NotificationsController extends Controller
         }
 
         $updated = Notification::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $userId)
             ->where('role', $role)
             ->whereIn('id', $ids)
             ->update(['is_read' => true]);
@@ -81,4 +72,26 @@ class NotificationsController extends Controller
             'updated' => $updated,
         ]);
     }
+
+    public function index(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $role = $user->isAdmin() ? 'admin' : 'merchant';
+        return $this->payloadForUserIdAndRole((int) $user->id, $role);
+    }
+
+    public function unreadCount(): JsonResponse
+    {
+        $user = auth()->user();
+        $role = $user->isAdmin() ? 'admin' : 'merchant';
+        return $this->unreadCountForUserIdAndRole((int) $user->id, $role);
+    }
+
+    public function markAsRead(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $role = $user->isAdmin() ? 'admin' : 'merchant';
+        return $this->markAsReadForUserIdAndRole($request, (int) $user->id, $role);
+    }
+
 }

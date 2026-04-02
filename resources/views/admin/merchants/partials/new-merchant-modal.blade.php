@@ -17,6 +17,24 @@
                                 <label class="form-check-label" for="isPartnerMerchant">Is Partner Merchant</label>
                             </div>
                         </div>
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isResellerMerchant" ng-model="amac.merchantForm.is_reseller_merchant">
+                                <label class="form-check-label" for="isResellerMerchant">Is Merchant Reseller</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6" ng-show="amac.merchantForm.is_reseller_merchant">
+                            <label class="form-label">* Reseller</label>
+                            <select class="form-select" ng-model="amac.merchantForm.reseller_id" ng-class="{'is-invalid': amac.formErrors.reseller_id}">
+                                <option value="">Select Reseller</option>
+                                <option ng-repeat="reseller in amac.resellers" value="@{{ reseller.id }}">
+                                    @{{ reseller.name }} (@{{ reseller.company_name || reseller.email }})
+                                </option>
+                            </select>
+                            <div class="invalid-feedback" ng-if="amac.formErrors.reseller_id">
+                                <span ng-repeat="msg in amac.formErrors.reseller_id">@{{ msg }}<br></span>
+                            </div>
+                        </div>
                         <div class="col-md-6" ng-show="amac.merchantForm.is_partner_merchant">
                             <label class="form-label">Partners</label>
                             <select class="form-select" ng-model="amac.merchantForm.partner_id" ng-change="amac.loadPartnerTeams()">

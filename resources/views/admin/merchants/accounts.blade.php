@@ -41,9 +41,6 @@
                 <button type="button" class="btn btn-sm" 
                         ng-class="{'btn-primary': amac.filters.merchant_type === 'merchant', 'btn-outline-primary': amac.filters.merchant_type !== 'merchant'}"
                         ng-click="amac.setMerchantType('merchant')">Merchants</button>
-                <button type="button" class="btn btn-sm" 
-                        ng-class="{'btn-primary': amac.filters.merchant_type === 'vendor_merchant', 'btn-outline-primary': amac.filters.merchant_type !== 'vendor_merchant'}"
-                        ng-click="amac.setMerchantType('vendor_merchant')">Vendor Merchants</button>
             </div>
         </div>
     </div>
@@ -197,6 +194,18 @@
                                        ng-model="amac.filters.filter_partner"
                                        ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
+                            <th ng-show="amac.visibleColumns.reseller.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Reseller</span>
+                                </div>
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="amac.filters.filter_reseller_id"
+                                        ng-change="amac.applyFilters()">
+                                    <option value="">All</option>
+                                    <option value="none">No reseller</option>
+                                    <option ng-repeat="r in amac.resellers" value="@{{ r.id }}">@{{ r.name }}</option>
+                                </select>
+                            </th>
                             <th ng-show="amac.visibleColumns.organization.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Organization Name</span>
@@ -268,7 +277,7 @@
                     </thead>
                     <tbody>
                         <tr ng-if="amac.merchants.length === 0">
-                            <td colspan="14" class="text-center text-danger py-4">No matching records found</td>
+                            <td colspan="15" class="text-center text-danger py-4">No matching records found</td>
                         </tr>
                         <tr ng-repeat="merchant in amac.merchants track by $index" 
                             ng-click="amac.selectMerchant(merchant)" 
@@ -306,6 +315,10 @@
                                 </select>
                             </td>
                             <td ng-show="amac.visibleColumns.partner.visible">@{{ merchant.partner_name || '-' }}</td>
+                            <td ng-show="amac.visibleColumns.reseller.visible">
+                                <span ng-if="merchant.resellers && merchant.resellers.length">@{{ merchant.resellers[0].name }}</span>
+                                <span ng-if="!merchant.resellers || !merchant.resellers.length" class="text-muted">—</span>
+                            </td>
                             <td ng-show="amac.visibleColumns.organization.visible">@{{ merchant.organization_name || merchant.company_name || '-' }}</td>
                             <td ng-show="amac.visibleColumns.category.visible">@{{ merchant.merchant_category || '-' }}</td>
                             <td ng-show="amac.visibleColumns.acquirer.visible">@{{ (merchant.acquirer_account && merchant.acquirer_account.acquirer_name) ? merchant.acquirer_account.acquirer_name : '—' }}</td>

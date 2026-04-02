@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Encrypted;
 use App\Models\Rates\MerchantRateSnapshot;
-use App\Models\Rates\MerchantVendorRateSnapshot;
 use Illuminate\Support\Str;
 use App\Traits\SanitizesCardData;
 
@@ -19,11 +18,8 @@ class Transaction extends Model
     protected $fillable = [
         'order_id',
         'merchant_id',
-        'vendor_id',
         'admin_rate_snapshot_id',
         'admin_fee_percentage_snapshot',
-        'merchant_vendor_rate_snapshot_id',
-        'merchant_vendor_split_percentage_snapshot',
         'transaction_id',
         'txn_id',
         'payment_method',
@@ -66,7 +62,6 @@ class Transaction extends Model
         'fee_amount' => 'decimal:2',
         'net_amount' => 'decimal:2',
         'admin_fee_percentage_snapshot' => 'decimal:4',
-        'merchant_vendor_split_percentage_snapshot' => 'decimal:4',
         'processed_at' => 'datetime',
         'authorized_at' => 'datetime',
         'captured_at' => 'datetime',
@@ -172,17 +167,17 @@ class Transaction extends Model
         return $this->belongsTo(MerchantRateSnapshot::class, 'admin_rate_snapshot_id');
     }
 
-    public function merchantVendorRateSnapshot(): BelongsTo
-    {
-        return $this->belongsTo(MerchantVendorRateSnapshot::class, 'merchant_vendor_rate_snapshot_id');
-    }
-
     /**
      * Get refunds for this transaction.
      */
     public function refunds(): HasMany
     {
         return $this->hasMany(Refund::class);
+    }
+
+    public function resellerCommissions(): HasMany
+    {
+        return $this->hasMany(ResellerCommission::class);
     }
 
     /**

@@ -28,8 +28,8 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\CreateSplitTransactionEntry::class,
             \App\Listeners\CreateSettlementEntry::class,
             \App\Listeners\CreatePaymentNotifications::class,
-            \App\Listeners\CreatePaymentSplits::class,
             \App\Listeners\SnapshotTransactionRates::class,
+            \App\Listeners\RecordResellerCommission::class,
         ],
         \App\Events\PaymentFailed::class => [
             \App\Listeners\SendPaymentWebhook::class,
@@ -50,6 +50,7 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\RefundCreated::class => [
             \App\Listeners\SendRefundWebhook::class,
             \App\Listeners\AdjustSettlement::class,
+            \App\Listeners\AdjustResellerCommissionOnRefund::class,
         ],
         \App\Events\SubscriptionCreated::class => [
             \App\Listeners\SendGenericWebhook::class . '@handleSubscriptionCreated',

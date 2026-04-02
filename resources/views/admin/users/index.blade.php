@@ -234,11 +234,6 @@
                                 <i class="bi bi-arrow-down-up ms-1" style="font-size: 10px;"></i>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="auc.filters.filter_organization_name" ng-change="auc.applyFilters()">
                             </th>
-                            <th ng-show="auc.visibleColumns.vendor_codes.visible">
-                                <i class="bi bi-diamond"></i> Vendor Codes
-                                <i class="bi bi-arrow-down-up ms-1" style="font-size: 10px;"></i>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="auc.filters.filter_vendor_codes" ng-change="auc.applyFilters()">
-                            </th>
                             <th ng-show="auc.visibleColumns.last_login_at.visible">
                                 <i class="bi bi-diamond"></i> Last Login At
                                 <i class="bi bi-arrow-down-up ms-1" style="font-size: 10px;"></i>
@@ -280,7 +275,6 @@
                             <td ng-show="auc.visibleColumns.time_zone.visible">@{{ user.time_zone }}</td>
                             <td ng-show="auc.visibleColumns.two_factor_auth.visible">@{{ user.two_factor_auth }}</td>
                             <td ng-show="auc.visibleColumns.organization_name.visible">@{{ user.organization_name }}</td>
-                            <td ng-show="auc.visibleColumns.vendor_codes.visible">@{{ user.vendor_codes }}</td>
                             <td ng-show="auc.visibleColumns.last_login_at.visible">@{{ user.last_login_at }}</td>
                             <td ng-show="auc.visibleColumns.created_at.visible">@{{ user.created_at }}</td>
                             <td ng-show="auc.visibleColumns.updated_at.visible">@{{ user.updated_at }}</td>
@@ -469,7 +463,6 @@
                     time_zone: { visible: true, label: 'Time Zone' },
                     two_factor_auth: { visible: true, label: '2FactorAuth' },
                     organization_name: { visible: true, label: 'Organization Name' },
-                    vendor_codes: { visible: true, label: 'Vendor Codes' },
                     last_login_at: { visible: true, label: 'Last Login At' },
                     created_at: { visible: true, label: 'Created At' },
                     updated_at: { visible: true, label: 'Updated At' },
@@ -592,7 +585,6 @@
                         time_zone: { visible: true, label: 'Time Zone' },
                         two_factor_auth: { visible: true, label: '2FactorAuth' },
                         organization_name: { visible: true, label: 'Organization Name' },
-                        vendor_codes: { visible: true, label: 'Vendor Codes' },
                         last_login_at: { visible: true, label: 'Last Login At' },
                         created_at: { visible: true, label: 'Created At' },
                         updated_at: { visible: true, label: 'Updated At' },

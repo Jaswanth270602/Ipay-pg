@@ -28,7 +28,8 @@
                     filter_category: 'all',
                     filter_acquirer: '',
                     filter_registration_date: '',
-                    filter_challan_urn: ''
+                    filter_challan_urn: '',
+                    filter_reseller_id: ''
                 };
                 vm.loading = false;
                 vm.submitting = false;
@@ -50,10 +51,12 @@
                     acquirer: { visible: true, label: 'Acquirer' },
                     registration_date: { visible: true, label: 'Registration Date' },
                     challan_urn: { visible: true, label: 'Challan URN' },
-                    merchant_unique_id: { visible: true, label: 'Merchant Unique ID' }
+                    merchant_unique_id: { visible: true, label: 'Merchant Unique ID' },
+                    reseller: { visible: true, label: 'Reseller' }
                 };
 
                 vm.acquirers = [];
+                vm.resellers = [];
                 vm.editingMerchantId = null;
                 vm.formErrors = {};
 
@@ -227,7 +230,9 @@
                     retype_password: '',
                     merchant_type: 'merchant',
                     settlement_cycle_domestic: 1,
-                    settlement_cycle_international: 7
+                    settlement_cycle_international: 7,
+                    is_reseller_merchant: false,
+                    reseller_id: ''
                 };
 
                 // States and cities (sample data - should be loaded from API)
@@ -302,7 +307,8 @@
                         filter_category: 'all',
                         filter_acquirer: '',
                         filter_registration_date: '',
-                        filter_challan_urn: ''
+                        filter_challan_urn: '',
+                        filter_reseller_id: ''
                     };
                     vm.applyFilters();
                 };
@@ -358,6 +364,18 @@
                     });
                 };
 
+                vm.loadResellers = function() {
+                    $http.get('/admin/merchant-accounts/resellers').then(function(res) {
+                        if (res.data.success && res.data.data) {
+                            vm.resellers = res.data.data;
+                        } else {
+                            vm.resellers = [];
+                        }
+                    }, function() {
+                        vm.resellers = [];
+                    });
+                };
+
                 vm.openNewModal = function() {
                     vm.editingMerchantId = null;
                     vm.merchantForm = {
@@ -404,9 +422,12 @@
                         retype_password: '',
                         merchant_type: (vm.filters.merchant_type && vm.filters.merchant_type !== 'all') ? vm.filters.merchant_type : 'merchant',
                         settlement_cycle_domestic: 1,
-                        settlement_cycle_international: 7
+                        settlement_cycle_international: 7,
+                        is_reseller_merchant: false,
+                        reseller_id: ''
                     };
                     vm.loadAcquirers();
+                    vm.loadResellers();
                     var modal = new bootstrap.Modal(document.getElementById('newMerchantModal'));
                     modal.show();
                 };
@@ -414,9 +435,13 @@
                 vm.openEditModal = function(merchant) {
                     vm.editingMerchantId = merchant.id;
                     vm.loadAcquirers();
+                    vm.loadResellers();
                     $http.get('/admin/merchant-accounts/' + merchant.id).then(function(res) {
                         if (!res.data.success || !res.data.data) return;
                         var m = res.data.data;
+                        var assignedResellerId = m.reseller_id
+                            ? String(m.reseller_id)
+                            : ((m.resellers && m.resellers.length > 0) ? String(m.resellers[0].id) : '');
                         vm.merchantForm = {
                             acquirer_account_id: m.acquirer_account_id ? String(m.acquirer_account_id) : '',
                             is_partner_merchant: !!m.is_partner_merchant,
@@ -459,9 +484,11 @@
                             login_name: '',
                             password: '',
                             retype_password: '',
-                            merchant_type: (m.merchant_type === 'vendor_merchant') ? 'vendor_merchant' : 'merchant',
+                            merchant_type: 'merchant',
                             settlement_cycle_domestic: m.settlement_cycle_domestic != null ? m.settlement_cycle_domestic : 1,
-                            settlement_cycle_international: m.settlement_cycle_international != null ? m.settlement_cycle_international : 7
+                            settlement_cycle_international: m.settlement_cycle_international != null ? m.settlement_cycle_international : 7,
+                            is_reseller_merchant: !!assignedResellerId,
+                            reseller_id: assignedResellerId
                         };
                         var modal = new bootstrap.Modal(document.getElementById('newMerchantModal'));
                         modal.show();
@@ -544,6 +571,9 @@
                             addError('bank_ifsc_code', 'Please enter a valid IFSC code (e.g. HDFC0123456).');
                         }
                     }
+                    if (vm.merchantForm.is_reseller_merchant && !vm.merchantForm.reseller_id) {
+                        addError('reseller_id', 'Please select a reseller.');
+                    }
 
                     if (Object.keys(vm.formErrors).length > 0) {
                         if (typeof showToast === 'function') {
@@ -552,7 +582,7 @@
                         return;
                     }
 
-                    if (!vm.merchantForm.merchant_type || !['merchant', 'vendor_merchant'].includes(vm.merchantForm.merchant_type)) {
+                    if (!vm.merchantForm.merchant_type || !['merchant'].includes(vm.merchantForm.merchant_type)) {
                         vm.merchantForm.merchant_type = 'merchant';
                     }
 
@@ -869,6 +899,7 @@
                 };
 
                 // Initialize
+                vm.loadResellers();
                 vm.loadMerchants();
             }]);
         } catch(e) {

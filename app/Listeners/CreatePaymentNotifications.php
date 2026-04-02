@@ -117,5 +117,6 @@ class CreatePaymentNotifications
                 'meta' => $meta,
             ]);
         }
+
     }
 }

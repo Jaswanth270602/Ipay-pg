@@ -170,12 +170,9 @@ class PaymentSimulationService
         $totalDeductions = $feeAmount + $gstAmount + $otherFees;
         $netAmount = $order->amount - $totalDeductions;
 
-        $paymentLinkVendorId = optional($order->paymentLink)->vendor_id;
-
         $transaction = Transaction::create([
             'order_id' => $order->id,
             'merchant_id' => $order->merchant_id,
-            'vendor_id' => $paymentLinkVendorId,
             'txn_id' => Transaction::generateTxnId(),
             'payment_method' => $paymentData['payment_method'],
             'amount' => $order->amount,

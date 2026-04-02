@@ -76,47 +76,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   id="isVendorLink"
-                                   ng-model="plc.newLink.is_vendor_link"
-                                   ng-true-value="true"
-                                   ng-false-value="false"
-                                   ng-disabled="plc.creating">
-                            <label class="form-check-label" for="isVendorLink">
-                                <strong>This link is for a vendor</strong>
-                            </label>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Turn this on to associate the payment link with one of your approved vendor accounts.
-                        </small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="vendorSelect" class="form-label">
-                            Select Vendor
-                            <span class="text-danger" ng-show="plc.newLink.is_vendor_link">*</span>
-                            <span class="text-muted" ng-show="!plc.newLink.is_vendor_link">(enable "This link is for a vendor" first)</span>
-                        </label>
-                        <select class="form-select"
-                                id="vendorSelect"
-                                ng-model="plc.newLink.vendor_id">
-                            <option value="">-- Select Vendor --</option>
-                            @foreach(($initialVendors ?? []) as $v)
-                                <option value="{{ $v->id }}">
-                                    {{ $v->vendor_name }} ({{ $v->vendor_code }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @if(($initialVendors ?? collect())->isEmpty())
-                            <small class="text-muted d-block mt-1">
-                                No approved vendors found. Create and approve vendor bank accounts under Merchant Vendors.
-                            </small>
-                        @endif
-                    </div>
-
-                    <div class="mb-3">
                         <label for="linkExpires" class="form-label">Expires In (hours)</label>
                         <input type="number" 
                                class="form-control" 
@@ -158,30 +117,4 @@
 </div>
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    function syncVendorSelectDisabled() {
-        var checkbox = document.getElementById('isVendorLink');
-        var select = document.getElementById('vendorSelect');
-        if (!checkbox || !select) return;
-        var enabled = checkbox.checked === true;
-        select.disabled = !enabled;
-        if (!enabled) {
-            select.value = '';
-        }
-    }
-
-    var checkbox = document.getElementById('isVendorLink');
-    if (checkbox) {
-        syncVendorSelectDisabled();
-        checkbox.addEventListener('change', syncVendorSelectDisabled);
-    }
-
-    // Also resync whenever the modal is shown
-    var modalEl = document.getElementById('createLinkModal');
-    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modalEl.addEventListener('show.bs.modal', syncVendorSelectDisabled);
-    }
-});
-</script>
 @endpush

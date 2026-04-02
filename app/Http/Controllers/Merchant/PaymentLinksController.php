@@ -6,7 +6,6 @@ use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\PaymentLink;
-use App\Models\MerchantVendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -23,21 +22,7 @@ class PaymentLinksController extends Controller
     public function index(): View
     {
         $this->logInfo('Payment links page accessed', ['user_id' => auth()->id()]);
-
-        $merchant = auth()->user()?->merchant;
-        $initialVendors = collect();
-
-        if ($merchant) {
-            $initialVendors = MerchantVendor::query()
-                ->where('merchant_id', $merchant->id)
-                ->whereRaw('LOWER(status) = ?', ['approved'])
-                ->orderBy('vendor_name')
-                ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
-        }
-
-        return view('merchant.paymentlinks.index', [
-            'initialVendors' => $initialVendors,
-        ]);
+        return view('merchant.paymentlinks.index');
     }
 
     /**
@@ -87,7 +72,7 @@ class PaymentLinksController extends Controller
                 });
             }
 
-            $paymentLinks = $query->with('vendor')->paginate($perPage);
+            $paymentLinks = $query->paginate($perPage);
 
             // Format the payment links data
             $formattedLinks = collect($paymentLinks->items())->map(function ($link) {
@@ -108,8 +93,6 @@ class PaymentLinksController extends Controller
                     'test_mode' => $link->test_mode,
                     'usage_count' => $link->usage_count,
                     'max_usage' => $link->max_usage,
-                    'vendor_id' => $link->vendor_id,
-                    'vendor_name' => optional($link->vendor)->vendor_name,
                 ];
             });
 
@@ -142,32 +125,6 @@ class PaymentLinksController extends Controller
                 'message' => 'Failed to fetch payment links: ' . $e->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * Get approved vendors for the authenticated merchant (for assigning payment links).
-     */
-    public function getVendors(Request $request): JsonResponse
-    {
-        $merchant = $request->user()->merchant;
-
-        if (!$merchant) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Merchant not found',
-            ], 404);
-        }
-
-        $vendors = MerchantVendor::query()
-            ->where('merchant_id', $merchant->id)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->orderBy('vendor_name')
-            ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
-
-        return response()->json([
-            'success' => true,
-            'data' => $vendors,
-        ]);
     }
 
     /**
@@ -210,7 +167,6 @@ class PaymentLinksController extends Controller
                 'expires_in_hours' => 'nullable|integer|min:1|max:720',
                 'payment_methods' => 'nullable|array',
                 'payment_methods.*' => 'in:card,upi,netbanking,wallet',
-                'vendor_id' => 'nullable|integer',
             ]);
 
             if ($validator->fails()) {
@@ -231,7 +187,6 @@ class PaymentLinksController extends Controller
                 'title' => $request->title,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'INR',
-                'vendor_id' => $request->vendor_id ?? null,
             ]);
 
             // Calculate expiry
@@ -241,29 +196,10 @@ class PaymentLinksController extends Controller
             // Default payment methods
             $paymentMethods = $request->payment_methods ?? ['card', 'upi', 'netbanking', 'wallet'];
 
-            // Resolve vendor (optional, must belong to this merchant if provided)
-            $vendorId = null;
-            if ($request->filled('vendor_id')) {
-                $vendor = MerchantVendor::where('id', $request->vendor_id)
-                    ->where('merchant_id', $merchant->id)
-                    ->where('status', 'approved')
-                    ->first();
-
-                if (!$vendor) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Selected vendor is invalid or not approved for this merchant.',
-                    ], 422);
-                }
-
-                $vendorId = $vendor->id;
-            }
-
             // Create payment link in transaction
-            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods, $vendorId) {
+            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods) {
                 return PaymentLink::create([
                     'merchant_id' => $merchant->id,
-                    'vendor_id' => $vendorId,
                     'link_token' => PaymentLink::generateLinkToken(),
                     'title' => $request->title,
                     'description' => $request->description,

@@ -59,12 +59,18 @@ class AdminDashboardController extends Controller
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->count();
             
-            // Amount Refunded - filter through transaction relationship
+            // Amount Refunded - count completed refunds by completion timestamp when present
             $amountRefunded = Refund::where('status', 'completed')
                 ->whereHas('transaction', function($q) use ($isTestMode) {
                     $q->where('test_mode', $isTestMode);
                 })
-                ->whereBetween('created_at', [$startDateTime, $endDateTime])
+                ->where(function ($q) use ($startDateTime, $endDateTime) {
+                    $q->whereBetween('processed_at', [$startDateTime, $endDateTime])
+                      ->orWhere(function ($sub) use ($startDateTime, $endDateTime) {
+                          $sub->whereNull('processed_at')
+                              ->whereBetween('created_at', [$startDateTime, $endDateTime]);
+                      });
+                })
                 ->sum('amount');
             
             // ChargeBack Amount (from Disputes) - filter through transaction relationship

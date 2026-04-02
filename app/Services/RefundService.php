@@ -36,11 +36,10 @@ class RefundService
         User $initiator,
         ?string $reason = null,
         ?string $currency = null,
-        ?string $strategy = null,
-        ?int $vendorId = null
+        ?string $strategy = null
     ): Refund
     {
-        return DB::transaction(function () use ($transaction, $amount, $initiator, $reason, $currency, $strategy, $vendorId) {
+        return DB::transaction(function () use ($transaction, $amount, $initiator, $reason, $currency, $strategy) {
             $refundableAmount = $transaction->refundableAmount();
 
             if ($amount > $refundableAmount) {
@@ -60,7 +59,6 @@ class RefundService
                     $refund = Refund::create([
                     'transaction_id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
-                        'vendor_id' => $vendorId,
                     'refund_id' => Refund::generateRefundId(),
                     'amount' => $amount,
                     'currency' => $currencyCode,
@@ -81,7 +79,6 @@ class RefundService
                 $refund = Refund::create([
                     'transaction_id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
-                    'vendor_id' => $vendorId,
                     'refund_id' => Refund::generateRefundId(),
                     'amount' => $amount,
                     'currency' => $currencyCode,
@@ -107,7 +104,6 @@ class RefundService
             $refund = Refund::create([
                 'transaction_id' => $transaction->id,
                 'merchant_id' => $transaction->merchant_id,
-                'vendor_id' => $vendorId,
                 'refund_id' => Refund::generateRefundId(),
                 'amount' => $amount,
                 'currency' => $currencyCode,
@@ -243,8 +239,6 @@ class RefundService
             ]);
             event(new RefundCreated($refund));
 
-            // Apply vendor-side effects (in test mode we treat completion as final)
-            app(\App\Services\RefundSplitService::class)->applyForCompletedRefund($refund);
         } else {
             $refund->update(['status' => 'pending_processing']);
             $this->initiateLiveRefundProcessing($refund, $transaction);
@@ -337,6 +331,7 @@ class RefundService
             ]);
         }
     }
+
 
     protected function initiateLiveRefundProcessing(Refund $refund, Transaction $transaction): void
     {

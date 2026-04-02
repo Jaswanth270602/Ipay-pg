@@ -922,6 +922,29 @@
             <span>Dashboard</span>
         </a>
         @endif
+
+        @if(auth()->user()->isReseller())
+        <a href="{{ route('reseller.dashboard') }}" class="sidebar-menu-item {{ request()->routeIs('reseller.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Reseller Dashboard</span>
+        </a>
+        <a href="{{ route('reseller.merchants.index') }}" class="sidebar-menu-item {{ request()->routeIs('reseller.merchants.*') ? 'active' : '' }}">
+            <i class="bi bi-shop"></i>
+            <span>Merchants</span>
+        </a>
+        <a href="{{ route('reseller.transactions.index') }}" class="sidebar-menu-item {{ request()->routeIs('reseller.transactions.*') ? 'active' : '' }}">
+            <i class="bi bi-credit-card"></i>
+            <span>Transactions</span>
+        </a>
+        <a href="{{ route('reseller.earnings.index') }}" class="sidebar-menu-item {{ request()->routeIs('reseller.earnings.*') ? 'active' : '' }}">
+            <i class="bi bi-currency-rupee"></i>
+            <span>Earnings</span>
+        </a>
+        <a href="{{ route('reseller.profile.index') }}" class="sidebar-menu-item {{ request()->routeIs('reseller.profile.*') ? 'active' : '' }}">
+            <i class="bi bi-person"></i>
+            <span>Profile</span>
+        </a>
+        @endif
         
         @if(auth()->user()->isMerchant())
         <!-- Payments Dropdown -->
@@ -968,10 +991,6 @@
         <a href="{{ route('merchant.payment_links.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.payment_links.*') ? 'active' : '' }}">
             <i class="bi bi-link-45deg"></i>
             <span>Payment Links</span>
-        </a>
-        <a href="{{ route('merchant.vendors.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.vendors.*') ? 'active' : '' }}">
-            <i class="bi bi-people"></i>
-            <span>Vendors</span>
         </a>
         <a href="{{ route('merchant.subscriptions.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.subscriptions.*') || request()->routeIs('merchant.plans.*') ? 'active' : '' }}">
             <i class="bi bi-receipt"></i>
@@ -1027,12 +1046,12 @@
             <i class="bi bi-shield-check"></i>
             <span>Admin Dashboard</span>
         </a>
-        <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.merchants.*') || request()->routeIs('admin.merchant-accounts.*') || request()->routeIs('admin.merchant-registration-keys.*') || request()->routeIs('admin.merchant-vendors.*') || request()->routeIs('admin.base-rates.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+        <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.merchants.*') || request()->routeIs('admin.merchant-accounts.*') || request()->routeIs('admin.merchant-registration-keys.*') || request()->routeIs('admin.base-rates.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
             <i class="bi bi-building"></i>
             <span>Merchants</span>
             <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
         </div>
-        <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.merchants.*') || request()->routeIs('admin.merchant-accounts.*') || request()->routeIs('admin.merchant-registration-keys.*') || request()->routeIs('admin.merchant-vendors.*') || request()->routeIs('admin.base-rates.*') ? 'block' : 'none' }};">
+        <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.merchants.*') || request()->routeIs('admin.merchant-accounts.*') || request()->routeIs('admin.merchant-registration-keys.*') || request()->routeIs('admin.base-rates.*') ? 'block' : 'none' }};">
             <a href="{{ route('admin.merchants.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.merchants.*') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-list-ul"></i>
                 <span>Merchants List</span>
@@ -1044,10 +1063,6 @@
             <a href="{{ route('admin.merchant-registration-keys.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.merchant-registration-keys.*') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-key"></i>
                 <span>Merchant Registration Keys</span>
-            </a>
-            <a href="{{ route('admin.merchant-vendors.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.merchant-vendors.*') ? 'active' : '' }}" style="padding-left: 50px;">
-                <i class="bi bi-people"></i>
-                <span>Merchant Vendors</span>
             </a>
             <a href="{{ route('admin.base-rates.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.base-rates.*') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-percent"></i>
@@ -1334,12 +1349,12 @@
         </div>
 
         <!-- User Settings Dropdown -->
-        <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
+        <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.resellers.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
             <i class="bi bi-people"></i>
             <span>User Settings</span>
             <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
         </div>
-        <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') ? 'block' : 'none' }};">
+        <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.users.*') || request()->routeIs('admin.roles.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.resellers.*') ? 'block' : 'none' }};">
             <a href="{{ route('admin.users.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-person"></i>
                 <span>Users</span>
@@ -1351,6 +1366,10 @@
             <a href="#" class="sidebar-menu-item sidebar-submenu-item" style="padding-left: 50px;">
                 <i class="bi bi-shield-check"></i>
                 <span>Permissions</span>
+            </a>
+            <a href="{{ route('admin.resellers.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.resellers.*') ? 'active' : '' }}" style="padding-left: 50px;">
+                <i class="bi bi-people"></i>
+                <span>Resellers</span>
             </a>
         </div>
         @endif
@@ -1477,6 +1496,50 @@
                     <li>
                         <a class="dropdown-item profile-menu-item" href="{{ route('admin.dashboard') }}">
                             <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{{ route('logout') }}" method="POST" class="d-inline w-100 logout-form">
+                            @csrf
+                            <button type="submit" class="dropdown-item profile-menu-item logout-item">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            @elseif(auth()->user()->isReseller())
+            <!-- Reseller Profile Dropdown -->
+            <div class="dropdown profile-dropdown">
+                <button class="btn btn-link text-decoration-none d-flex align-items-center gap-2 profile-dropdown-toggle" type="button" id="resellerProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="color: #1f2937; padding: 8px 12px;">
+                    <div class="profile-avatar">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    </div>
+                    <span class="profile-name">{{ auth()->user()->name }}</span>
+                    <i class="bi bi-chevron-down" style="font-size: 12px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end profile-dropdown-menu" aria-labelledby="resellerProfileDropdown">
+                    <li class="profile-dropdown-header">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="profile-avatar-large">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ auth()->user()->name }}</div>
+                                <div class="small text-muted">{{ auth()->user()->email }}</div>
+                            </div>
+                        </div>
+                        @if(auth()->user()->reseller)
+                        <div class="merchant-id-badge">
+                            <i class="bi bi-person-badge"></i> Reseller ID: <strong>{{ auth()->user()->reseller->reseller_unique_id }}</strong>
+                        </div>
+                        @endif
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item profile-menu-item" href="{{ route('reseller.profile.index') }}">
+                            <i class="bi bi-eye"></i> View details
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>

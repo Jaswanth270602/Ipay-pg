@@ -32,17 +32,13 @@ console.log('=== Payment Links Controller Script Loaded ===');
                 vm.filters = { status: 'all', search: '' };
                 vm.loading = false;
                 vm.creating = false;
-                vm.loadingVendors = false;
-                vm.vendors = window.ipayInitialVendors || [];
                 vm.newLink = { 
                     title: '', 
                     description: '', 
                     amount: '', 
                     currency: 'INR', 
                     allow_partial_payment: false,
-                    expires_in_hours: 24,
-                    is_vendor_link: false,
-                    vendor_id: null
+                    expires_in_hours: 24
                 };
                 vm.toastMessage = '';
                 vm.toastType = 'success';
@@ -58,9 +54,7 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         amount: '', 
                         currency: 'INR', 
                         allow_partial_payment: false,
-                        expires_in_hours: 24,
-                        is_vendor_link: false,
-                        vendor_id: null
+                        expires_in_hours: 24
                     };
                     
                     // Reset DOM inputs immediately
@@ -70,8 +64,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     var expiresInput = document.getElementById('linkExpires');
                     var currencySelect = document.getElementById('linkCurrency');
                     var partialPaymentCheckbox = document.getElementById('allowPartialPayment');
-                    var vendorLinkCheckbox = document.getElementById('isVendorLink');
-                    var vendorSelect = document.getElementById('vendorSelect');
                     
                     if (titleInput) titleInput.value = '';
                     if (amountInput) amountInput.value = '';
@@ -79,8 +71,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     if (expiresInput) expiresInput.value = '24';
                     if (currencySelect) currencySelect.value = 'INR';
                     if (partialPaymentCheckbox) partialPaymentCheckbox.checked = false;
-                    if (vendorLinkCheckbox) vendorLinkCheckbox.checked = false;
-                    if (vendorSelect) vendorSelect.value = '';
                     
                     // Force scope update
                     $timeout(function() {
@@ -213,14 +203,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     var partialPaymentCheckbox = document.getElementById('allowPartialPayment');
                     vm.newLink.allow_partial_payment = partialPaymentCheckbox ? partialPaymentCheckbox.checked : false;
 
-                    var vendorLinkCheckbox = document.getElementById('isVendorLink');
-                    vm.newLink.is_vendor_link = vendorLinkCheckbox ? vendorLinkCheckbox.checked : false;
-
-                    var vendorSelect = document.getElementById('vendorSelect');
-                    vm.newLink.vendor_id = (vm.newLink.is_vendor_link && vendorSelect && vendorSelect.value)
-                        ? parseInt(vendorSelect.value, 10)
-                        : null;
-                    
                     console.log('After reading form values:', vm.newLink);
                     
                     // Validate
@@ -237,11 +219,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     var amount = parseFloat(vm.newLink.amount);
                     if (isNaN(amount) || amount <= 0) {
                         vm.showToast('Please enter a valid amount greater than 0', 'error');
-                        return;
-                    }
-
-                    if (vm.newLink.is_vendor_link && (!vm.newLink.vendor_id || isNaN(vm.newLink.vendor_id))) {
-                        vm.showToast('Please select a vendor for this link', 'error');
                         return;
                     }
 
@@ -271,10 +248,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         expires_in_hours: parseInt(vm.newLink.expires_in_hours) || 24,
                         payment_methods: ['card', 'upi', 'netbanking', 'wallet']
                     };
-
-                    if (vm.newLink.is_vendor_link && vm.newLink.vendor_id) {
-                        payload.vendor_id = vm.newLink.vendor_id;
-                    }
 
                     // HTTP Request
                     console.log('Sending POST request with payload:', payload);
@@ -372,19 +345,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         $timeout(function() {
                             $scope.$apply();
                         }, 0);
-                    });
-                };
-
-                vm.loadVendors = function() {
-                    vm.loadingVendors = true;
-                    $http.get('/merchant/payment-links/vendors', { timeout: 15000 }).then(function(response) {
-                        if (response && response.data && response.data.success && Array.isArray(response.data.data)) {
-                            vm.vendors = response.data.data;
-                        }
-                        vm.loadingVendors = false;
-                    }, function() {
-                        // Keep existing vendors (from server-side bootstrap) on error
-                        vm.loadingVendors = false;
                     });
                 };
 
@@ -566,9 +526,6 @@ console.log('=== Payment Links Controller Script Loaded ===');
                 }, 1000);
                 
                 // Initial load
-                if (!vm.vendors || !vm.vendors.length) {
-                    vm.loadVendors();
-                }
                 vm.loadPaymentLinks();
             }]);
         } catch(e) {

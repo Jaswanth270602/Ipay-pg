@@ -505,9 +505,6 @@ class AcquirerCallbackController extends Controller
         ]);
 
         event(new \App\Events\RefundCreated($refund));
-
-        // Apply split + vendor ledger effects once refund is fully completed.
-        app(\App\Services\RefundSplitService::class)->applyForCompletedRefund($refund);
     }
 
     /**

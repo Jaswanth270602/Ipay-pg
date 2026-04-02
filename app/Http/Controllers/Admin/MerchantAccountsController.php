@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\Merchant;
+use App\Models\Reseller;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AcquirerAccount;
@@ -101,6 +102,17 @@ class MerchantAccountsController extends Controller
             if ($request->has('filter_challan_urn') && $request->get('filter_challan_urn')) {
                 $query->where('challan_urn', 'like', "%{$request->get('filter_challan_urn')}%");
             }
+            if ($request->filled('filter_reseller_id')) {
+                $resellerFilter = $request->get('filter_reseller_id');
+                if ($resellerFilter === 'none') {
+                    $query->whereDoesntHave('resellers');
+                } elseif (is_numeric($resellerFilter)) {
+                    $rid = (int) $resellerFilter;
+                    $query->whereHas('resellers', function ($q) use ($rid) {
+                        $q->where('resellers.id', $rid);
+                    });
+                }
+            }
 
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
@@ -111,11 +123,31 @@ class MerchantAccountsController extends Controller
                 $query->latest();
             }
 
-            $merchants = $query->with('acquirerAccount')->paginate($perPage);
+            $merchants =             $query->with(['acquirerAccount', 'resellers', 'reseller'])->paginate($perPage);
 
             // TC_03: mask bank details in list payload (full values via show() for edit)
             $merchants->getCollection()->transform(function (Merchant $merchant) {
-                return SensitiveDataMasker::maskMerchantAttributes($merchant);
+                $data = SensitiveDataMasker::maskMerchantAttributes($merchant);
+                $data['reseller'] = $merchant->relationLoaded('reseller') && $merchant->reseller
+                    ? [
+                        'id' => $merchant->reseller->id,
+                        'name' => $merchant->reseller->name,
+                        'company_name' => $merchant->reseller->company_name,
+                        'email' => $merchant->reseller->email,
+                    ]
+                    : null;
+                $data['resellers'] = $merchant->relationLoaded('resellers')
+                    ? $merchant->resellers->map(function (Reseller $r) {
+                        return [
+                            'id' => $r->id,
+                            'name' => $r->name,
+                            'company_name' => $r->company_name,
+                            'email' => $r->email,
+                        ];
+                    })->values()->all()
+                    : [];
+
+                return $data;
             });
 
             $this->logDebug('Admin merchant accounts retrieved', [
@@ -167,10 +199,31 @@ class MerchantAccountsController extends Controller
         }
     }
 
+    public function getResellersForSelect(): JsonResponse
+    {
+        try {
+            $resellers = Reseller::query()
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'company_name']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $resellers,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load resellers',
+                'data' => [],
+            ], 500);
+        }
+    }
+
     public function show($id): JsonResponse
     {
         try {
-            $merchant = Merchant::with('acquirerAccount')->findOrFail($id);
+            $merchant = Merchant::with(['acquirerAccount', 'resellers', 'reseller'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $merchant,
@@ -210,6 +263,8 @@ class MerchantAccountsController extends Controller
                 'bank_branch' => 'required|string',
                 'bank_ifsc_code' => 'required|string',
                 'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
+                'is_reseller_merchant' => 'nullable|boolean',
+                'reseller_id' => 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id',
                 'login_name' => 'nullable|email|unique:users,email',
                 'password' => 'nullable|string|min:12|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/',
                 'retype_password' => 'nullable|same:password',
@@ -272,7 +327,7 @@ class MerchantAccountsController extends Controller
                 'bank_branch' => $request->bank_branch,
                 'bank_ifsc_code' => $request->bank_ifsc_code,
                 'is_dummy_account' => $request->boolean('is_dummy_account'),
-                'merchant_type' => in_array($request->get('merchant_type'), ['merchant', 'vendor_merchant']) ? $request->get('merchant_type') : 'merchant',
+                'merchant_type' => 'merchant',
                 'approval_status' => 'not_approved',
                 'status' => 'inactive',
                 'registration_date' => now(),
@@ -281,9 +336,22 @@ class MerchantAccountsController extends Controller
                 'settlement_cycle_domestic' => $request->get('settlement_cycle_domestic', 1),
                 'settlement_cycle_international' => $request->get('settlement_cycle_international', 7),
                 'acquirer_account_id' => $request->filled('acquirer_account_id') ? (int) $request->acquirer_account_id : null,
+                'reseller_id' => $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
+                    ? (int) $request->reseller_id
+                    : null,
             ]);
 
             $merchant->acquirerAccounts()->sync($request->filled('acquirer_account_id') ? [(int) $request->acquirer_account_id] : []);
+            if ($request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
+                $merchant->resellers()->sync([
+                    (int) $request->reseller_id => [
+                        'status' => 'active',
+                        'assigned_by' => auth()->id(),
+                    ],
+                ]);
+            } else {
+                $merchant->resellers()->detach();
+            }
 
             // Always create user login for merchant
             $merchantRole = Role::where('name', 'merchant')->first();
@@ -339,7 +407,7 @@ class MerchantAccountsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant account created successfully',
-                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh()),
+                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh(['acquirerAccount', 'reseller'])),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -391,6 +459,8 @@ class MerchantAccountsController extends Controller
                 'bank_branch' => 'required|string',
                 'bank_ifsc_code' => 'required|string',
                 'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
+                'is_reseller_merchant' => 'nullable|boolean',
+                'reseller_id' => 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id',
             ]);
 
             if ($validator->fails()) {
@@ -439,20 +509,33 @@ class MerchantAccountsController extends Controller
             $merchant->bank_branch = $request->bank_branch;
             $merchant->bank_ifsc_code = $request->bank_ifsc_code;
             $merchant->is_dummy_account = $request->boolean('is_dummy_account');
-            $merchant->merchant_type = in_array($request->get('merchant_type'), ['merchant', 'vendor_merchant']) ? $request->get('merchant_type') : 'merchant';
+            $merchant->merchant_type = 'merchant';
             $merchant->settlement_cycle_domestic = $request->get('settlement_cycle_domestic', 1);
             $merchant->settlement_cycle_international = $request->get('settlement_cycle_international', 7);
             $merchant->acquirer_account_id = $request->filled('acquirer_account_id') ? (int) $request->acquirer_account_id : null;
+            $merchant->reseller_id = $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
+                ? (int) $request->reseller_id
+                : null;
             $merchant->save();
 
             $merchant->acquirerAccounts()->sync($request->filled('acquirer_account_id') ? [(int) $request->acquirer_account_id] : []);
+            if ($request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
+                $merchant->resellers()->sync([
+                    (int) $request->reseller_id => [
+                        'status' => 'active',
+                        'assigned_by' => auth()->id(),
+                    ],
+                ]);
+            } else {
+                $merchant->resellers()->detach();
+            }
 
             $this->logInfo('Merchant account updated', ['merchant_id' => $merchant->id]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Merchant updated successfully',
-                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh(['acquirerAccount'])),
+                'data' => SensitiveDataMasker::maskMerchantAttributes($merchant->fresh(['acquirerAccount', 'reseller'])),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -584,6 +667,7 @@ class MerchantAccountsController extends Controller
             $duplicate->approval_status = 'not_approved';
             $duplicate->status = 'inactive';
             $duplicate->registration_date = now();
+            $duplicate->reseller_id = null;
             $duplicate->save();
 
             $this->logInfo('Merchant account duplicated', [

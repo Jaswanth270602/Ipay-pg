@@ -19,6 +19,7 @@ class User extends Authenticatable
         'password',
         'role_id',
         'merchant_id',
+        'reseller_id',
         'status',
         'timezone',
         'last_login_at',
@@ -57,6 +58,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the reseller associated with the user.
+     */
+    public function reseller(): BelongsTo
+    {
+        return $this->belongsTo(Reseller::class);
+    }
+
+    /**
      * Get audit logs created by this user.
      */
     public function auditLogs(): HasMany
@@ -78,6 +87,14 @@ class User extends Authenticatable
     public function isMerchant(): bool
     {
         return $this->role && $this->role->name === 'merchant';
+    }
+
+    /**
+     * Check if user is reseller.
+     */
+    public function isReseller(): bool
+    {
+        return $this->role && $this->role->name === 'reseller';
     }
 
     /**

@@ -67,6 +67,8 @@
                             <th>Bank Code</th>
                             <th>Bank Description</th>
                             <th>Sector</th>
+                            <th>Merchant Email</th>
+                            <th>Reseller Email</th>
                             <th>Currency</th>
                             <th>Fixed Fee</th>
                             <th>Percent Fee</th>
@@ -74,6 +76,9 @@
                             <th>Max Amount</th>
                             <th>Min Share</th>
                             <th>Max Share</th>
+                            <th>Admin %</th>
+                            <th>Reseller %</th>
+                            <th>Merchant %</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -164,6 +169,8 @@
                                     <option value="OTT / Digital Content">OTT / Digital Content</option>
                                 </select>
                             </th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.merchant_email" ng-change="brc.applyFilters()" placeholder=""></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.reseller_email" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th>
                                 <select class="form-select form-select-sm" ng-model="brc.filters.currency" ng-change="brc.applyFilters()">
                                     <option value="all">All</option>
@@ -186,6 +193,9 @@
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.max_amount" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.min_share" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.max_share" ng-change="brc.applyFilters()" placeholder=""></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.admin_share_pct" ng-change="brc.applyFilters()" placeholder=""></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.reseller_share_pct" ng-change="brc.applyFilters()" placeholder=""></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.merchant_share_pct" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th>
                                 <select class="form-select form-select-sm" ng-model="brc.filters.is_active" ng-change="brc.applyFilters()">
                                     <option value="">All</option>
@@ -205,6 +215,8 @@
                             <td>@{{ rate.bank_code || '-' }}</td>
                             <td>@{{ rate.bank_description || '-' }}</td>
                             <td>@{{ rate.sector || '-' }}</td>
+                            <td>@{{ rate.merchant_email || '-' }}</td>
+                            <td>@{{ rate.reseller_email || '-' }}</td>
                             <td>@{{ rate.currency || '-' }}</td>
                             <td>@{{ rate.flat_fee }}</td>
                             <td>@{{ rate.percentage_fee }}</td>
@@ -212,6 +224,9 @@
                             <td>@{{ rate.max_amount || '-' }}</td>
                             <td>@{{ rate.min_share || '-' }}</td>
                             <td>@{{ rate.max_share || '-' }}</td>
+                            <td>@{{ rate.admin_share_pct || '-' }}</td>
+                            <td>@{{ rate.reseller_share_pct || '-' }}</td>
+                            <td>@{{ rate.merchant_share_pct || '-' }}</td>
                             <td>
                                 <span class="badge" ng-class="rate.is_active ? 'bg-success' : 'bg-secondary'">
                                     @{{ rate.is_active ? 'Active' : 'Inactive' }}
@@ -227,7 +242,7 @@
                             </td>
                         </tr>
                         <tr ng-if="brc.rates.length === 0 && !brc.loading">
-                            <td colspan="16" class="text-center text-muted py-4">
+                            <td colspan="21" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox" style="font-size: 48px;"></i>
                                 <p class="mt-2">No base rates found</p>
                             </td>
@@ -269,39 +284,50 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="baseRateForm">
+                    <form id="baseRateForm" novalidate>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Rate Type <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="brc.rateForm.rate_type" ng-change="brc.onRateTypeChange()" required>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('rate_type')}" ng-model="brc.rateForm.rate_type" ng-change="brc.onRateTypeChange(); brc.validate('rate_type')" ng-blur="brc.validate('rate_type')" required>
                                     <option value="">Select Type</option>
                                     <option value="bank">Bank</option>
                                     <option value="merchant">Merchant</option>
                                     <option value="receiver">Receiver</option>
                                     <option value="pricer">Pricer</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('rate_type')">@{{ brc.firstError('rate_type') }}</div>
                             </div>
                             <div class="col-md-6" ng-if="brc.rateForm.rate_type">
                                 <label class="form-label">Entity <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="brc.rateForm.entity_id" ng-disabled="!brc.entities.length" required>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('entity_id')}" ng-model="brc.rateForm.entity_id" ng-disabled="!brc.entities.length" ng-change="brc.validate('entity_id')" ng-blur="brc.validate('entity_id')" required>
                                     <option value="">Select @{{ brc.rateForm.rate_type }}</option>
                                     <option ng-repeat="entity in brc.entities" value="@{{ entity.id }}">@{{ entity.name }}</option>
                                 </select>
                                 <small class="text-muted" ng-if="!brc.entities.length">Loading entities...</small>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('entity_id')">@{{ brc.firstError('entity_id') }}</div>
+                            </div>
+                            <div class="col-md-6" ng-if="brc.rateForm.rate_type === 'merchant'">
+                                <label class="form-label">Reseller</label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('reseller_id')}" ng-model="brc.rateForm.reseller_id" ng-change="brc.validate('reseller_id')" ng-blur="brc.validate('reseller_id')">
+                                    <option value="">Direct merchant (no reseller)</option>
+                                    <option ng-repeat="reseller in brc.resellers" value="@{{ reseller.id }}">@{{ reseller.name }} (@{{ reseller.email }})</option>
+                                </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('reseller_id')">@{{ brc.firstError('reseller_id') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="brc.rateForm.payment_method" required>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('payment_method')}" ng-model="brc.rateForm.payment_method" ng-change="brc.validate('payment_method')" ng-blur="brc.validate('payment_method')" required>
                                     <option value="">Select Method</option>
                                     <option value="card">Card</option>
                                     <option value="upi">UPI</option>
                                     <option value="netbanking">Net Banking</option>
                                     <option value="wallet">Wallet</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('payment_method')">@{{ brc.firstError('payment_method') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Payment Mode</label>
-                                <select class="form-select" ng-model="brc.rateForm.payment_mode">
+                                <label class="form-label">Payment Mode <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('payment_mode')}" ng-model="brc.rateForm.payment_mode" ng-change="brc.validate('payment_mode')" ng-blur="brc.validate('payment_mode')">
                                     <option value="">Select Payment Mode</option>
                                     <option value="Credit Card">Credit Card</option>
                                     <option value="Commercial Credit Card">Commercial Credit Card</option>
@@ -327,22 +353,25 @@
                                     <option value="PayLater">PayLater / BNPL</option>
                                     <option value="NACH">NACH / eMandate</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('payment_mode')">@{{ brc.firstError('payment_mode') }}</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Service Type <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="brc.rateForm.service_type" required>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('service_type')}" ng-model="brc.rateForm.service_type" ng-change="brc.validate('service_type')" ng-blur="brc.validate('service_type')" required>
                                     <option value="payment">Payment</option>
                                     <option value="refund">Refund</option>
                                     <option value="chargeback">Chargeback</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('service_type')">@{{ brc.firstError('service_type') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
-                                <select class="form-select" ng-model="brc.rateForm.transaction_type" required>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('transaction_type')}" ng-model="brc.rateForm.transaction_type" ng-change="brc.validate('transaction_type')" ng-blur="brc.validate('transaction_type')" required>
                                     <option value="domestic">Domestic</option>
                                     <option value="international">International</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('transaction_type')">@{{ brc.firstError('transaction_type') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team Id</label>
@@ -363,8 +392,8 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Sector</label>
-                                <select class="form-select" ng-model="brc.rateForm.sector">
+                                <label class="form-label">Sector <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('sector')}" ng-model="brc.rateForm.sector" ng-change="brc.validate('sector')" ng-blur="brc.validate('sector')">
                                     <option value="">Select Sector</option>
                                     <option value="B2B">B2B</option>
                                     <option value="B2C">B2C</option>
@@ -403,11 +432,12 @@
                                     <option value="Gaming">Gaming</option>
                                     <option value="OTT / Digital Content">OTT / Digital Content</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('sector')">@{{ brc.firstError('sector') }}</div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Currency</label>
-                                <select class="form-select" ng-model="brc.rateForm.currency">
+                                <label class="form-label">Currency <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('currency')}" ng-model="brc.rateForm.currency" ng-change="brc.validate('currency')" ng-blur="brc.validate('currency')">
                                     <option value="">Select Currency</option>
                                     <option value="INR">INR</option>
                                     <option value="AED">AED</option>
@@ -421,15 +451,18 @@
                                     <option value="CDF">CDF</option>
                                     <option value="ZMW">ZMW</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('currency')">@{{ brc.firstError('currency') }}</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Percentage Fee (%) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.percentage_fee" step="0.001" min="0" max="100" required>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('percentage_fee')}" ng-model="brc.rateForm.percentage_fee" ng-change="brc.validate('percentage_fee')" ng-blur="brc.validate('percentage_fee')" step="0.001" min="0" max="100" required>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('percentage_fee')">@{{ brc.firstError('percentage_fee') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Flat Fee (INR) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.flat_fee" step="0.01" min="0" required>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('flat_fee')}" ng-model="brc.rateForm.flat_fee" ng-change="brc.validate('flat_fee')" ng-blur="brc.validate('flat_fee')" step="0.01" min="0" required>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('flat_fee')">@{{ brc.firstError('flat_fee') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Min Amount</label>
@@ -447,24 +480,44 @@
                                 <label class="form-label">Max Share (%)</label>
                                 <input type="number" class="form-control" ng-model="brc.rateForm.max_share" step="0.0001" min="0" max="100">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">GST Percentage (%)</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.gst_percentage" step="0.01" min="0" max="100" value="18">
+                            <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
+                                <label class="form-label">Admin Share (%)</label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('admin_share_pct')}" ng-model="brc.rateForm.admin_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('admin_share_pct')">@{{ brc.firstError('admin_share_pct') }}</div>
+                            </div>
+                            <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
+                                <label class="form-label">Reseller Share (%)</label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('reseller_share_pct')}" ng-model="brc.rateForm.reseller_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('reseller_share_pct')">@{{ brc.firstError('reseller_share_pct') }}</div>
+                            </div>
+                            <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
+                                <label class="form-label">Merchant Share (%)</label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('merchant_share_pct')}" ng-model="brc.rateForm.merchant_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('merchant_share_pct')">@{{ brc.firstError('merchant_share_pct') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Status</label>
-                                <select class="form-select" ng-model="brc.rateForm.is_active">
+                                <label class="form-label">GST Percentage (%) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('gst_percentage')}" ng-model="brc.rateForm.gst_percentage" ng-change="brc.validate('gst_percentage')" ng-blur="brc.validate('gst_percentage')" step="0.01" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('gst_percentage')">@{{ brc.firstError('gst_percentage') }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('is_active')}" ng-model="brc.rateForm.is_active" ng-change="brc.validate('is_active')" ng-blur="brc.validate('is_active')">
+                                    <option value="">Select Status</option>
                                     <option value="true">Active</option>
                                     <option value="false">Inactive</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('is_active')">@{{ brc.firstError('is_active') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Effective From</label>
-                                <input type="date" class="form-control" ng-model="brc.rateForm.effective_from">
+                                <label class="form-label">Effective From <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" ng-class="{'is-invalid': brc.hasError('effective_from')}" ng-model="brc.rateForm.effective_from" ng-change="brc.validate('effective_from')" ng-blur="brc.validate('effective_from')">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('effective_from')">@{{ brc.firstError('effective_from') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Effective To</label>
-                                <input type="date" class="form-control" ng-model="brc.rateForm.effective_to">
+                                <input type="date" class="form-control" ng-class="{'is-invalid': brc.hasError('effective_to')}" ng-model="brc.rateForm.effective_to" ng-change="brc.validate('effective_to')" ng-blur="brc.validate('effective_to')">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('effective_to')">@{{ brc.firstError('effective_to') }}</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Notes</label>
@@ -506,6 +559,9 @@
                 vm.saving = false;
                 vm.isEditing = false;
                 vm.entities = [];
+                vm.resellers = [];
+                vm.validationErrors = {};
+                vm.touched = {};
                 vm.filters = {
                     team_id: '',
                     team_name: '',
@@ -520,6 +576,11 @@
                     max_amount: '',
                     min_share: '',
                     max_share: '',
+                    merchant_email: '',
+                    reseller_email: '',
+                    admin_share_pct: '',
+                    reseller_share_pct: '',
+                    merchant_share_pct: '',
                     is_active: ''
                 };
 
@@ -543,11 +604,133 @@
                     max_amount: null,
                     min_share: null,
                     max_share: null,
+                    reseller_id: '',
+                    admin_share_pct: null,
+                    reseller_share_pct: null,
+                    merchant_share_pct: null,
                     gst_percentage: 18,
                     is_active: true,
                     effective_from: null,
                     effective_to: null,
                     notes: ''
+                };
+
+                vm.firstError = function(field) {
+                    return vm.validationErrors[field] && vm.validationErrors[field].length ? vm.validationErrors[field][0] : '';
+                };
+                vm.hasError = function(field) {
+                    return !!vm.firstError(field);
+                };
+                vm.setTouched = function(field) {
+                    vm.touched[field] = true;
+                };
+
+                vm.validate = function(field) {
+                    vm.setTouched(field);
+                    vm.validateForm(false);
+                };
+
+                vm.validateShares = function() {
+                    vm.setTouched('admin_share_pct');
+                    vm.setTouched('reseller_share_pct');
+                    vm.setTouched('merchant_share_pct');
+                    vm.validateForm(false);
+                };
+
+                vm.validateForm = function(hard) {
+                    // hard=true used before submit; soft validation otherwise.
+                    var e = {};
+
+                    function req(field, msg) {
+                        if (hard) vm.setTouched(field);
+                        if (!vm.touched[field] && !hard) return;
+                        var v = vm.rateForm[field];
+                        if (v === null || v === undefined || String(v).trim() === '') {
+                            e[field] = [msg];
+                        }
+                    }
+
+                    req('rate_type', 'Rate Type is required.');
+                    req('entity_id', 'Entity is required.');
+                    req('payment_method', 'Payment Method is required.');
+                    req('payment_mode', 'Payment Mode is required.');
+                    req('service_type', 'Service Type is required.');
+                    req('transaction_type', 'Transaction Type is required.');
+                    req('sector', 'Sector is required.');
+                    req('currency', 'Currency is required.');
+                    req('percentage_fee', 'Percentage Fee is required.');
+                    req('flat_fee', 'Flat Fee is required.');
+                    req('gst_percentage', 'GST Percentage is required.');
+                    req('is_active', 'Status is required.');
+                    req('effective_from', 'Effective From is required.');
+
+                    if (vm.rateForm.payment_method === 'card' && (!vm.rateForm.payment_mode || String(vm.rateForm.payment_mode).trim() === '')) {
+                        e.payment_mode = ['Payment Mode is required for Card payments.'];
+                    }
+
+                    function num(field, min, max, msg) {
+                        if (!vm.touched[field] && !hard) return;
+                        var v = vm.rateForm[field];
+                        if (v === null || v === undefined || v === '') return;
+                        var n = parseFloat(v);
+                        if (isNaN(n)) {
+                            e[field] = [msg || 'Must be numeric.'];
+                            return;
+                        }
+                        if (min !== null && n < min) e[field] = ['Must be ≥ ' + min + '.'];
+                        if (max !== null && n > max) e[field] = ['Must be ≤ ' + max + '.'];
+                    }
+
+                    num('percentage_fee', 0, 100, 'Percentage Fee must be numeric.');
+                    num('flat_fee', 0, null, 'Flat Fee must be numeric.');
+                    num('gst_percentage', 0, 100, 'GST Percentage must be between 0–100.');
+                    num('min_amount', 0, null, 'Min Amount must be numeric.');
+                    num('max_amount', 0, null, 'Max Amount must be numeric.');
+                    num('min_share', 0, 100, 'Min Share must be between 0–100.');
+                    num('max_share', 0, 100, 'Max Share must be between 0–100.');
+
+                    if (vm.rateForm.min_amount !== null && vm.rateForm.max_amount !== null && vm.rateForm.min_amount !== '' && vm.rateForm.max_amount !== '') {
+                        var a = parseFloat(vm.rateForm.min_amount);
+                        var b = parseFloat(vm.rateForm.max_amount);
+                        if (!isNaN(a) && !isNaN(b) && a > b) {
+                            e.min_amount = ['Min Amount must be less than or equal to Max Amount.'];
+                        }
+                    }
+
+                    // Shares are required and must sum to 100
+                    req('admin_share_pct', 'Admin Share (%) is required.');
+                    req('reseller_share_pct', 'Reseller Share (%) is required.');
+                    req('merchant_share_pct', 'Merchant Share (%) is required.');
+                    num('admin_share_pct', 0, 100, 'Admin Share must be between 0–100.');
+                    num('reseller_share_pct', 0, 100, 'Reseller Share must be between 0–100.');
+                    num('merchant_share_pct', 0, 100, 'Merchant Share must be between 0–100.');
+
+                    var ad = parseFloat(vm.rateForm.admin_share_pct || 0);
+                    var rs = parseFloat(vm.rateForm.reseller_share_pct || 0);
+                    var mc = parseFloat(vm.rateForm.merchant_share_pct || 0);
+                    if (!isNaN(ad) && !isNaN(rs) && !isNaN(mc)) {
+                        if (Math.abs((ad + rs + mc) - 100) > 0.0001) {
+                            e.admin_share_pct = ['Total share must equal 100%.'];
+                            e.reseller_share_pct = ['Total share must equal 100%.'];
+                            e.merchant_share_pct = ['Total share must equal 100%.'];
+                        }
+                    }
+
+                    if ((!vm.rateForm.reseller_id || vm.rateForm.reseller_id === '') && (parseFloat(vm.rateForm.reseller_share_pct || 0) > 0)) {
+                        e.reseller_id = ['Select a reseller or set Reseller Share to 0%.'];
+                    }
+
+                    // Effective To >= Effective From
+                    if (vm.rateForm.effective_to && vm.rateForm.effective_from) {
+                        var from = new Date(vm.rateForm.effective_from);
+                        var to = new Date(vm.rateForm.effective_to);
+                        if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && to < from) {
+                            e.effective_to = ['Effective To must be greater than or equal to Effective From.'];
+                        }
+                    }
+
+                    vm.validationErrors = e;
+                    return Object.keys(e).length === 0;
                 };
 
                 vm.loadRates = function() {
@@ -606,9 +789,22 @@
                         max_amount: '',
                         min_share: '',
                         max_share: '',
+                        merchant_email: '',
+                        reseller_email: '',
+                        admin_share_pct: '',
+                        reseller_share_pct: '',
+                        merchant_share_pct: '',
                         is_active: ''
                     };
                     vm.applyFilters();
+                };
+
+                vm.loadResellers = function() {
+                    $http.get('/admin/merchant-accounts/resellers').then(function(response) {
+                        vm.resellers = (response.data && response.data.data) ? response.data.data : [];
+                    }, function() {
+                        vm.resellers = [];
+                    });
                 };
 
                 vm.resetView = function() {
@@ -626,10 +822,21 @@
                         vm.entities = [];
                         vm.rateForm.entity_id = null;
                     }
+
+                    if (vm.rateForm.rate_type === 'merchant') {
+                        vm.loadResellers();
+                    } else {
+                        vm.rateForm.reseller_id = '';
+                        vm.rateForm.admin_share_pct = null;
+                        vm.rateForm.reseller_share_pct = null;
+                        vm.rateForm.merchant_share_pct = null;
+                    }
                 };
 
                 vm.openNewModal = function() {
                     vm.isEditing = false;
+                    vm.validationErrors = {};
+                    vm.touched = {};
                     vm.rateForm = {
                         rate_type: '',
                         entity_type: '',
@@ -650,6 +857,10 @@
                         max_amount: null,
                         min_share: null,
                         max_share: null,
+                        reseller_id: '',
+                        admin_share_pct: 100,
+                        reseller_share_pct: 0,
+                        merchant_share_pct: 0,
                         gst_percentage: 18,
                         is_active: true,
                         effective_from: null,
@@ -663,6 +874,8 @@
 
                 vm.editRate = function(rate) {
                     vm.isEditing = true;
+                    vm.validationErrors = {};
+                    vm.touched = {};
                     vm.rateForm = {
                         id: rate.id,
                         rate_type: rate.rate_type,
@@ -684,6 +897,10 @@
                         max_amount: rate.max_amount,
                         min_share: rate.min_share,
                         max_share: rate.max_share,
+                        reseller_id: rate.reseller_id ? String(rate.reseller_id) : '',
+                        admin_share_pct: rate.admin_share_pct != null ? parseFloat(rate.admin_share_pct) : null,
+                        reseller_share_pct: rate.reseller_share_pct != null ? parseFloat(rate.reseller_share_pct) : null,
+                        merchant_share_pct: rate.merchant_share_pct != null ? parseFloat(rate.merchant_share_pct) : null,
                         gst_percentage: parseFloat(rate.gst_percentage || 18),
                         is_active: rate.is_active,
                         effective_from: rate.effective_from,
@@ -696,6 +913,14 @@
                 };
 
                 vm.saveRate = function() {
+                    if (!vm.validateForm(true)) {
+                        if (typeof showToast === 'function') {
+                            showToast('Validation failed', 'error');
+                        } else {
+                            alert('Validation failed');
+                        }
+                        return;
+                    }
                     if (!vm.rateForm.rate_type || !vm.rateForm.payment_method || !vm.rateForm.service_type) {
                         if (typeof showToast === 'function') {
                             showToast('Please fill in all required fields', 'error');
@@ -730,6 +955,7 @@
                             var errorMsg = response.data.message || 'Failed to save base rate';
                             if (response.data.errors) {
                                 var errors = Object.values(response.data.errors).flat();
+                                vm.validationErrors = response.data.errors;
                                 errorMsg = errors.join(', ');
                             }
                             if (typeof showToast === 'function') {
@@ -745,6 +971,7 @@
                             errorMsg = error.data.message;
                         } else if (error.data && error.data.errors) {
                             var errors = Object.values(error.data.errors).flat();
+                            vm.validationErrors = error.data.errors;
                             errorMsg = errors.join(', ');
                         }
                         if (typeof showToast === 'function') {

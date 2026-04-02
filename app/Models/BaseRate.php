@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class BaseRate extends Model
@@ -97,6 +98,11 @@ class BaseRate extends Model
     {
         // Same here: just link by entity_id; entity_type is on base_rates.
         return $this->belongsTo(Bank::class, 'entity_id');
+    }
+
+    public function merchantResellerSplit(): HasOne
+    {
+        return $this->hasOne(MerchantResellerSplit::class, 'base_rate_id');
     }
 
     /**
