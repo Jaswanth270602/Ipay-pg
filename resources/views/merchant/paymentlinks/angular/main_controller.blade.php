@@ -253,10 +253,20 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     console.log('Sending POST request with payload:', payload);
                     console.log('CSRF Token:', csrfToken);
                     
+                    var portalApiKey = (typeof window.ipayPaymentLinkPublicKey === 'string' && window.ipayPaymentLinkPublicKey.length)
+                        ? window.ipayPaymentLinkPublicKey
+                        : '';
+                    if (!portalApiKey) {
+                        vm.creating = false;
+                        vm.showToast('No API key for your current mode. Open API Keys and create a key, or contact support.', 'error');
+                        return;
+                    }
+
                     $http.post('/merchant/payment-links', payload, {
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': portalApiKey
                         },
                         timeout: 30000
                     }).then(function(response) {

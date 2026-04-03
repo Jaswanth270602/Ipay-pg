@@ -37,6 +37,7 @@ class Transaction extends Model
         'gateway',
         'gateway_transaction_id',
         'gateway_response',
+        'request_payload',
         'payment_details',
         'gateway_txn_id',
         'bank_id',
@@ -56,6 +57,7 @@ class Transaction extends Model
         // Note: Using 'array' cast instead of Encrypted for now to avoid breaking existing data
         // TODO: Migrate existing data to encrypted format, then enable encryption
         'gateway_response' => 'array',
+        'request_payload' => 'array',
         'payment_details' => 'array',
         'test_mode' => 'boolean',
         'amount' => 'decimal:2',

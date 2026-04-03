@@ -48,7 +48,7 @@ class ApiKey extends Model
      */
     public static function generate(int $merchantId, string $mode = 'test', ?string $name = null): self
     {
-        return self::create([
+        $row = self::create([
             'merchant_id' => $merchantId,
             'key' => 'pk_' . $mode . '_' . Str::random(32),
             'secret' => 'sk_' . $mode . '_' . Str::random(32),
@@ -56,6 +56,33 @@ class ApiKey extends Model
             'mode' => $mode,
             'status' => 'active',
         ]);
+
+        self::syncMerchantKeyColumns($merchantId, $mode, $row->key, $row->secret);
+
+        return $row;
+    }
+
+    /**
+     * Keep merchants.test_* / live_* columns in sync for ApiKeyAuthMiddleware.
+     */
+    public static function syncMerchantKeyColumns(int $merchantId, string $mode, string $publicKey, string $secretKey): void
+    {
+        $merchant = Merchant::query()->find($merchantId);
+        if (!$merchant) {
+            return;
+        }
+
+        if ($mode === 'test') {
+            $merchant->forceFill([
+                'test_public_key' => $publicKey,
+                'test_secret_key' => $secretKey,
+            ])->saveQuietly();
+        } else {
+            $merchant->forceFill([
+                'live_public_key' => $publicKey,
+                'live_secret_key' => $secretKey,
+            ])->saveQuietly();
+        }
     }
 
     /**
@@ -88,6 +115,34 @@ class ApiKey extends Model
     public function revoke(): void
     {
         $this->update(['status' => 'revoked']);
+        $this->refreshMerchantKeyColumnsIfNeeded();
+    }
+
+    protected function refreshMerchantKeyColumnsIfNeeded(): void
+    {
+        $merchant = $this->merchant;
+        if (!$merchant) {
+            return;
+        }
+
+        $latest = self::query()
+            ->where('merchant_id', $this->merchant_id)
+            ->where('mode', $this->mode)
+            ->where('status', 'active')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($latest) {
+            self::syncMerchantKeyColumns((int) $this->merchant_id, (string) $this->mode, $latest->key, $latest->secret);
+
+            return;
+        }
+
+        if ($this->mode === 'test') {
+            $merchant->forceFill(['test_public_key' => null, 'test_secret_key' => null])->saveQuietly();
+        } else {
+            $merchant->forceFill(['live_public_key' => null, 'live_secret_key' => null])->saveQuietly();
+        }
     }
 }
 

@@ -250,7 +250,19 @@ class AcquirerAccountsController extends Controller
                 'has_secret_key' => !empty($request->secret_key),
             ]);
 
-            $account->update($validator->validated());
+            $validated = $validator->validated();
+            // Never overwrite stored secrets with empty values (UI often resends blank on save).
+            foreach (['secret_key', 'salt', 'additional_key_1', 'additional_key_2', 'additional_key_3'] as $sensitive) {
+                if (! array_key_exists($sensitive, $validated)) {
+                    continue;
+                }
+                $val = $validated[$sensitive];
+                if ($val === null || $val === '') {
+                    unset($validated[$sensitive]);
+                }
+            }
+
+            $account->update($validated);
             // Merchants are assigned from Merchant module
 
             DB::commit();
@@ -302,12 +314,10 @@ class AcquirerAccountsController extends Controller
             ->filter()
             ->values();
         
-        // Add common acquirer names (including Razorpay and Yapily)
+        // Add common acquirer names (including Razorpay)
         $commonNames = collect([
             'A2Pay', 'Paytm', 'Switch', 'HDFC', 'ICICI', 'Axis', 'SBI',
             'Razorpay', 'razorpay', 'razorpay_test', 'razorpay_live', 'PayU',
-            // Yapily sandbox acquirer entries
-            'Yapily', 'yapily', 'YapilyTest', 'yapily_test', 'YapilyLive', 'yapily_live',
         ]);
         
         // Merge and ensure Razorpay variants are included

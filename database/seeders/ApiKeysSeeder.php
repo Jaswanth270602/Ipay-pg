@@ -16,11 +16,12 @@ class ApiKeysSeeder extends Seeder
         $merchants = Merchant::all();
 
         foreach ($merchants as $merchant) {
-            // Always create test mode API key (for testing)
-            ApiKey::generate($merchant->id, 'test', 'Test API Key');
+            // Only seed keys when the merchant has none — avoids stacking duplicate "dummy" keys on every db:seed
+            if ($merchant->apiKeys()->exists()) {
+                continue;
+            }
 
-            // Always create live mode API key (merchants can switch modes)
-            // Note: Live keys should only be used in production
+            ApiKey::generate($merchant->id, 'test', 'Test API Key');
             ApiKey::generate($merchant->id, 'live', 'Live API Key');
         }
 

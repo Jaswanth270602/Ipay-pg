@@ -130,6 +130,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payment_links.store');
         Route::get('/payment-links/data', [PaymentLinksController::class, 'getData'])
             ->name('merchant.payment_links.data');
+        Route::get('/payment-links/vendors', [PaymentLinksController::class, 'getVendors'])
+            ->name('merchant.payment_links.vendors');
 
         // Transactions
         Route::get('/transactions', [MerchantTransactionsController::class, 'index'])

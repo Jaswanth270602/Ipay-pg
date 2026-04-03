@@ -12,8 +12,10 @@ use App\Events\PaymentCreated;
 use App\Events\PaymentSuccess;
 use App\Events\PaymentFailed;
 use App\Traits\SanitizesCardData;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\PaymentOrchestration\TestModePaymentSimulator;
 
 class PaymentService
 {
@@ -69,6 +71,9 @@ class PaymentService
     public function processPayment(Order $order, array $paymentData): Transaction
     {
         return DB::transaction(function () use ($order, $paymentData) {
+            $orchestrationRequestPayload = Arr::pull($paymentData, '_orchestration_request_payload');
+            $acquirerOrderOnly = (bool) Arr::pull($paymentData, '_acquirer_order_only', false);
+
             // Try to get acquirer adapter first (new system)
             $acquirerAdapter = $this->getAcquirerAdapter($order->merchant);
             
@@ -116,6 +121,7 @@ class PaymentService
                 'idempotency_key' => $paymentData['idempotency_key'] ?? null,
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
+                'request_payload' => $orchestrationRequestPayload,
             ]);
 
             try {
@@ -167,12 +173,29 @@ class PaymentService
                     ]);
 
                     if (!$orderResult['success']) {
-                        throw new \Exception($orderResult['message'] ?? 'Order creation failed');
+                        throw new \RuntimeException($orderResult['message'] ?? 'Order creation failed');
                     }
 
                     // Store gateway order ID
                     $gatewayOrderId = $orderResult['gateway_order_id'];
-                    $transaction->update(['gateway_order_id' => $gatewayOrderId]);
+                    $order->update(['gateway_order_id' => $gatewayOrderId]);
+
+                    if ($acquirerOrderOnly) {
+                        $transaction->update([
+                            'status' => 'pending',
+                            'gateway' => $acquirerAdapter->getProviderName(),
+                            'gateway_txn_id' => $gatewayOrderId,
+                            'gateway_response' => $this->sanitizePaymentDetails([
+                                'order_created' => true,
+                                'gateway_order_id' => $gatewayOrderId,
+                                'provider' => $acquirerAdapter->getProviderName(),
+                                'raw_response' => $orderResult['raw_response'] ?? $orderResult,
+                            ]),
+                        ]);
+                        $order->update(['status' => 'pending']);
+
+                        return $transaction->fresh();
+                    }
 
                     // Initiate payment
                     $result = $acquirerAdapter->initiatePayment([
@@ -209,8 +232,8 @@ class PaymentService
                     $sanitizedResultPaymentDetails = isset($result['payment_details']) 
                         ? $this->sanitizePaymentDetails($result['payment_details']) 
                         : [];
-                    
-                    $transaction->update([
+
+                    $successUpdate = [
                         'status' => 'success',
                         'gateway_response' => $sanitizedGatewayResponse,
                         'gateway_txn_id' => $result['gateway_txn_id'] ?? null,
@@ -219,10 +242,25 @@ class PaymentService
                             $sanitizedResultPaymentDetails
                         ),
                         'captured_at' => now(),
-                    ]);
+                    ];
+                    if ($useAcquirer) {
+                        $successUpdate['gateway'] = $acquirerAdapter->getProviderName();
+                    }
+
+                    $transaction->update($successUpdate);
 
                     $order->update(['status' => 'completed']);
                     event(new PaymentSuccess($transaction));
+
+                    if ($orchestrationRequestPayload) {
+                        Log::info('payment_orchestration', [
+                            'transaction_id' => $transaction->txn_id,
+                            'merchant_id' => $transaction->merchant_id,
+                            'mode' => $order->test_mode ? 'test' : 'live',
+                            'gateway' => $successUpdate['gateway'] ?? $transaction->gateway,
+                            'status' => 'success',
+                        ]);
+                    }
                 } else {
                     // Extract failure reason from gateway response
                     $failureReason = $result['message'] ?? 
@@ -277,6 +315,127 @@ class PaymentService
             }
 
             return $transaction;
+        });
+    }
+
+    /**
+     * Test-mode only: no external gateway; outcome driven by card last-4 rules.
+     *
+     * @param  array<string, mixed>|null  $requestPayload  Sanitized snapshot for audit (stored on transaction)
+     */
+    public function processTestSimulation(Order $order, array $paymentData, ?array $requestPayload = null): Transaction
+    {
+        return DB::transaction(function () use ($order, $paymentData, $requestPayload) {
+            if (isset($paymentData['_orchestration_request_payload'])) {
+                unset($paymentData['_orchestration_request_payload']);
+            }
+
+            if (isset($paymentData['idempotency_key'])) {
+                $existingTransaction = Transaction::where('idempotency_key', $paymentData['idempotency_key'])
+                    ->where('order_id', $order->id)
+                    ->first();
+
+                if ($existingTransaction) {
+                    return $existingTransaction;
+                }
+            }
+
+            $baseRateService = app(\App\Services\BaseRateService::class);
+            $bank = $order->merchant->bank ?? null;
+            $feeCalculation = $baseRateService->calculateFee(
+                $order->merchant,
+                $order->amount,
+                $paymentData['payment_method'],
+                $bank,
+                \App\Models\BaseRate::SERVICE_TYPE_PAYMENT,
+                \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
+            );
+
+            $transaction = Transaction::create([
+                'order_id' => $order->id,
+                'merchant_id' => $order->merchant_id,
+                'vendor_id' => optional($order->paymentLink)->vendor_id,
+                'txn_id' => Transaction::generateTxnId(),
+                'payment_method' => $paymentData['payment_method'],
+                'amount' => $order->amount,
+                'fee_amount' => $feeCalculation['fee_amount'],
+                'gst_amount' => $feeCalculation['gst_amount'] ?? 0,
+                'net_amount' => $order->amount - $feeCalculation['total_fee'],
+                'currency' => $order->currency,
+                'status' => 'initiated',
+                'payment_details' => $this->sanitizePaymentDetails($paymentData),
+                'test_mode' => true,
+                'idempotency_key' => $paymentData['idempotency_key'] ?? null,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'gateway' => 'test_simulator',
+                'request_payload' => $requestPayload,
+            ]);
+
+            try {
+                $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                    merchant: $order->merchant,
+                    paymentMethod: (string) $paymentData['payment_method'],
+                    amount: (float) $order->amount,
+                    feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                    percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                    flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                    gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                    baseRateId: $feeCalculation['rate_id'] ?? null
+                );
+                $transaction->update([
+                    'admin_rate_snapshot_id' => $snapshot->id,
+                    'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to snapshot admin->merchant rate (test simulation)', [
+                    'transaction_id' => $transaction->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $simulated = TestModePaymentSimulator::resolveStatusFromPaymentData($paymentData);
+            $gatewayResponse = [
+                'simulated' => true,
+                'outcome' => $simulated,
+                'message' => 'Test mode — no external gateway call',
+            ];
+
+            if ($simulated === 'success') {
+                $transaction->update([
+                    'status' => 'success',
+                    'gateway_response' => $gatewayResponse,
+                    'gateway_txn_id' => 'test_txn_' . $transaction->txn_id,
+                    'captured_at' => now(),
+                ]);
+                $order->update(['status' => 'completed']);
+                event(new PaymentSuccess($transaction));
+            } elseif ($simulated === 'failed') {
+                $transaction->update([
+                    'status' => 'failed',
+                    'gateway_response' => $gatewayResponse,
+                    'failure_reason' => '(Test Mode) Simulated decline (card ending 0000)',
+                ]);
+                $order->update(['status' => 'failed']);
+                event(new PaymentFailed($transaction));
+            } else {
+                $transaction->update([
+                    'status' => 'pending',
+                    'gateway_response' => $gatewayResponse,
+                    'gateway_txn_id' => 'test_pending_' . $transaction->txn_id,
+                ]);
+                $order->update(['status' => 'pending']);
+            }
+
+            Log::info('payment_orchestration', [
+                'transaction_id' => $transaction->txn_id,
+                'merchant_id' => $order->merchant_id,
+                'mode' => 'test',
+                'gateway' => 'test_simulator',
+                'status' => $transaction->fresh()->status,
+            ]);
+
+            return $transaction->fresh();
         });
     }
 

@@ -68,6 +68,8 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\EnsureAdmin::class,
         'merchant' => \App\Http\Middleware\EnsureMerchant::class,
         'reseller' => \App\Http\Middleware\EnsureReseller::class,
+        'vendor' => \App\Http\Middleware\EnsureVendor::class,
+        'api.key' => \App\Http\Middleware\ApiKeyAuthMiddleware::class,
     ];
 }
 

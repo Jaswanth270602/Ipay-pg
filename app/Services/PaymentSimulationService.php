@@ -19,20 +19,6 @@ class PaymentSimulationService
      */
     public function processPayment(array $paymentData): array
     {
-        // Normalize payment method for DB safety (e.g., map unsupported enums)
-        $originalMethod = $paymentData['payment_method'] ?? null;
-        $storageMethod = $originalMethod;
-
-        // IMPORTANT: Do not introduce new DB enum values for payment_method.
-        // Map Yapily sandbox method to an existing DB-safe method (netbanking)
-        // while preserving the original method in payment_details for auditing.
-        if ($originalMethod === 'yapily') {
-            $storageMethod = 'netbanking';
-            $paymentData['payment_details'] = $paymentData['payment_details'] ?? [];
-            $paymentData['payment_details']['original_payment_method'] = 'yapily';
-            $paymentData['payment_method'] = $storageMethod;
-        }
-
         return DB::transaction(function () use ($paymentData) {
             try {
                 // Create or find order

@@ -23,6 +23,10 @@ class Merchant extends Model
         'webhook_url',
         'webhook_secret',
         'test_mode',
+        'test_public_key',
+        'test_secret_key',
+        'live_public_key',
+        'live_secret_key',
         'fee_percentage',
         'fee_flat',
         'settlement_cycle_domestic',
@@ -92,6 +96,14 @@ class Merchant extends Model
         'registration_date',
         'acquirer_account_id',
         'reseller_id',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'test_secret_key',
+        'live_secret_key',
     ];
 
     protected $casts = [

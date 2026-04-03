@@ -8,7 +8,8 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\SettlementController;
 use App\Http\Controllers\Api\StatusController;
-use App\Http\Controllers\Sandbox\YapilyController;
+use App\Http\Controllers\Api\OrchestrationPaymentController;
+use App\Http\Controllers\Api\PaymentCallbackController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,15 +23,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// -------------------------------------------------------------------------
-// Sandbox: Yapily (dummy bank / open-banking). Feature-flagged.
-// When ENABLE_YAPILY_SANDBOX=false, endpoints return 403 Sandbox Disabled.
-// -------------------------------------------------------------------------
-Route::prefix('sandbox/yapily')->group(function () {
-    Route::get('/institutions', [YapilyController::class, 'institutions'])
-        ->name('api.sandbox.yapily.institutions');
-});
-
 // Public webhook receiver (no auth required)
 Route::post('/webhooks/receive', [WebhookController::class, 'receive'])
     ->name('api.webhooks.receive');
@@ -39,6 +31,10 @@ Route::post('/webhooks/receive', [WebhookController::class, 'receive'])
 // This handles callbacks from all acquirer providers (Razorpay, Paytm, etc.)
 Route::post('/webhooks/acquirer', [\App\Http\Controllers\Api\AcquirerCallbackController::class, 'handle'])
     ->name('api.webhooks.acquirer');
+
+// Orchestration layer: normalized gateway callback (signature verified; delegates to acquirer handler)
+Route::post('/payment/callback', [PaymentCallbackController::class, 'handle'])
+    ->name('api.payment.callback');
 
 // Quick access routes (without v1 prefix) - for test app
 Route::middleware([\App\Http\Middleware\AuthenticateApiKey::class])->group(function () {
@@ -111,5 +107,9 @@ Route::prefix('v1')->middleware(['App\Http\Middleware\AuthenticateApiKey'])->gro
     // Webhook test endpoint
     Route::post('/webhooks/test', [WebhookController::class, 'test'])
         ->name('api.webhooks.test');
+
+    // Payment orchestration (test/live routing, normalized responses)
+    Route::post('/orchestration/payments', [OrchestrationPaymentController::class, 'initiate'])
+        ->name('api.orchestration.payments.initiate');
 });
 

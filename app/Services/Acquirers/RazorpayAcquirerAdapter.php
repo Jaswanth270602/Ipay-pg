@@ -167,43 +167,9 @@ class RazorpayAcquirerAdapter implements AcquirerInterface
                     'note' => 'For production, use Razorpay Checkout.js on frontend. Simulating for test mode.',
                 ]);
                 
-                // Razorpay doesn't support server-side card payment creation (PCI-DSS compliance)
-                // The Payment class doesn't have a public create() method for regular card payments
-                // For production, use Razorpay Checkout.js on the frontend
-                // For test mode, we'll simulate the payment
-                
-                if ($this->isTestMode) {
-                    // Simulate successful payment for testing
-                    // In a real scenario, this would be handled by Razorpay Checkout.js on the frontend
-                    $simulatedPaymentId = 'pay_' . strtoupper(substr(uniqid(), 0, 14));
-                    
-                    Log::info('Simulating Razorpay payment for test mode (server-side card payments not supported)', [
-                        'simulated_payment_id' => $simulatedPaymentId,
-                        'order_id' => $orderId,
-                        'note' => 'For production, use Razorpay Checkout.js on frontend',
-                    ]);
-                    
-                    return [
-                        'success' => true,
-                        'payment_id' => $simulatedPaymentId,
-                        'gateway_payment_id' => $simulatedPaymentId,
-                        'gateway_txn_id' => $simulatedPaymentId,
-                        'status' => 'captured',
-                        'order_id' => $orderId,
-                        'amount' => $this->convertFromPaise($order['amount']),
-                        'currency' => $order['currency'],
-                        'raw_response' => [
-                            'id' => $simulatedPaymentId,
-                            'status' => 'captured',
-                            'amount' => $order['amount'],
-                            'currency' => $order['currency'],
-                            'method' => 'card',
-                        ],
-                    ];
-                } else {
-                    // For live mode, throw error - must use frontend Checkout.js
-                    throw new \RuntimeException('Server-side card payments are not supported. Please use Razorpay Checkout.js on the frontend for PCI-DSS compliance.');
-                }
+                // Do not simulate SUCCESS at adapter layer.
+                // Card capture must come from verified gateway callback/webhook.
+                throw new \RuntimeException('Server-side card payments are not supported. Use Razorpay Checkout.js and webhook verification.');
             }
 
             // For other payment methods, return order details for frontend integration

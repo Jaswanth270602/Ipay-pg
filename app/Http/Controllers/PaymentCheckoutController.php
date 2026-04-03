@@ -79,8 +79,7 @@ class PaymentCheckoutController extends Controller
 
             // Don't use embedded iframe - use our own payment forms with Razorpay Checkout.js
             // This keeps our UI visible and processes payments through Razorpay API
-            $yapilySandboxEnabled = config('yapily.enabled', false);
-            return view('checkout.payment', compact('paymentLink', 'yapilySandboxEnabled'));
+            return view('checkout.payment', compact('paymentLink'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             $this->logError('Payment link not found', [
                 'token' => $token
@@ -129,17 +128,6 @@ class PaymentCheckoutController extends Controller
                 ]);
             }
 
-            // Detect Yapily acquirer configured at merchant level
-            $acquirerName = $acquirerAccount ? strtolower(trim($acquirerAccount->acquirer_name ?? '')) : '';
-            // Treat any acquirer whose name contains "yapily" (e.g. Yapily, YapilyTest, YapilyLive) as Yapily
-            $isYapilyAcquirer = $acquirerName !== '' && str_contains($acquirerName, 'yapily');
-
-            // Legacy Yapily sandbox payment-method toggle (now deprecated in favour of acquirer-based Yapily)
-            $useYapilySandbox = $request->payment_method === 'yapily' && config('yapily.enabled', false);
-
-            // When customer chooses Yapily Sandbox method OR merchant uses Yapily acquirer,
-            // do NOT go through Razorpay/Cashfree gateway path. Instead, fall back to the
-            // internal simulation flow, which keeps existing codepaths safe.
             // Acquirers (Razorpay, Cashfree) only when BOTH gateway and merchant are LIVE.
             // Gateway TEST = internal only. Merchant TEST = internal only (no Razorpay even if gateway is live).
             $gatewayModeIsLive = GatewayModeService::isLive();
@@ -149,8 +137,6 @@ class PaymentCheckoutController extends Controller
             $isSimulationRequest = (bool) $request->input('payment_details.simulate', false);
 
             $useAcquirerGateway = $hasAcquirerAccount
-                && !$useYapilySandbox
-                && !$isYapilyAcquirer
                 && $gatewayModeIsLive
                 && $merchantIsLive
                 && !$isSimulationRequest;
@@ -166,6 +152,16 @@ class PaymentCheckoutController extends Controller
                     'merchant_id' => $merchant->id,
                     'acquirer_name' => $acquirerAccount->acquirer_name,
                 ]);
+            }
+
+            // Never silently simulate LIVE merchant payments when gateway mode is TEST.
+            // This prevents false-success redirects and makes misconfiguration explicit.
+            if ($hasAcquirerAccount && $merchantIsLive && !$gatewayModeIsLive && !$isSimulationRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gateway is in TEST mode. Set APP_PAYMENT_MODE=live to process Cashfree/Razorpay payments.',
+                    'error_code' => 'GATEWAY_MODE_TEST',
+                ], 503);
             }
 
             // Determine if payment details are required based on gateway
@@ -211,9 +207,6 @@ class PaymentCheckoutController extends Controller
             }
             
             $allowedMethods = ['card', 'upi', 'netbanking', 'wallet'];
-            if (config('yapily.enabled', false)) {
-                $allowedMethods[] = 'yapily';
-            }
             $validator = Validator::make(array_merge($request->all(), ['customer_details' => $customerDetails]), [
                 'payment_method' => ['required', 'in:' . implode(',', $allowedMethods)],
                 'customer_details' => 'required|array',
@@ -366,14 +359,7 @@ class PaymentCheckoutController extends Controller
             }
 
             // Prepare payment data
-            // IMPORTANT: Do not introduce new DB enum values for payment_method.
-            // Map Yapily sandbox method to an existing DB-safe method (netbanking)
-            // while preserving the original method in payment_details for auditing.
             $storagePaymentMethod = $paymentMethod;
-            if ($paymentMethod === 'yapily') {
-                $storagePaymentMethod = 'netbanking';
-                $paymentDetails['original_payment_method'] = 'yapily';
-            }
 
             $paymentData = [
                 'merchant_id' => $paymentLink->merchant_id,
@@ -614,17 +600,10 @@ class PaymentCheckoutController extends Controller
                         throw new \RuntimeException("Unsupported gateway: {$gatewayName}");
                     }
                 } else {
-                    // Fallback to simulation service if no acquirer account OR when using Yapily acquirer
-                    if ($hasAcquirerAccount && $isYapilyAcquirer) {
-                        $this->logInfo('Yapily acquirer configured – using internal simulation service (sandbox flow)', [
-                            'merchant_id' => $merchant->id,
-                            'acquirer_name' => $acquirerAccount->acquirer_name,
-                        ]);
-                    } else {
-                        $this->logInfo('No acquirer account found, using simulation service', [
-                            'merchant_id' => $merchant->id,
-                        ]);
-                    }
+                    $this->logInfo('Using internal simulation service (no live acquirer path)', [
+                        'merchant_id' => $merchant->id,
+                        'has_acquirer_account' => $hasAcquirerAccount,
+                    ]);
 
                     $result = $this->simulationService->processPayment($paymentData);
                 }
@@ -686,11 +665,27 @@ class PaymentCheckoutController extends Controller
                     'line' => $serviceError->getLine(),
                     'trace' => $serviceError->getTraceAsString()
                 ]);
-                
+
+                $rawError = (string) $serviceError->getMessage();
+                $normalizedError = strtolower($rawError);
+                $isAcquirerAuthFailure = str_contains($normalizedError, 'authentication failed')
+                    || str_contains($normalizedError, 'invalid api')
+                    || str_contains($normalizedError, 'unauthorized')
+                    || str_contains($normalizedError, 'forbidden');
+
+                if ($isAcquirerAuthFailure) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gateway authentication failed. Check Cashfree/Razorpay credentials in acquirer settings.',
+                        'error_code' => 'ACQUIRER_AUTH_FAILED',
+                        'gateway' => $gatewayName ?? null,
+                    ], 422);
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment processing failed. Please try again.',
-                    'error' => config('app.debug') ? $serviceError->getMessage() : null,
+                    'error' => config('app.debug') ? $rawError : null,
                 ], 500);
             }
 

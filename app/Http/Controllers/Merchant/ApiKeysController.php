@@ -44,6 +44,14 @@ class ApiKeysController extends Controller
 
         $merchant = auth()->user()->merchant;
 
+        if ($request->mode === 'live' && !$merchant->canUseLiveMode()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Live API keys are available after you configure an active payment acquirer (e.g. Razorpay, Cashfree) or complete live credentials in Settings.',
+                'error_code' => 'LIVE_MODE_NOT_CONFIGURED',
+            ], 403);
+        }
+
         // Generate new API key
         $apiKey = ApiKey::generate(
             $merchant->id,
@@ -88,6 +96,14 @@ class ApiKeysController extends Controller
 
         $apiKey->secret = 'sk_' . $apiKey->mode . '_' . Str::random(32);
         $apiKey->save();
+
+        $merchant->refresh();
+        $publicMatches = $apiKey->mode === 'test'
+            ? $merchant->test_public_key === $apiKey->key
+            : $merchant->live_public_key === $apiKey->key;
+        if ($publicMatches) {
+            ApiKey::syncMerchantKeyColumns((int) $merchant->id, (string) $apiKey->mode, $apiKey->key, $apiKey->secret);
+        }
 
         return response()->json([
             'success' => true,

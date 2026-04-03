@@ -32,10 +32,6 @@ class AcquirerResolver
             'cashfree' => CashFreeAcquirerAdapter::class,
             'cashfree_test' => CashFreeAcquirerAdapter::class,
             'cashfree_live' => CashFreeAcquirerAdapter::class,
-            // Yapily sandbox acquirer (open-banking style, simulated payments)
-            'yapily' => YapilyAcquirerAdapter::class,
-            'yapily_test' => YapilyAcquirerAdapter::class,
-            'yapily_live' => YapilyAcquirerAdapter::class,
             // Add more acquirers here as they are implemented
             // 'paytm' => PaytmAcquirerAdapter::class,
             // 'hdfc' => HdfcAcquirerAdapter::class,

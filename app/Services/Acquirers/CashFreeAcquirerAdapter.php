@@ -41,7 +41,18 @@ class CashFreeAcquirerAdapter implements AcquirerInterface
         } else {
             $this->appId = $accountId;
         }
-        $this->secretKey = $acquirerAccount->secret_key ?? '';
+        // Normalize credentials to avoid hidden characters from copy/paste causing 401 auth failures.
+        $this->appId = trim((string) $this->appId);
+        $this->secretKey = trim((string) ($acquirerAccount->secret_key ?? ''));
+        $this->appId = preg_replace('/^\xEF\xBB\xBF/', '', $this->appId);
+        $this->secretKey = preg_replace('/^\xEF\xBB\xBF/', '', $this->secretKey);
+
+        // Common mis-save: App ID and Secret swapped (Cashfree secrets start with cfsk_; App ID does not).
+        if ($this->appId !== '' && $this->secretKey !== ''
+            && str_starts_with($this->appId, 'cfsk_')
+            && ! str_starts_with($this->secretKey, 'cfsk_')) {
+            [$this->appId, $this->secretKey] = [$this->secretKey, $this->appId];
+        }
 
         // Set base URL based on mode
         // CashFree test URL: https://sandbox.cashfree.com/pg

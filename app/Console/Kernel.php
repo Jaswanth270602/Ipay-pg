@@ -15,6 +15,11 @@ class Kernel extends ConsoleKernel
         // Schedule webhook retries
         $schedule->command('webhooks:retry')->everyFiveMinutes();
 
+        // Pending live payments: poll gateway if callback missing
+        $schedule->command('payments:reconcile-pending')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
+
         // Schedule settlement processing at 11 PM daily
         $schedule->command('settlements:process-daily')
             ->dailyAt('23:00')

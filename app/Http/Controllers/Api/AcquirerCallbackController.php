@@ -355,21 +355,20 @@ class AcquirerCallbackController extends Controller
     {
         // Find transaction by gateway payment ID
         $paymentId = $providerResponse->payment_id;
-        
-        if ($paymentId) {
-            $transaction = \App\Models\Transaction::where('gateway_txn_id', $paymentId)->first();
-            
-            if ($transaction && $transaction->status !== 'success') {
-                $transaction->update([
-                    'status' => 'success',
-                    'captured_at' => now(),
-                    'gateway_response' => $payload,
-                ]);
+        $orderId = $providerResponse->order_id;
 
-                $transaction->order->update(['status' => 'completed']);
+        $transaction = $this->findTransactionForCallback($paymentId, $orderId);
+        if ($transaction && $transaction->status !== 'success') {
+            $transaction->update([
+                'status' => 'success',
+                'captured_at' => now(),
+                'gateway_txn_id' => $paymentId ?: $transaction->gateway_txn_id,
+                'gateway_response' => $payload,
+            ]);
 
-                event(new \App\Events\PaymentSuccess($transaction));
-            }
+            $transaction->order?->update(['status' => 'completed']);
+
+            event(new \App\Events\PaymentSuccess($transaction));
         }
     }
 
@@ -379,21 +378,20 @@ class AcquirerCallbackController extends Controller
     protected function handlePaymentFailed($adapter, array $payload, ProviderResponse $providerResponse): void
     {
         $paymentId = $providerResponse->payment_id;
-        
-        if ($paymentId) {
-            $transaction = \App\Models\Transaction::where('gateway_txn_id', $paymentId)->first();
-            
-            if ($transaction && $transaction->status !== 'failed') {
-                $transaction->update([
-                    'status' => 'failed',
-                    'failure_reason' => $payload['payload']['payment']['entity']['error_description'] ?? 'Payment failed',
-                    'gateway_response' => $payload,
-                ]);
+        $orderId = $providerResponse->order_id;
 
-                $transaction->order->update(['status' => 'failed']);
+        $transaction = $this->findTransactionForCallback($paymentId, $orderId);
+        if ($transaction && $transaction->status !== 'failed') {
+            $transaction->update([
+                'status' => 'failed',
+                'gateway_txn_id' => $paymentId ?: $transaction->gateway_txn_id,
+                'failure_reason' => $payload['payload']['payment']['entity']['error_description'] ?? 'Payment failed',
+                'gateway_response' => $payload,
+            ]);
 
-                event(new \App\Events\PaymentFailed($transaction));
-            }
+            $transaction->order?->update(['status' => 'failed']);
+
+            event(new \App\Events\PaymentFailed($transaction));
         }
     }
 
@@ -405,19 +403,41 @@ class AcquirerCallbackController extends Controller
         // Payment authorized but not yet captured
         // Update transaction status if needed
         $paymentId = $providerResponse->payment_id;
-        
-        if ($paymentId) {
-            $transaction = \App\Models\Transaction::where('gateway_txn_id', $paymentId)->first();
-            
-            if ($transaction) {
-                $transaction->update([
-                    'status' => 'authorized',
-                    'gateway_response' => $payload,
-                ]);
 
-                event(new \App\Events\PaymentAuthorized($transaction));
+        $transaction = $this->findTransactionForCallback($paymentId, $providerResponse->order_id);
+        if ($transaction) {
+            $transaction->update([
+                'status' => 'authorized',
+                'gateway_txn_id' => $paymentId ?: $transaction->gateway_txn_id,
+                'gateway_response' => $payload,
+            ]);
+
+            event(new \App\Events\PaymentAuthorized($transaction));
+        }
+    }
+
+    /**
+     * Find transaction primarily by payment id, fallback by gateway order id.
+     */
+    protected function findTransactionForCallback(?string $paymentId, ?string $orderId): ?\App\Models\Transaction
+    {
+        if (!empty($paymentId)) {
+            $tx = \App\Models\Transaction::where('gateway_txn_id', $paymentId)->first();
+            if ($tx) {
+                return $tx;
             }
         }
+
+        if (!empty($orderId)) {
+            $order = \App\Models\Order::where('gateway_order_id', $orderId)->first();
+            if ($order) {
+                return \App\Models\Transaction::where('order_id', $order->id)
+                    ->orderByDesc('id')
+                    ->first();
+            }
+        }
+
+        return null;
     }
 
     /**

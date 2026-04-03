@@ -30,9 +30,7 @@
                     'IppoPayUPI', 'ISERVEU', 'ISGPAY', 'ISGPAYV2', 'iSmartPay', 'JCPays', 'Jeetoabhi', 'JigsPayP2P', 
                     'JioPay', 'JodetxUpi', 'JssMoney', 'JusPayUpi', 'Kopay', 'KotakAllPay', 'KotakCard', 'KotakDCEMI', 
                     'KotakUpi', 'LazyPay', 'LazyPayEmi', 'LetsPe', 'LevinPay', 'LightspeedPay', 'Paytm', 'Switch', 
-                    'SBI', 'Razorpay', 'razorpay', 'razorpay_test', 'razorpay_live', 'PayU',
-                    // Yapily sandbox acquirer entries
-                    'Yapily', 'YapilyTest', 'YapilyLive'
+                    'SBI', 'Razorpay', 'razorpay', 'razorpay_test', 'razorpay_live', 'PayU'
                 ];
                 
                 vm.accounts = [];

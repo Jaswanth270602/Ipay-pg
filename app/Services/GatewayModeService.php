@@ -8,7 +8,7 @@ namespace App\Services;
  * Gateway acts as both payment gateway and payment aggregator:
  *
  * - TEST = Acquirer-independent. Only inbuilt dummy/sandbox APIs for payment
- *   simulation. No acquirer API calls (Razorpay, Cashfree, Yapily) regardless
+ *   simulation. No acquirer API calls (Razorpay, Cashfree, etc.) regardless
  *   of merchant configuration.
  *
  * - LIVE = Payment aggregator. Use acquirer adapters (Razorpay, Cashfree, etc.).

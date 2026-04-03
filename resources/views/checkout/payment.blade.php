@@ -6,12 +6,18 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
     <title>Payment - {{ $paymentLink->title }} - Ipay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
+            --accent-pink: #ec4899;
+            --accent-cyan: #06b6d4;
+            --accent-lime: #84cc16;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
@@ -24,35 +30,96 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            padding: 15px;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            background: linear-gradient(130deg, #2563eb 0%, #7c3aed 28%, #d946ef 60%, #f97316 100%);
+            background-size: 320% 320%;
+            animation: meshMove 14s ease infinite;
+        }
+
+        @keyframes meshMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: min(480px, 60vw);
+            height: min(480px, 60vw);
+            top: -120px;
+            right: -80px;
+            background: radial-gradient(circle, rgba(251, 146, 60, 0.72) 0%, transparent 70%);
+            animation: orbFloat 10s ease-in-out infinite;
+        }
+
+        body::after {
+            width: min(400px, 55vw);
+            height: min(400px, 55vw);
+            bottom: -100px;
+            left: -60px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.62) 0%, transparent 70%);
+            animation: orbFloat 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20px, -15px) scale(1.05); }
         }
 
         .payment-container {
-            max-width: 900px;
+            max-width: 880px;
             width: 100%;
+            position: relative;
+            z-index: 1;
+            animation: cardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes cardEnter {
+            from {
+                opacity: 0;
+                transform: translateY(28px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .payment-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 18px;
+            box-shadow:
+                0 20px 40px -16px rgba(15, 23, 42, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.55) inset;
             overflow: hidden;
             display: grid;
-            grid-template-columns: 300px 1fr;
-            max-height: 90vh;
+            grid-template-columns: 280px 1fr;
+            max-height: 82vh;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         /* LEFT PANEL */
         .left-panel {
-            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
             color: white;
-            padding: 25px 20px;
+            padding: 20px 18px;
             display: flex;
             flex-direction: column;
             position: relative;
@@ -66,7 +133,15 @@
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, transparent 45%, rgba(255, 255, 255, 0.04) 100%);
             pointer-events: none;
         }
 
@@ -77,17 +152,25 @@
         }
 
         .merchant-logo {
-            width: 42px;
-            height: 42px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.12) 100%);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            margin-bottom: 12px;
+            font-size: 22px;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            animation: logoPulse 3.6s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); transform: scale(1); }
+            50% { box-shadow: 0 12px 32px rgba(255, 255, 255, 0.2); transform: scale(1.02); }
         }
 
         .merchant-name {
@@ -105,13 +188,28 @@
         .amount-section {
             position: relative;
             z-index: 1;
-            background: rgba(255, 255, 255, 0.15);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 100%);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-radius: 12px;
-            padding: 18px;
+            border-radius: 16px;
+            padding: 20px;
             margin-bottom: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 14px 34px rgba(79, 70, 229, 0.35);
+        }
+
+        .amount-section::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 40%, rgba(255, 255, 255, 0.15));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
         }
 
         .amount-label {
@@ -158,33 +256,77 @@
             position: relative;
             z-index: 1;
             margin-top: auto;
+            padding: 12px 14px;
             padding-top: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 12px;
-            opacity: 0.95;
+            opacity: 0.98;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .secured-by i {
+            color: #a7f3d0;
+            filter: drop-shadow(0 0 8px rgba(167, 243, 208, 0.5));
         }
 
         /* RIGHT PANEL */
         .right-panel {
-            padding: 25px 28px;
+            position: relative;
+            padding: 14px 16px 16px;
             overflow-y: auto;
-            max-height: 90vh;
+            max-height: 82vh;
+            background:
+                radial-gradient(ellipse 120% 80% at 100% 0%, rgba(59, 130, 246, 0.13) 0%, transparent 55%),
+                radial-gradient(ellipse 80% 60% at 0% 100%, rgba(236, 72, 153, 0.11) 0%, transparent 48%),
+                linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+        }
+
+        .right-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563eb 0%, #7c3aed 35%, #ec4899 65%, #f97316 100%);
+            background-size: 200% 100%;
+            animation: shimmerBar 5.5s linear infinite;
+        }
+
+        @keyframes shimmerBar {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         .panel-title {
             font-size: 20px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #0f172a;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 45%, #db2777 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .panel-subtitle {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.5;
+            margin-bottom: 0;
+            max-width: 420px;
         }
 
         .alert {
             border-radius: 10px;
             border: none;
-            padding: 12px 16px;
-            margin-bottom: 18px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -204,31 +346,72 @@
 
         /* CUSTOMER FORM */
         .customer-section {
-            margin-bottom: 18px;
+            margin-bottom: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow:
+                0 4px 6px -1px rgba(15, 23, 42, 0.05),
+                0 10px 28px -8px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(186, 194, 255, 0.55);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .customer-section:hover {
+            border-color: rgba(124, 58, 237, 0.35);
+            box-shadow:
+                0 4px 6px -1px rgba(15, 23, 42, 0.06),
+                0 10px 28px -8px rgba(124, 58, 237, 0.18);
         }
 
         .section-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #334155;
-            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, #2563eb 0%, #7c3aed 50%, #ec4899 100%);
+            flex-shrink: 0;
+        }
+
+        .field-hint {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            margin-top: 4px;
+            line-height: 1.4;
         }
 
         .form-label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #475569;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             display: block;
         }
 
         .form-control, .form-select {
             border: 2px solid #e2e8f0;
             border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 14px;
-            transition: all 0.2s;
+            padding: 7px 10px;
+            font-size: 13px;
+            transition: border-color 0.2s, box-shadow 0.25s ease;
             width: 100%;
+        }
+
+        .form-control:hover:not(:focus),
+        .form-select:hover:not(:focus) {
+            border-color: #cbd5e1;
         }
 
         .form-control:focus, .form-select:focus {
@@ -297,57 +480,145 @@
 
         /* PAYMENT METHODS */
         .payment-methods-section {
-            margin-bottom: 18px;
+            margin-bottom: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow:
+                0 4px 6px -1px rgba(15, 23, 42, 0.05),
+                0 10px 28px -8px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.9);
         }
 
         .payment-methods-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 18px;
+            gap: 6px;
+            margin-top: 2px;
         }
 
         .payment-method-btn {
-            background: #f8fafc;
+            background: linear-gradient(180deg, #fafbff 0%, #f8fafc 100%);
             border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 14px 10px;
+            border-radius: 9px;
+            padding: 8px 6px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
+            overflow: hidden;
+        }
+
+        .payment-method-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 65%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .payment-method-btn:hover::before {
+            opacity: 1;
         }
 
         .payment-method-btn:hover {
-            border-color: var(--primary);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
-            background: white;
+            border-color: rgba(99, 102, 241, 0.55);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(99, 102, 241, 0.18);
+            background: #ffffff;
+        }
+
+        .payment-method-btn:nth-child(1) {
+            border-color: rgba(37, 99, 235, 0.25);
+        }
+        .payment-method-btn:nth-child(2) {
+            border-color: rgba(14, 165, 233, 0.25);
+        }
+        .payment-method-btn:nth-child(3) {
+            border-color: rgba(124, 58, 237, 0.25);
+        }
+        .payment-method-btn:nth-child(4) {
+            border-color: rgba(236, 72, 153, 0.25);
         }
 
         .payment-method-btn.active {
             border-color: var(--primary);
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.06) 100%);
+            box-shadow:
+                0 0 0 1px rgba(99, 102, 241, 0.25),
+                0 10px 28px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .payment-method-btn.active::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(236, 72, 153, 0.2)) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
         }
 
         .payment-method-btn i {
-            font-size: 24px;
-            color: var(--primary);
-            margin-bottom: 6px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 3px;
             display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .payment-method-btn[data-method="card"] i {
+            background: linear-gradient(135deg, #2563eb, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .payment-method-btn[data-method="upi"] i {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .payment-method-btn[data-method="netbanking"] i {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .payment-method-btn[data-method="wallet"] i {
+            background: linear-gradient(135deg, #ec4899, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .payment-method-btn.active i {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .payment-method-btn .method-label {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
             color: #1e293b;
             display: block;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
 
         .payment-method-btn .method-desc {
-            font-size: 10px;
+            font-size: 8px;
             color: #64748b;
         }
 
@@ -358,15 +629,26 @@
         /* PAYMENT FORMS */
         .payment-form {
             display: none;
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.35s ease;
         }
 
         .payment-form.active {
             display: block;
         }
 
+        .payment-form-inner {
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow:
+                0 4px 6px -1px rgba(15, 23, 42, 0.05),
+                0 10px 28px -8px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            margin-bottom: 8px;
+        }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -387,22 +669,27 @@
 
         /* PAY BUTTON */
         .pay-button {
-            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 42%, #db2777 72%, #f97316 100%);
             color: white;
             border: none;
             border-radius: 10px;
-            padding: 14px;
+            padding: 11px 14px;
             width: 100%;
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
             position: relative;
             overflow: hidden;
+            box-shadow:
+                0 10px 28px rgba(124, 58, 237, 0.42),
+                0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+            margin-top: 10px;
         }
 
         .pay-button::before {
@@ -527,6 +814,7 @@
             <!-- RIGHT PANEL -->
             <div class="right-panel" id="paymentApp">
                 <h2 class="panel-title">Complete Your Payment</h2>
+                <p class="panel-subtitle">Secure checkout with your preferred payment method.</p>
 
                 <!-- Success/Error Messages -->
                 <div class="alert alert-success" id="successAlert" style="display: none;">
@@ -558,19 +846,22 @@
                     </h4>
                     <div class="row g-3 mb-3">
                         <div class="col-12">
-                            <label class="form-label" style="font-weight: 600; color: white; font-size: 14px; margin-bottom: 10px;">
+                            <label class="form-label" for="customAmount" style="font-weight: 600; color: white; font-size: 14px; margin-bottom: 10px;">
                                 How much would you like to pay? <span class="text-danger">*</span>
                             </label>
                             <div class="input-group" style="margin-bottom: 10px;">
                                 <span class="input-group-text" style="background: white; color: #667eea; font-weight: 700; font-size: 16px; border: none;">{{ $paymentLink->currency }}</span>
-                                <input type="number" class="form-control form-control-lg" id="customAmount" 
-                                       placeholder="Enter amount (max: {{ number_format($paymentLink->amount, 2) }})" 
-                                       min="0.01" 
-                                       max="{{ $paymentLink->amount }}" 
-                                       step="0.01"
-                                       value="{{ $paymentLink->getRemainingBalance() }}"
-                                       required
-                                       style="font-size: 18px; font-weight: 700; padding: 14px; border: none; border-radius: 0 8px 8px 0;">
+                                <input
+                                    type="number"
+                                    class="form-control form-control-lg"
+                                    id="customAmount"
+                                    min="0.01"
+                                    max="{{ $paymentLink->amount }}"
+                                    step="0.01"
+                                    value="{{ $paymentLink->getRemainingBalance() }}"
+                                    required
+                                    style="font-size: 18px; font-weight: 700; padding: 14px; border: none; border-radius: 0 8px 8px 0;"
+                                >
                             </div>
                             <div id="amountError" class="text-danger mt-2" style="display: none; padding: 10px 14px; background-color: rgba(255, 255, 255, 0.95); border: 2px solid #dc3545; border-radius: 8px; font-size: 14px; font-weight: 600; color: #dc3545;"></div>
                             <small class="d-block mt-2" style="font-size: 13px; color: rgba(255, 255, 255, 0.9);">
@@ -593,18 +884,58 @@
                     <form autocomplete="off" novalidate>
                         <div class="row g-3 mb-3">
                             <div class="col-12">
-                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="customerName" name="customerName" autocomplete="off" placeholder="John Doe" maxlength="50" required>
+                                <label class="form-label" for="customerName">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="customerName"
+                                    name="customerName"
+                                    autocomplete="name"
+                                    maxlength="50"
+                                    required
+                                >
+                                <small style="display:block;color:#64748b;font-size:12px;margin-top:4px;">
+                                    Enter your full legal name.
+                                </small>
                                 <div id="customerNameError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" id="customerEmail" name="customerEmail" autocomplete="off" placeholder="john@example.com" maxlength="80" required>
+                                <label class="form-label" for="customerEmail">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="customerEmail"
+                                    name="customerEmail"
+                                    autocomplete="email"
+                                    maxlength="80"
+                                    required
+                                >
+                                <small style="display:block;color:#64748b;font-size:12px;margin-top:4px;">
+                                    We’ll send your receipt to this address.
+                                </small>
                                 <div id="customerEmailError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Phone <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="customerPhone" name="customerPhone" autocomplete="off" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" required>
+                                <label class="form-label" for="customerPhone">
+                                    Phone <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    class="form-control"
+                                    id="customerPhone"
+                                    name="customerPhone"
+                                    autocomplete="tel"
+                                    maxlength="10"
+                                    pattern="[0-9]{10}"
+                                    required
+                                >
+                                <small style="display:block;color:#64748b;font-size:12px;margin-top:4px;">
+                                    10‑digit mobile number.
+                                </small>
                                 <div id="customerPhoneError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
                         </div>
@@ -643,24 +974,97 @@
                     <form autocomplete="off" novalidate spellcheck="false" data-form-type="other">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">Card Number <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="cardNumber" name="card_number_field" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" autocomplete="off" spellcheck="false" placeholder="4242 4242 4242 4242" maxlength="19" inputmode="numeric" pattern="[0-9\s]*">
+                                <label class="form-label" for="cardNumber">
+                                    Card Number <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    class="form-control"
+                                    id="cardNumber"
+                                    name="card_number_field"
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-bwignore="true"
+                                    autocomplete="cc-number"
+                                    spellcheck="false"
+                                    maxlength="19"
+                                    inputmode="numeric"
+                                    pattern="[0-9\\s]*"
+                                >
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Card Holder Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="cardHolder" name="card_holder_field" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" autocomplete="off" spellcheck="false" placeholder="JOHN DOE" style="text-transform: uppercase;">
+                                <label class="form-label" for="cardHolder">
+                                    Card Holder Name <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="cardHolder"
+                                    name="card_holder_field"
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-bwignore="true"
+                                    autocomplete="cc-name"
+                                    spellcheck="false"
+                                    style="text-transform: uppercase;"
+                                >
                             </div>
                             <div class="col-4">
-                                <label class="form-label">Month <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="expiryMonth" name="expiry_month_field" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" autocomplete="off" spellcheck="false" placeholder="12" maxlength="2" inputmode="numeric" pattern="[0-9]*">
+                                <label class="form-label" for="expiryMonth">
+                                    Month <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    class="form-control"
+                                    id="expiryMonth"
+                                    name="expiry_month_field"
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-bwignore="true"
+                                    autocomplete="cc-exp-month"
+                                    spellcheck="false"
+                                    maxlength="2"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                >
                             </div>
                             <div class="col-4">
-                                <label class="form-label">Year <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="expiryYear" name="expiry_year_field" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" autocomplete="off" spellcheck="false" placeholder="2025" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                                <label class="form-label" for="expiryYear">
+                                    Year <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    class="form-control"
+                                    id="expiryYear"
+                                    name="expiry_year_field"
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-bwignore="true"
+                                    autocomplete="cc-exp-year"
+                                    spellcheck="false"
+                                    maxlength="4"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                >
                             </div>
                             <div class="col-4">
-                                <label class="form-label">CVV <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="cvv" name="cvv_field" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" autocomplete="off" spellcheck="false" placeholder="123" maxlength="3" inputmode="numeric" pattern="[0-9]*">
+                                <label class="form-label" for="cvv">
+                                    CVV <span class="text-danger">*</span>
+                                </label>
+                                <input
+                                    type="tel"
+                                    class="form-control"
+                                    id="cvv"
+                                    name="cvv_field"
+                                    data-lpignore="true"
+                                    data-1p-ignore="true"
+                                    data-bwignore="true"
+                                    autocomplete="cc-csc"
+                                    spellcheck="false"
+                                    maxlength="3"
+                                    inputmode="numeric"
+                                    pattern="[0-9]*"
+                                >
                             </div>
                         </div>
                     </form>
@@ -670,8 +1074,8 @@
                 <!-- UPI FORM -->
                 <div class="payment-form" id="upiForm">
                     <div class="mb-3">
-                        <label class="form-label">UPI ID</label>
-                        <input type="text" class="form-control" id="upiId" placeholder="yourname@upi">
+                        <label class="form-label" for="upiId">UPI ID</label>
+                        <input type="text" class="form-control" id="upiId">
                         <div style="text-align: center; margin: 20px 0; color: #94a3b8; font-weight: 600;">OR</div>
                         <label class="form-label">Choose UPI App</label>
                         <select class="form-select" id="upiApp">

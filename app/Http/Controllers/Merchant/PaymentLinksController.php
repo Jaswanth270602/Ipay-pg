@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Merchant;
 use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
+use App\Models\ApiKey;
 use App\Models\PaymentLink;
+use App\Models\MerchantVendor;
+use App\Services\AcquirerCredentialValidator;
+use App\Services\ApiCredentialValidator;
+use App\Services\PaymentLinks\PaymentLinkAttemptService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -22,7 +27,47 @@ class PaymentLinksController extends Controller
     public function index(): View
     {
         $this->logInfo('Payment links page accessed', ['user_id' => auth()->id()]);
-        return view('merchant.paymentlinks.index');
+
+        $merchant = auth()->user()?->merchant;
+        $initialVendors = collect();
+
+        $publicKeyForMode = null;
+
+        if ($merchant) {
+            // Ensure merchant has a current-mode API key for portal-initiated link creation.
+            // This prevents frontend dead-end when key columns are null on older merchants.
+            $mode = $merchant->test_mode ? 'test' : 'live';
+            $publicCol = $mode === 'test' ? 'test_public_key' : 'live_public_key';
+            if (empty($merchant->{$publicCol})) {
+                $existing = $merchant->apiKeys()
+                    ->where('mode', $mode)
+                    ->where('status', 'active')
+                    ->latest('id')
+                    ->first();
+
+                if ($existing) {
+                    ApiKey::syncMerchantKeyColumns((int) $merchant->id, $mode, (string) $existing->key, (string) $existing->secret);
+                } else {
+                    ApiKey::generate((int) $merchant->id, $mode, ucfirst($mode) . ' Portal Key');
+                }
+                $merchant->refresh();
+            }
+
+            $initialVendors = MerchantVendor::query()
+                ->where('merchant_id', $merchant->id)
+                ->whereRaw('LOWER(status) = ?', ['approved'])
+                ->orderBy('vendor_name')
+                ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
+
+            $publicKeyForMode = $merchant->test_mode
+                ? $merchant->test_public_key
+                : $merchant->live_public_key;
+        }
+
+        return view('merchant.paymentlinks.index', [
+            'initialVendors' => $initialVendors,
+            'paymentLinkPublicKey' => $publicKeyForMode,
+        ]);
     }
 
     /**
@@ -72,7 +117,7 @@ class PaymentLinksController extends Controller
                 });
             }
 
-            $paymentLinks = $query->paginate($perPage);
+            $paymentLinks = $query->with('vendor')->paginate($perPage);
 
             // Format the payment links data
             $formattedLinks = collect($paymentLinks->items())->map(function ($link) {
@@ -93,6 +138,8 @@ class PaymentLinksController extends Controller
                     'test_mode' => $link->test_mode,
                     'usage_count' => $link->usage_count,
                     'max_usage' => $link->max_usage,
+                    'vendor_id' => $link->vendor_id,
+                    'vendor_name' => optional($link->vendor)->vendor_name,
                 ];
             });
 
@@ -128,19 +175,77 @@ class PaymentLinksController extends Controller
     }
 
     /**
+     * Get approved vendors for the authenticated merchant (for assigning payment links).
+     */
+    public function getVendors(Request $request): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        if (!$merchant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Merchant not found',
+            ], 404);
+        }
+
+        $vendors = MerchantVendor::query()
+            ->where('merchant_id', $merchant->id)
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $vendors,
+        ]);
+    }
+
+    /**
      * Store a new payment link.
      */
     public function store(Request $request): JsonResponse
     {
         try {
             $merchant = $request->user()->merchant;
+
+            $attemptService = app(PaymentLinkAttemptService::class);
+            $attempt = $attemptService->start($merchant, $merchant?->test_mode ? 'test' : 'live', $request, [
+                'title' => $request->input('title'),
+                'description' => $request->input('description'),
+                'amount' => $request->input('amount'),
+                'currency' => $request->input('currency'),
+                'allow_partial_payment' => $request->input('allow_partial_payment'),
+                'expires_in_hours' => $request->input('expires_in_hours'),
+                'payment_methods' => $request->input('payment_methods'),
+                'vendor_id' => $request->input('vendor_id'),
+            ]);
             
             if (!$merchant) {
                 $this->logError('Merchant not found for user', ['user_id' => auth()->id()]);
-                return response()->json([
+                $payload = [
                     'success' => false,
                     'message' => 'Merchant not found',
-                ], 404);
+                ];
+                $attemptService->fail($attempt, 'Merchant not found', $payload);
+                return response()->json($payload, 404);
+            }
+
+            // Live mode: fail fast when acquirer credentials are invalid so bad keys don't create links.
+            if (!$merchant->test_mode) {
+                $acquirerAccount = $merchant->getActiveAcquirerAccount();
+                $credValidator = app(AcquirerCredentialValidator::class);
+                $credResult = $credValidator->validate($acquirerAccount);
+
+                if (!$credResult['ok']) {
+                    $payload = [
+                        'success' => false,
+                        'status' => 'ERROR',
+                        'error' => 'ACQUIRER_CREDENTIALS_INVALID',
+                        'message' => $credResult['message'] ?? 'Enter valid API keys',
+                    ];
+                    $attemptService->fail($attempt, 'ACQUIRER_CREDENTIALS_INVALID', $payload);
+                    return response()->json($payload, 422);
+                }
             }
 
             // Live (merchant) mode: allow when merchant has an active acquirer (aggregator) or full live credentials
@@ -149,12 +254,25 @@ class PaymentLinksController extends Controller
                     'merchant_id' => $merchant->id,
                     'test_mode' => $merchant->test_mode
                 ]);
-                return response()->json([
+                $payload = [
                     'success' => false,
                     'message' => 'Live mode requires an active acquirer (e.g. Razorpay, Cashfree) or full live credentials. Please assign an acquirer in Settings or configure live API credentials and bank details.',
                     'error_code' => 'LIVE_MODE_NOT_CONFIGURED',
                     'action_required' => 'Assign an acquirer (Razorpay Test/Live, Cashfree, etc.) in Settings, or configure live credentials.',
-                ], 403);
+                ];
+                $attemptService->fail($attempt, 'LIVE_MODE_NOT_CONFIGURED', $payload);
+                return response()->json($payload, 403);
+            }
+
+            $cred = app(ApiCredentialValidator::class)->validatePortalRequest($request, $merchant);
+            if (!$cred['ok']) {
+                $payload = [
+                    'success' => false,
+                    'status' => 'ERROR',
+                    'message' => $cred['error'],
+                ];
+                $attemptService->fail($attempt, $cred['error'], $payload);
+                return response()->json($payload, $cred['http_status']);
             }
 
             // Validate input
@@ -167,6 +285,7 @@ class PaymentLinksController extends Controller
                 'expires_in_hours' => 'nullable|integer|min:1|max:720',
                 'payment_methods' => 'nullable|array',
                 'payment_methods.*' => 'in:card,upi,netbanking,wallet',
+                'vendor_id' => 'nullable|integer',
             ]);
 
             if ($validator->fails()) {
@@ -175,11 +294,13 @@ class PaymentLinksController extends Controller
                     'errors' => $validator->errors()->toArray()
                 ]);
                 
-                return response()->json([
+                $payload = [
                     'success' => false,
                     'message' => 'Validation failed',
                     'errors' => $validator->errors(),
-                ], 422);
+                ];
+                $attemptService->fail($attempt, 'Validation failed', $payload);
+                return response()->json($payload, 422);
             }
 
             $this->logInfo('Creating payment link', [
@@ -187,6 +308,7 @@ class PaymentLinksController extends Controller
                 'title' => $request->title,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'INR',
+                'vendor_id' => $request->vendor_id ?? null,
             ]);
 
             // Calculate expiry
@@ -196,10 +318,43 @@ class PaymentLinksController extends Controller
             // Default payment methods
             $paymentMethods = $request->payment_methods ?? ['card', 'upi', 'netbanking', 'wallet'];
 
+            // Resolve vendor (optional, must belong to this merchant if provided)
+            $vendorId = null;
+            if ($request->filled('vendor_id')) {
+                $vendor = MerchantVendor::where('id', $request->vendor_id)
+                    ->where('merchant_id', $merchant->id)
+                    ->where('status', 'approved')
+                    ->first();
+
+                if (!$vendor) {
+                    $payload = [
+                        'success' => false,
+                        'message' => 'Selected vendor is invalid or not approved for this merchant.',
+                    ];
+                    $attemptService->fail($attempt, 'Invalid vendor', $payload);
+                    return response()->json($payload, 422);
+                }
+
+                $vendorId = $vendor->id;
+            }
+
             // Create payment link in transaction
-            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods) {
+            $requestPayload = [
+                'title' => $request->title,
+                'description' => $request->description,
+                'amount' => $request->amount,
+                'currency' => $request->currency ?? $merchant->default_currency ?? 'INR',
+                'allow_partial_payment' => $request->has('allow_partial_payment') ? (bool) $request->input('allow_partial_payment') : false,
+                'expires_at' => $expiresAt->toIso8601String(),
+                'payment_methods' => $paymentMethods,
+                'vendor_id' => $vendorId,
+                'mode' => $merchant->test_mode ? 'test' : 'live',
+            ];
+
+            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods, $vendorId, $requestPayload) {
                 return PaymentLink::create([
                     'merchant_id' => $merchant->id,
+                    'vendor_id' => $vendorId,
                     'link_token' => PaymentLink::generateLinkToken(),
                     'title' => $request->title,
                     'description' => $request->description,
@@ -212,6 +367,7 @@ class PaymentLinksController extends Controller
                     'payment_methods' => $paymentMethods,
                     'expires_at' => $expiresAt,
                     'usage_count' => 0,
+                    'request_payload' => $requestPayload,
                 ]);
             });
 
@@ -223,7 +379,7 @@ class PaymentLinksController extends Controller
 
             event(new PaymentLinkCreated($paymentLink->load('merchant')));
 
-            return response()->json([
+            $payload = [
                 'success' => true,
                 'message' => 'Payment link created successfully',
                 'data' => [
@@ -236,7 +392,18 @@ class PaymentLinksController extends Controller
                     'payment_url' => $paymentLink->getPaymentUrl(),
                     'expires_at' => $paymentLink->expires_at,
                 ],
-            ], 201);
+            ];
+            $paymentLink->update([
+                'response_payload' => [
+                    'status' => 'SUCCESS',
+                    'message' => 'Payment link created successfully',
+                    'mode' => $merchant->test_mode ? 'test' : 'live',
+                    'link_token' => $paymentLink->link_token,
+                    'payment_url' => $paymentLink->getPaymentUrl(),
+                ],
+            ]);
+            $attemptService->succeed($attempt, $paymentLink, $payload);
+            return response()->json($payload, 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->logError('Payment link validation exception', [
@@ -244,6 +411,14 @@ class PaymentLinksController extends Controller
                 'errors' => $e->errors()
             ]);
 
+            $attemptService = app(PaymentLinkAttemptService::class);
+            if (isset($attempt)) {
+                $attemptService->fail($attempt, 'Validation failed', [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ]);
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -259,6 +434,14 @@ class PaymentLinksController extends Controller
                 'line' => $e->getLine()
             ]);
 
+            $attemptService = app(PaymentLinkAttemptService::class);
+            if (isset($attempt)) {
+                $attemptService->fail($attempt, 'Exception', [
+                    'success' => false,
+                    'message' => 'Failed to create payment link. Please try again.',
+                    'error' => $e->getMessage(),
+                ]);
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create payment link. Please try again.',
