@@ -1346,6 +1346,10 @@
                 <i class="bi bi-percent"></i>
                 <span>Acquirer Rates</span>
             </a>
+            <a href="{{ route('admin.acquirer.monitoring.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.acquirer.monitoring.*') ? 'active' : '' }}" style="padding-left: 50px;">
+                <i class="bi bi-diagram-3"></i>
+                <span>Routing attempts</span>
+            </a>
         </div>
 
         <!-- User Settings Dropdown -->

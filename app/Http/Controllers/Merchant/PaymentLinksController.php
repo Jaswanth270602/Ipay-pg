@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\ApiKey;
 use App\Models\PaymentLink;
-use App\Models\MerchantVendor;
 use App\Services\AcquirerCredentialValidator;
 use App\Services\ApiCredentialValidator;
 use App\Services\PaymentLinks\PaymentLinkAttemptService;
@@ -29,8 +28,6 @@ class PaymentLinksController extends Controller
         $this->logInfo('Payment links page accessed', ['user_id' => auth()->id()]);
 
         $merchant = auth()->user()?->merchant;
-        $initialVendors = collect();
-
         $publicKeyForMode = null;
 
         if ($merchant) {
@@ -53,19 +50,13 @@ class PaymentLinksController extends Controller
                 $merchant->refresh();
             }
 
-            $initialVendors = MerchantVendor::query()
-                ->where('merchant_id', $merchant->id)
-                ->whereRaw('LOWER(status) = ?', ['approved'])
-                ->orderBy('vendor_name')
-                ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
-
             $publicKeyForMode = $merchant->test_mode
                 ? $merchant->test_public_key
                 : $merchant->live_public_key;
         }
 
         return view('merchant.paymentlinks.index', [
-            'initialVendors' => $initialVendors,
+            'initialVendors' => collect(),
             'paymentLinkPublicKey' => $publicKeyForMode,
         ]);
     }
@@ -117,7 +108,7 @@ class PaymentLinksController extends Controller
                 });
             }
 
-            $paymentLinks = $query->with('vendor')->paginate($perPage);
+            $paymentLinks = $query->paginate($perPage);
 
             // Format the payment links data
             $formattedLinks = collect($paymentLinks->items())->map(function ($link) {
@@ -138,8 +129,6 @@ class PaymentLinksController extends Controller
                     'test_mode' => $link->test_mode,
                     'usage_count' => $link->usage_count,
                     'max_usage' => $link->max_usage,
-                    'vendor_id' => $link->vendor_id,
-                    'vendor_name' => optional($link->vendor)->vendor_name,
                 ];
             });
 
@@ -175,7 +164,7 @@ class PaymentLinksController extends Controller
     }
 
     /**
-     * Get approved vendors for the authenticated merchant (for assigning payment links).
+     * Legacy endpoint: vendor module removed; returns empty list for compatibility.
      */
     public function getVendors(Request $request): JsonResponse
     {
@@ -188,15 +177,9 @@ class PaymentLinksController extends Controller
             ], 404);
         }
 
-        $vendors = MerchantVendor::query()
-            ->where('merchant_id', $merchant->id)
-            ->whereRaw('LOWER(status) = ?', ['approved'])
-            ->orderBy('vendor_name')
-            ->get(['id', 'vendor_name', 'vendor_code', 'vendor_email', 'vendor_phone']);
-
         return response()->json([
             'success' => true,
-            'data' => $vendors,
+            'data' => [],
         ]);
     }
 
@@ -217,7 +200,6 @@ class PaymentLinksController extends Controller
                 'allow_partial_payment' => $request->input('allow_partial_payment'),
                 'expires_in_hours' => $request->input('expires_in_hours'),
                 'payment_methods' => $request->input('payment_methods'),
-                'vendor_id' => $request->input('vendor_id'),
             ]);
             
             if (!$merchant) {
@@ -232,16 +214,31 @@ class PaymentLinksController extends Controller
 
             // Live mode: fail fast when acquirer credentials are invalid so bad keys don't create links.
             if (!$merchant->test_mode) {
+                if (! $merchant->isApprovedForAcquirer()) {
+                    $payload = [
+                        'success' => false,
+                        'status' => 'ERROR',
+                        'error' => 'MERCHANT_NOT_APPROVED',
+                        'message' => 'Live payments require merchant approval (Test approved or Approved). Ask your administrator to update approval status.',
+                    ];
+                    $attemptService->fail($attempt, 'MERCHANT_NOT_APPROVED', $payload);
+                    return response()->json($payload, 403);
+                }
+
                 $acquirerAccount = $merchant->getActiveAcquirerAccount();
                 $credValidator = app(AcquirerCredentialValidator::class);
                 $credResult = $credValidator->validate($acquirerAccount);
 
-                if (!$credResult['ok']) {
+                if (! $credResult['ok']) {
+                    $msg = $credResult['message'] ?? 'Enter valid API keys';
+                    if ($acquirerAccount === null && $msg === 'Acquirer not configured') {
+                        $msg = 'No usable acquirer: add an active acquirer in Admin (Acquirer accounts), link it to this merchant or ensure at least one platform acquirer exists with API keys. If you only have Test keys, create a TEST-mode acquirer or switch merchant to Test mode.';
+                    }
                     $payload = [
                         'success' => false,
                         'status' => 'ERROR',
                         'error' => 'ACQUIRER_CREDENTIALS_INVALID',
-                        'message' => $credResult['message'] ?? 'Enter valid API keys',
+                        'message' => $msg,
                     ];
                     $attemptService->fail($attempt, 'ACQUIRER_CREDENTIALS_INVALID', $payload);
                     return response()->json($payload, 422);
@@ -285,7 +282,6 @@ class PaymentLinksController extends Controller
                 'expires_in_hours' => 'nullable|integer|min:1|max:720',
                 'payment_methods' => 'nullable|array',
                 'payment_methods.*' => 'in:card,upi,netbanking,wallet',
-                'vendor_id' => 'nullable|integer',
             ]);
 
             if ($validator->fails()) {
@@ -308,7 +304,6 @@ class PaymentLinksController extends Controller
                 'title' => $request->title,
                 'amount' => $request->amount,
                 'currency' => $request->currency ?? 'INR',
-                'vendor_id' => $request->vendor_id ?? null,
             ]);
 
             // Calculate expiry
@@ -317,26 +312,6 @@ class PaymentLinksController extends Controller
 
             // Default payment methods
             $paymentMethods = $request->payment_methods ?? ['card', 'upi', 'netbanking', 'wallet'];
-
-            // Resolve vendor (optional, must belong to this merchant if provided)
-            $vendorId = null;
-            if ($request->filled('vendor_id')) {
-                $vendor = MerchantVendor::where('id', $request->vendor_id)
-                    ->where('merchant_id', $merchant->id)
-                    ->where('status', 'approved')
-                    ->first();
-
-                if (!$vendor) {
-                    $payload = [
-                        'success' => false,
-                        'message' => 'Selected vendor is invalid or not approved for this merchant.',
-                    ];
-                    $attemptService->fail($attempt, 'Invalid vendor', $payload);
-                    return response()->json($payload, 422);
-                }
-
-                $vendorId = $vendor->id;
-            }
 
             // Create payment link in transaction
             $requestPayload = [
@@ -347,14 +322,12 @@ class PaymentLinksController extends Controller
                 'allow_partial_payment' => $request->has('allow_partial_payment') ? (bool) $request->input('allow_partial_payment') : false,
                 'expires_at' => $expiresAt->toIso8601String(),
                 'payment_methods' => $paymentMethods,
-                'vendor_id' => $vendorId,
                 'mode' => $merchant->test_mode ? 'test' : 'live',
             ];
 
-            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods, $vendorId, $requestPayload) {
+            $paymentLink = DB::transaction(function () use ($merchant, $request, $expiresAt, $paymentMethods, $requestPayload) {
                 return PaymentLink::create([
                     'merchant_id' => $merchant->id,
-                    'vendor_id' => $vendorId,
                     'link_token' => PaymentLink::generateLinkToken(),
                     'title' => $request->title,
                     'description' => $request->description,

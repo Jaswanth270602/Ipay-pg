@@ -2,7 +2,9 @@
 
 namespace App\Services\PaymentOrchestration;
 
+use App\Models\AcquirerAccount;
 use App\Models\Merchant;
+use App\Models\PaymentRoutingMonitor;
 use App\Models\Transaction;
 use App\Services\Acquirers\AcquirerInterface;
 use App\Services\Acquirers\AcquirerResolver;
@@ -16,7 +18,8 @@ class PaymentRouterService
 {
     public function __construct(
         protected PaymentService $paymentService,
-        protected AcquirerResolver $acquirerResolver
+        protected AcquirerResolver $acquirerResolver,
+        protected AcquirerRoutingService $acquirerRoutingService
     ) {}
 
     /**
@@ -24,8 +27,8 @@ class PaymentRouterService
      */
     public function resolveLiveAdapter(Merchant $merchant): ?AcquirerInterface
     {
-        $account = $merchant->getActiveAcquirerAccount();
-        if (!$account) {
+        $account = $this->acquirerRoutingService->resolve($merchant)['account'];
+        if (! $account) {
             return null;
         }
 
@@ -81,9 +84,34 @@ class PaymentRouterService
             );
         }
 
-        $adapter = $this->resolveLiveAdapter($merchant);
+        $routing = $this->acquirerRoutingService->resolve($merchant);
+        $account = $routing['account'];
+        $flowTrace = $routing['flow_trace'];
+
+        $adapter = null;
+        if ($account) {
+            try {
+                $adapter = $this->acquirerResolver->resolve($account);
+            } catch (\Throwable $e) {
+                Log::warning('PaymentRouterService: could not resolve acquirer adapter', [
+                    'merchant_id' => $merchant->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         if ($adapter === null) {
             Log::warning('Live payment attempted without acquirer', ['merchant_id' => $merchant->id]);
+            $this->persistRoutingMonitor(
+                $merchant,
+                $orderData,
+                $paymentData,
+                $flowTrace,
+                null,
+                null,
+                'failed',
+                'Acquirer not configured'
+            );
 
             return array_merge(PaymentResponseNormalizer::error('Acquirer not configured'), [
                 'transaction_id' => null,
@@ -106,6 +134,22 @@ class PaymentRouterService
                 default => 'Payment pending. Complete payment on gateway checkout.',
             };
 
+            $monitorStatus = match ($transaction->status) {
+                'success' => 'success',
+                'failed' => 'failed',
+                default => 'pending',
+            };
+            $this->persistRoutingMonitor(
+                $merchant,
+                $orderData,
+                $paymentData,
+                $flowTrace,
+                $account,
+                $transaction,
+                $monitorStatus,
+                $transaction->status === 'failed' ? ($transaction->failure_reason ?? 'Payment failed') : null
+            );
+
             return PaymentResponseNormalizer::fromTransaction($transaction, $message, $gateway);
         } catch (\Throwable $e) {
             $isTimeout = str_contains(strtolower($e->getMessage()), 'timeout')
@@ -117,6 +161,17 @@ class PaymentRouterService
                 'timeout' => $isTimeout,
             ]);
 
+            $this->persistRoutingMonitor(
+                $merchant,
+                $orderData,
+                $paymentData,
+                $flowTrace,
+                $account,
+                null,
+                'failed',
+                $e->getMessage()
+            );
+
             return array_merge(
                 PaymentResponseNormalizer::error($isTimeout ? 'No response from acquirer' : $this->classifyLiveFailure($e->getMessage())),
                 [
@@ -125,6 +180,49 @@ class PaymentRouterService
                     'gateway' => $this->gatewayLabel($adapter),
                 ]
             );
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $flowTrace
+     */
+    protected function persistRoutingMonitor(
+        Merchant $merchant,
+        array $orderData,
+        array $paymentData,
+        array $flowTrace,
+        ?AcquirerAccount $account,
+        ?Transaction $transaction,
+        string $status,
+        ?string $errorMessage = null
+    ): void {
+        try {
+            $cd = $orderData['customer_details'] ?? [];
+            if (is_string($cd)) {
+                $decoded = json_decode($cd, true);
+                $cd = is_array($decoded) ? $decoded : [];
+            }
+            if (! is_array($cd)) {
+                $cd = [];
+            }
+
+            PaymentRoutingMonitor::create([
+                'merchant_id' => $merchant->id,
+                'txn_id' => $transaction?->txn_id,
+                'customer_name' => $cd['name'] ?? ($cd['customer_name'] ?? null),
+                'customer_email' => $cd['email'] ?? ($cd['customer_email'] ?? null),
+                'customer_phone' => isset($cd['phone']) ? (string) $cd['phone'] : (isset($cd['contact']) ? (string) $cd['contact'] : null),
+                'payment_method' => $paymentData['payment_method'] ?? null,
+                'final_acquirer_account_id' => $account?->id,
+                'final_acquirer_name' => $account?->acquirer_name,
+                'status' => $status,
+                'flow_trace' => $flowTrace,
+                'error_message' => $errorMessage,
+                'test_mode' => (bool) $merchant->test_mode,
+                'source' => 'orchestration_api',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('payment_routing_monitor persist failed', ['error' => $e->getMessage()]);
         }
     }
 

@@ -13,7 +13,6 @@ class PaymentLink extends Model
 
     protected $fillable = [
         'merchant_id',
-        'vendor_id',
         'link_token',
         'title',
         'description',
@@ -56,14 +55,6 @@ class PaymentLink extends Model
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
-    }
-
-    /**
-     * Optional vendor split for this payment link.
-     */
-    public function vendor(): BelongsTo
-    {
-        return $this->belongsTo(MerchantVendor::class, 'vendor_id');
     }
 
     /**

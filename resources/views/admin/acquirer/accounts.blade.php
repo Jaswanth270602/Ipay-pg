@@ -132,6 +132,10 @@
                                     <th ng-show="aac.visibleColumns.description.visible" style="min-width: 150px; width: 200px;">Description</th>
                                     <th ng-show="aac.visibleColumns.whitelist_url.visible" style="min-width: 150px; width: 200px;">Whitelist Url</th>
                                     <th ng-show="aac.visibleColumns.mode.visible" style="min-width: 80px; width: 100px;">Mode</th>
+                                    <th ng-show="aac.visibleColumns.priority.visible" style="min-width: 70px; width: 90px;">
+                                        <a href="#" class="text-decoration-none text-dark" ng-click="aac.sortBy('priority'); $event.preventDefault();">Priority</a>
+                                    </th>
+                                    <th ng-show="aac.visibleColumns.is_active.visible" style="min-width: 70px; width: 90px;">Active</th>
                                     <th ng-show="aac.visibleColumns.sector.visible" style="min-width: 100px; width: 120px;">Sector</th>
                                     <th ng-show="aac.visibleColumns.hdfc_me_code.visible" style="min-width: 120px; width: 150px;">Hdfc Me Code</th>
                                     <th ng-show="aac.visibleColumns.settlement_account_name.visible" style="min-width: 180px; width: 220px;">Settlement Account Name</th>
@@ -246,6 +250,10 @@
                                     <td ng-show="aac.visibleColumns.mode.visible">
                                         <span class="badge" ng-class="account.mode === 'TEST' ? 'bg-warning' : 'bg-success'">@{{ account.mode }}</span>
                                     </td>
+                                    <td ng-show="aac.visibleColumns.priority.visible">@{{ account.priority != null ? account.priority : '—' }}</td>
+                                    <td ng-show="aac.visibleColumns.is_active.visible">
+                                        <span class="badge" ng-class="account.is_active ? 'bg-success' : 'bg-secondary'">@{{ account.is_active ? 'Yes' : 'No' }}</span>
+                                    </td>
                                     <td ng-show="aac.visibleColumns.sector.visible">@{{ account.sector }}</td>
                                     <td ng-show="aac.visibleColumns.hdfc_me_code.visible">@{{ account.hdfc_me_code }}</td>
                                     <td ng-show="aac.visibleColumns.settlement_account_name.visible">@{{ account.settlement_account_name }}</td>
@@ -266,10 +274,26 @@
                                     <td ng-show="aac.visibleColumns.test_query_url.visible" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@{{ account.test_query_url }}</td>
                                     <td ng-show="aac.visibleColumns.test_refund_url.visible" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@{{ account.test_refund_url }}</td>
                                     <td ng-show="aac.visibleColumns.merchants.visible" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@{{ account.merchants }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" ng-click="aac.openEditModal(account); $event.stopPropagation();">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
+                                    <td class="text-nowrap" ng-click="$event.stopPropagation();">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Row actions">
+                                            <button type="button" class="btn btn-outline-secondary" title="Move up in priority (same mode)"
+                                                ng-click="aac.movePriority(account, 'up')">
+                                                <i class="bi bi-arrow-up"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" title="Move down in priority (same mode)"
+                                                ng-click="aac.movePriority(account, 'down')">
+                                                <i class="bi bi-arrow-down"></i>
+                                            </button>
+                                            <button type="button" class="btn" ng-class="account.is_active ? 'btn-outline-warning' : 'btn-outline-success'"
+                                                title="Toggle active"
+                                                ng-click="aac.toggleActive(account)">
+                                                <i class="bi" ng-class="account.is_active ? 'bi-pause-circle' : 'bi-play-circle'"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary" title="Edit"
+                                                ng-click="aac.openEditModal(account)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr ng-if="aac.accounts.length === 0">

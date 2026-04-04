@@ -51,6 +51,7 @@ use App\Http\Controllers\Admin\RiskManagementController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AcquirerAccountsController;
+use App\Http\Controllers\Admin\PaymentRoutingMonitorsController;
 use App\Http\Controllers\Admin\AcquirerAccountUploadController;
 use App\Http\Controllers\Admin\AcquirerRatesController;
 use App\Http\Controllers\Admin\ResellersController as AdminResellersController;
@@ -753,6 +754,17 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.acquirer.accounts.update');
         Route::delete('/acquirer-accounts/{id}', [AcquirerAccountsController::class, 'destroy'])
             ->name('admin.acquirer.accounts.destroy');
+        Route::post('/acquirer-accounts/{id}/move-priority', [AcquirerAccountsController::class, 'movePriority'])
+            ->name('admin.acquirer.accounts.move-priority');
+        Route::post('/acquirer-accounts/{id}/toggle-active', [AcquirerAccountsController::class, 'toggleActive'])
+            ->name('admin.acquirer.accounts.toggle-active');
+
+        Route::get('/payment-routing-monitors', [PaymentRoutingMonitorsController::class, 'index'])
+            ->name('admin.acquirer.monitoring.index');
+        Route::get('/payment-routing-monitors/data', [PaymentRoutingMonitorsController::class, 'getData'])
+            ->name('admin.acquirer.monitoring.data');
+        Route::get('/payment-routing-monitors/{id}', [PaymentRoutingMonitorsController::class, 'show'])
+            ->name('admin.acquirer.monitoring.show');
         
         // Acquirer Account Details Upload
         Route::get('/acquirer-account-upload', [AcquirerAccountUploadController::class, 'index'])

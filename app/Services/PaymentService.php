@@ -354,7 +354,6 @@ class PaymentService
             $transaction = Transaction::create([
                 'order_id' => $order->id,
                 'merchant_id' => $order->merchant_id,
-                'vendor_id' => optional($order->paymentLink)->vendor_id,
                 'txn_id' => Transaction::generateTxnId(),
                 'payment_method' => $paymentData['payment_method'],
                 'amount' => $order->amount,

@@ -18,6 +18,7 @@ class AcquirerAccount extends Model
         'description',
         'whitelist_url',
         'mode',
+        'priority',
         'sector',
         'hdfc_me_code',
         'settlement_account_name',
@@ -46,6 +47,7 @@ class AcquirerAccount extends Model
         'settlements_to_be_created' => 'boolean',
         'mask_pii' => 'boolean',
         'is_active' => 'boolean',
+        'priority' => 'integer',
     ];
 
     /**

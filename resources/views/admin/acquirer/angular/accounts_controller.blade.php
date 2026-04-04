@@ -30,7 +30,7 @@
                     'IppoPayUPI', 'ISERVEU', 'ISGPAY', 'ISGPAYV2', 'iSmartPay', 'JCPays', 'Jeetoabhi', 'JigsPayP2P', 
                     'JioPay', 'JodetxUpi', 'JssMoney', 'JusPayUpi', 'Kopay', 'KotakAllPay', 'KotakCard', 'KotakDCEMI', 
                     'KotakUpi', 'LazyPay', 'LazyPayEmi', 'LetsPe', 'LevinPay', 'LightspeedPay', 'Paytm', 'Switch', 
-                    'SBI', 'Razorpay', 'razorpay', 'razorpay_test', 'razorpay_live', 'PayU'
+                    'SBI', 'Razorpay', 'PayU'
                 ];
                 
                 vm.accounts = [];
@@ -72,6 +72,8 @@
                     description: { visible: true, label: 'Description' },
                     whitelist_url: { visible: true, label: 'Whitelist Url' },
                     mode: { visible: true, label: 'Mode' },
+                    priority: { visible: true, label: 'Priority' },
+                    is_active: { visible: true, label: 'Active' },
                     sector: { visible: true, label: 'Sector' },
                     hdfc_me_code: { visible: true, label: 'Hdfc Me Code' },
                     settlement_account_name: { visible: true, label: 'Settlement Account Name' },
@@ -116,6 +118,8 @@
                     test_query_url: '',
                     test_refund_url: '',
                     nodal_account: '',
+                    priority: null,
+                    is_active: true,
                     merchant_ids: []
                 };
 
@@ -268,6 +272,59 @@
                     vm.selectedAccount = account;
                 };
 
+                /** Reorder priority within same mode (swap with neighbour). */
+                vm.movePriority = function(account, direction) {
+                    if (!account || !account.id) return;
+                    $http.post('/admin/acquirer-accounts/' + account.id + '/move-priority', { direction: direction }, {
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    }).then(function(response) {
+                        if (response.data && response.data.success) {
+                            if (typeof showToast === 'function') {
+                                showToast(response.data.message || 'Priority updated', 'success');
+                            }
+                            vm.loadAccounts();
+                        }
+                    }).catch(function(error) {
+                        var msg = (error.data && error.data.message) ? error.data.message : 'Could not change priority';
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        } else {
+                            alert(msg);
+                        }
+                    });
+                };
+
+                vm.toggleActive = function(account) {
+                    if (!account || !account.id) return;
+                    $http.post('/admin/acquirer-accounts/' + account.id + '/toggle-active', {}, {
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'Accept': 'application/json'
+                        }
+                    }).then(function(response) {
+                        if (response.data && response.data.success && response.data.data) {
+                            account.is_active = response.data.data.is_active;
+                            if (vm.selectedAccount && vm.selectedAccount.id === account.id) {
+                                vm.selectedAccount.is_active = account.is_active;
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast(response.data.message || 'Active flag updated', 'success');
+                            }
+                        }
+                    }).catch(function(error) {
+                        console.error('toggleActive', error);
+                        if (typeof showToast === 'function') {
+                            showToast('Could not toggle active', 'error');
+                        } else {
+                            alert('Could not toggle active');
+                        }
+                    });
+                };
+
                 // Clear filters
                 vm.clearFilters = function() {
                     vm.filters = {
@@ -361,6 +418,8 @@
                         test_query_url: '',
                         test_refund_url: '',
                         nodal_account: '',
+                        priority: null,
+                        is_active: true,
                         merchant_ids: []
                     };
                     
@@ -439,7 +498,6 @@
                         refund_allowed: vm.selectedAccount.refund_allowed,
                         settlements_to_be_created: vm.selectedAccount.settlements_to_be_created,
                         mask_pii: vm.selectedAccount.mask_pii,
-                        is_active: vm.selectedAccount.is_active !== undefined ? vm.selectedAccount.is_active : true,
                         email_ids: vm.selectedAccount.email_ids || '',
                         secret_key: vm.selectedAccount.secret_key || '',
                         salt: vm.selectedAccount.salt || '',
@@ -453,7 +511,9 @@
                         test_request_url: vm.selectedAccount.test_request_url || '',
                         test_query_url: vm.selectedAccount.test_query_url || '',
                         test_refund_url: vm.selectedAccount.test_refund_url || '',
-                        nodal_account: '',
+                        nodal_account: vm.selectedAccount.nodal_account || '',
+                        priority: vm.selectedAccount.priority != null ? vm.selectedAccount.priority : null,
+                        is_active: vm.selectedAccount.is_active !== undefined ? vm.selectedAccount.is_active : true,
                         merchant_ids: vm.selectedAccount.merchant_ids || []
                     };
 
@@ -550,6 +610,15 @@
                         data.is_active = false;
                     } else {
                         data.is_active = true; // Default to true if not set
+                    }
+
+                    if (data.priority === '' || data.priority === undefined) {
+                        delete data.priority;
+                    } else {
+                        data.priority = parseInt(data.priority, 10);
+                        if (isNaN(data.priority)) {
+                            delete data.priority;
+                        }
                     }
                     
                     // Remove copy_rates_from if empty (not needed for save)

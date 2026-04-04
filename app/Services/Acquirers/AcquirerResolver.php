@@ -22,13 +22,15 @@ class AcquirerResolver
      */
     public function resolve(AcquirerAccount $acquirerAccount): AcquirerInterface
     {
-        $acquirerName = strtolower($acquirerAccount->acquirer_name);
+        $acquirerName = strtolower(trim($acquirerAccount->acquirer_name ?? ''));
+        // One display name "Razorpay"; test vs live comes from keys + account mode, not from name variants.
+        if (in_array($acquirerName, ['razorpay', 'razorpay_test', 'razorpay_live'], true)) {
+            $acquirerName = 'razorpay';
+        }
 
         // Map acquirer names to adapter classes
         $adapterMap = [
             'razorpay' => RazorpayAcquirerAdapter::class,
-            'razorpay_test' => RazorpayAcquirerAdapter::class,
-            'razorpay_live' => RazorpayAcquirerAdapter::class,
             'cashfree' => CashFreeAcquirerAdapter::class,
             'cashfree_test' => CashFreeAcquirerAdapter::class,
             'cashfree_live' => CashFreeAcquirerAdapter::class,

@@ -64,14 +64,19 @@
                             <label class="form-label">Whitelist URL:</label>
                             <input type="url" class="form-control" ng-model="aac.accountForm.whitelist_url">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Mode: <span class="text-danger">*</span></label>
                             <select class="form-select" ng-model="aac.accountForm.mode" required>
                                 <option value="TEST">TEST</option>
                                 <option value="LIVE">LIVE</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Routing priority</label>
+                            <input type="number" class="form-control" min="1" max="999999" placeholder="Auto (next) if empty on create" ng-model="aac.accountForm.priority">
+                            <small class="text-muted">Lower number = tried first for failover routing (same mode). Optional on create.</small>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Sector:</label>
                             <select class="form-select" ng-model="aac.accountForm.sector">
                                 <option value="">Select Sector</option>

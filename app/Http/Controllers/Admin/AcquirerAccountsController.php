@@ -62,7 +62,7 @@ class AcquirerAccountsController extends Controller
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
             $sortDirection = $request->get('sort_direction', 'desc');
-            if (in_array($sortBy, ['id', 'account_id', 'acquirer_name', 'team', 'mode', 'sector', 'created_at'])) {
+            if (in_array($sortBy, ['id', 'account_id', 'acquirer_name', 'team', 'mode', 'sector', 'priority', 'created_at'])) {
                 $query->orderBy($sortBy, $sortDirection);
             } else {
                 $query->latest();
@@ -86,6 +86,7 @@ class AcquirerAccountsController extends Controller
                     'settlements_to_be_created' => $account->settlements_to_be_created,
                     'mask_pii' => $account->mask_pii,
                     'is_active' => $account->is_active,
+                    'priority' => $account->priority,
                     'email_ids' => $account->email_ids,
                     'secret_key' => $account->secret_key, // Include for editing
                     'salt' => $account->salt, // Include for editing
@@ -143,6 +144,7 @@ class AcquirerAccountsController extends Controller
             'settlements_to_be_created' => 'boolean',
             'mask_pii' => 'boolean',
             'is_active' => 'boolean',
+            'priority' => 'nullable|integer|min:1|max:999999',
             'email_ids' => 'nullable|string',
             'secret_key' => 'nullable|string',
             'salt' => 'nullable|string',
@@ -177,7 +179,12 @@ class AcquirerAccountsController extends Controller
                 'has_secret_key' => !empty($request->secret_key),
             ]);
 
-            $account = AcquirerAccount::create($validator->validated());
+            $attrs = $validator->validated();
+            if (! isset($attrs['priority']) || $attrs['priority'] === null || $attrs['priority'] === '') {
+                $next = (int) (AcquirerAccount::query()->where('mode', $attrs['mode'])->max('priority') ?? 0);
+                $attrs['priority'] = $next + 1;
+            }
+            $account = AcquirerAccount::create($attrs);
             // Merchants are assigned from Merchant module (many-to-one: one acquirer, many merchants)
 
             DB::commit();
@@ -217,6 +224,7 @@ class AcquirerAccountsController extends Controller
             'settlements_to_be_created' => 'boolean',
             'mask_pii' => 'boolean',
             'is_active' => 'boolean',
+            'priority' => 'nullable|integer|min:1|max:999999',
             'email_ids' => 'nullable|string',
             'secret_key' => 'nullable|string',
             'salt' => 'nullable|string',
@@ -317,7 +325,7 @@ class AcquirerAccountsController extends Controller
         // Add common acquirer names (including Razorpay)
         $commonNames = collect([
             'A2Pay', 'Paytm', 'Switch', 'HDFC', 'ICICI', 'Axis', 'SBI',
-            'Razorpay', 'razorpay', 'razorpay_test', 'razorpay_live', 'PayU',
+            'Razorpay', 'PayU',
         ]);
         
         // Merge and ensure Razorpay variants are included
@@ -349,6 +357,69 @@ class AcquirerAccountsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $merchants,
+        ]);
+    }
+
+    /**
+     * Reorder priority within the same mode (swap with neighbour up/down).
+     */
+    public function movePriority(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'direction' => 'required|in:up,down',
+        ]);
+
+        $account = AcquirerAccount::findOrFail($id);
+        $mode = $account->mode;
+
+        $ordered = AcquirerAccount::query()
+            ->where('mode', $mode)
+            ->orderByRaw('COALESCE(priority, 999999) ASC')
+            ->orderBy('id')
+            ->get();
+
+        $idx = $ordered->search(fn ($a) => (int) $a->id === (int) $id);
+        if ($idx === false) {
+            return response()->json(['success' => false, 'message' => 'Account not found in ordering'], 404);
+        }
+
+        $direction = $request->input('direction');
+        $j = $direction === 'up' ? $idx - 1 : $idx + 1;
+        if ($j < 0 || $j >= $ordered->count()) {
+            return response()->json(['success' => false, 'message' => 'Cannot move further'], 422);
+        }
+
+        $items = $ordered->values()->all();
+        $tmp = $items[$idx];
+        $items[$idx] = $items[$j];
+        $items[$j] = $tmp;
+
+        try {
+            DB::transaction(function () use ($items) {
+                foreach ($items as $pos => $item) {
+                    AcquirerAccount::whereKey($item->id)->update(['priority' => $pos + 1]);
+                }
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reorder: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Priority updated']);
+    }
+
+    public function toggleActive(string $id): JsonResponse
+    {
+        $account = AcquirerAccount::findOrFail($id);
+        $account->is_active = ! $account->is_active;
+        $account->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Active flag updated',
+            'data' => ['is_active' => $account->is_active],
         ]);
     }
 }

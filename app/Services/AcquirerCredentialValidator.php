@@ -27,7 +27,26 @@ class AcquirerCredentialValidator
             return $this->validateCashfree($acquirer);
         }
 
-        return ['ok' => false, 'message' => 'Acquirer not configured'];
+        // Other gateways: no provider-specific health API yet — allow routing if record is active and has credentials.
+        return $this->validateGenericCredentialsPresent($acquirer);
+    }
+
+    /**
+     * @return array{ok: bool, message: string}
+     */
+    private function validateGenericCredentialsPresent(AcquirerAccount $a): array
+    {
+        $hasCred = trim((string) ($a->secret_key ?? '')) !== ''
+            || trim((string) ($a->additional_key_1 ?? '')) !== ''
+            || trim((string) ($a->additional_key_2 ?? '')) !== ''
+            || trim((string) ($a->account_id ?? '')) !== ''
+            || trim((string) ($a->salt ?? '')) !== '';
+
+        if ($hasCred) {
+            return ['ok' => true, 'message' => 'OK'];
+        }
+
+        return ['ok' => false, 'message' => 'Enter valid API keys'];
     }
 
     private function validateRazorpay(AcquirerAccount $a): array

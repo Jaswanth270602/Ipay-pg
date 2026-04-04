@@ -243,34 +243,7 @@ class Merchant extends Model
      */
     public function getActiveAcquirerAccount(): ?AcquirerAccount
     {
-        if (!$this->isApprovedForAcquirer()) {
-            return null;
-        }
-        if ($this->acquirer_account_id) {
-            $acquirer = $this->acquirerAccount;
-            if ($acquirer && $acquirer->is_active) {
-                return $acquirer;
-            }
-        }
-        // Fallback: pivot-based (legacy)
-        $mode = $this->test_mode ? 'TEST' : 'LIVE';
-        $candidates = $this->acquirerAccounts()
-            ->where('mode', $mode)
-            ->where('is_active', true)
-            ->get();
-        if ($candidates->isEmpty() && !$this->test_mode) {
-            $candidates = $this->acquirerAccounts()
-                ->where('mode', 'TEST')
-                ->where('is_active', true)
-                ->get();
-        }
-        if ($candidates->isEmpty()) {
-            return null;
-        }
-        $preferred = $candidates->first(function (AcquirerAccount $a) {
-            return stripos($a->acquirer_name ?? '', 'razorpay') !== false;
-        });
-        return $preferred ?? $candidates->first();
+        return app(\App\Services\PaymentOrchestration\AcquirerRoutingService::class)->resolve($this)['account'];
     }
 
     /**
@@ -325,17 +298,36 @@ class Merchant extends Model
     }
 
     /**
+     * True when platform failover routing can supply an acquirer (merchant has no acquirer_account_id / pivot link).
+     * Mirrors getActiveAcquirerAccount(): same mode as merchant (LIVE merchants only see LIVE acquirers).
+     */
+    public function hasPlatformRoutingAcquirerAvailable(): bool
+    {
+        if (! $this->isApprovedForAcquirer()) {
+            return false;
+        }
+        $mode = $this->test_mode ? 'TEST' : 'LIVE';
+
+        return AcquirerAccount::query()->where('mode', $mode)->where('is_active', true)->exists();
+    }
+
+    /**
      * Check if merchant can use Live (merchant) mode.
      * Live mode as payment aggregator: allowed when merchant has an active acquirer
      * (e.g. Razorpay Test, Razorpay Live, Cashfree) — no bank account required.
+     * Also allowed when failover routing can use a platform-wide acquirer (Case 2 routing).
      * Alternatively, full live credentials (API key + bank + production gateway) also allow live mode.
      */
     public function canUseLiveMode(): bool
     {
+        if ($this->hasLiveCredentials()) {
+            return true;
+        }
         if ($this->hasAnyActiveAcquirer()) {
             return true;
         }
-        return $this->hasLiveCredentials();
+
+        return $this->hasPlatformRoutingAcquirerAvailable();
     }
 
     /**
