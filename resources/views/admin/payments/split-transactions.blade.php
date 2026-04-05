@@ -255,6 +255,7 @@
                                                 <option value="all">All</option>
                                                 <option value="Primary">Primary</option>
                                                 <option value="Secondary">Secondary</option>
+                                                <option value="Vendor">Vendor</option>
                                                 <option value="Split">Split</option>
                                             </select>
                                         </th>
@@ -281,6 +282,7 @@
                                             <span class="badge" ng-class="{
                                                 'bg-primary': split.split_type === 'Primary',
                                                 'bg-success': split.split_type === 'Secondary',
+                                                'bg-secondary': split.split_type === 'Vendor',
                                                 'bg-info': split.split_type === 'Split'
                                             }">
                                                 @{{ split.split_type }}

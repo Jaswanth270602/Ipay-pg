@@ -124,29 +124,45 @@ class SplitTransactionsController extends Controller
             $splitTransactions = [];
             if (DB::getSchemaBuilder()->hasTable('split_transactions')) {
                 $splits = SplitTransaction::where('transaction_id', $transactionId)
-                    ->with(['primaryMerchant', 'secondaryMerchant'])
+                    ->with(['primaryMerchant', 'secondaryMerchant', 'merchantVendor'])
                     ->get();
-                
+
                 foreach ($splits as $split) {
-                    // Primary split
+                    $primaryType = ($split->merchant_vendor_id || $split->secondary_merchant_id) ? 'Primary' : 'Primary';
+
                     $splitTransactions[] = [
                         'order_id' => $split->order_id,
                         'amount_paid_by_customer' => '₹' . number_format($split->total_amount, 2),
-                        'account_holder_name' => $split->account_holder_name ?? ($split->primaryMerchant->name ?? '-'),
-                        'account_number' => $split->account_number ?? '-',
-                        'split_type' => $split->split_type ?? ($split->secondary_merchant_id ? 'Split' : 'Primary'),
+                        'account_holder_name' => $split->primaryMerchant->name ?? '-',
+                        'account_number' => '-',
+                        'split_type' => $primaryType,
                         'split_amount' => '₹' . number_format($split->primary_amount, 2),
                         'split_percentage' => number_format($split->primary_percentage, 2) . '%',
                     ];
-                    
-                    // Secondary split if exists
+
                     if ($split->secondary_merchant_id && $split->secondary_amount > 0) {
                         $splitTransactions[] = [
                             'order_id' => $split->order_id,
                             'amount_paid_by_customer' => '₹' . number_format($split->total_amount, 2),
-                            'account_holder_name' => $split->account_holder_name ?? ($split->secondaryMerchant->name ?? '-'),
+                            'account_holder_name' => $split->secondaryMerchant->name ?? '-',
                             'account_number' => $split->account_number ?? '-',
                             'split_type' => 'Secondary',
+                            'split_amount' => '₹' . number_format($split->secondary_amount, 2),
+                            'split_percentage' => number_format($split->secondary_percentage, 2) . '%',
+                        ];
+                    }
+
+                    if ($split->merchant_vendor_id && $split->secondary_amount > 0) {
+                        $v = $split->merchantVendor;
+                        $label = $v
+                            ? ($v->vendor_name . ' (' . ($v->bank_account_holder_name ?? 'Bank') . ')')
+                            : ($split->account_holder_name ?? 'Vendor');
+                        $splitTransactions[] = [
+                            'order_id' => $split->order_id,
+                            'amount_paid_by_customer' => '₹' . number_format($split->total_amount, 2),
+                            'account_holder_name' => $label,
+                            'account_number' => $split->account_number ?? '-',
+                            'split_type' => 'Vendor',
                             'split_amount' => '₹' . number_format($split->secondary_amount, 2),
                             'split_percentage' => number_format($split->secondary_percentage, 2) . '%',
                         ];

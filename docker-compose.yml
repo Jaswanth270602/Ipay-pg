@@ -85,7 +85,7 @@ services:
     container_name: ipay-scheduler
     restart: unless-stopped
     working_dir: /var/www/html
-    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
     volumes:
       - ./:/var/www/html
     networks:

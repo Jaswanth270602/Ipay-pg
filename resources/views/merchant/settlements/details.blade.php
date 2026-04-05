@@ -10,6 +10,8 @@
         ['label'=>'Settlement Details']
     ]" />
 
+    @include('merchant.settlements._nav-tabs')
+
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Settlement Details</h2>

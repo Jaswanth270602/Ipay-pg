@@ -12,9 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Schedule webhook retries
-        $schedule->command('webhooks:retry')->everyFiveMinutes();
+        $schedulerLog = storage_path('logs/scheduler.log');
 
+<<<<<<< Updated upstream
         // Pending live payments: poll gateway if callback missing
         $schedule->command('payments:reconcile-pending')
             ->everyTenMinutes()
@@ -36,6 +36,21 @@ class Kernel extends ConsoleKernel
         $schedule->command('csv:cleanup-lifecycle-files')
             ->hourly()
             ->withoutOverlapping();
+=======
+        // Pending webhook deliveries (also picks up retries when queue workers were down)
+        $schedule->command('webhooks:retry')
+            ->everyFiveMinutes()
+            ->withoutOverlapping(10)
+            ->appendOutputTo($schedulerLog);
+
+        // Daily settlement batch — do not use runInBackground() here: it releases the
+        // overlap mutex before the child process finishes and can cause double runs.
+        $schedule->command('settlements:process-daily')
+            ->dailyAt('23:00')
+            ->timezone('Asia/Kolkata')
+            ->withoutOverlapping(180)
+            ->appendOutputTo($schedulerLog);
+>>>>>>> Stashed changes
     }
 
     /**

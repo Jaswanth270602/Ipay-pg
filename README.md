@@ -366,17 +366,36 @@ php artisan queue:work
 
 ### Scheduled Tasks
 
-Run the scheduler for periodic tasks:
+Defined in `app/Console/Kernel.php`:
+
+| Task | When |
+|------|------|
+| `webhooks:retry` | Every 5 minutes |
+| `settlements:process-daily` | Daily at **23:00** **Asia/Kolkata** |
+
+Output is appended to `storage/logs/scheduler.log`. List due tasks: `php artisan schedule:list`.
+
+**Local dev (any OS):** run the scheduler loop in a terminal:
 
 ```bash
 php artisan schedule:work
 ```
 
-Or add to cron:
+On Windows you can use `scripts\schedule-work.bat` instead (same command).
+
+**Production (Linux):** add a single cron entry so Laravel runs the scheduler every minute:
 
 ```cron
 * * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
 ```
+
+**Production (Windows Server):** use Task Scheduler to run **every minute**: Program `scripts\schedule-run.bat` (or `php.exe` with argument `artisan schedule:run` and “Start in” set to the project root). Logs go to `storage\logs\scheduler.log`.
+
+**Docker:** the `scheduler` service in `docker-compose.yml` runs `schedule:run` once per minute.
+
+**HTTP cron (no SSH):** set `SCHEDULER_CRON_TOKEN` in `.env`, then call `GET /cron/schedule?token=YOUR_TOKEN` every minute (e.g. cron-job.org). Merchants can also use **Settlements → Cron & schedule** in the dashboard to run a settlement batch for their account or copy the ping URL pattern.
+
+**Webhooks:** `webhooks:retry` only dispatches `DeliverWebhookJob` jobs. For real async delivery, set `QUEUE_CONNECTION` to `redis` or `database` and run `php artisan queue:work` (or use the `laravel-worker` program in `docker/supervisor/supervisord.conf`).
 
 ### Refresh Database
 

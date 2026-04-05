@@ -167,6 +167,14 @@ class Merchant extends Model
     }
 
     /**
+     * Vendor bank profiles (admin-managed) under this merchant.
+     */
+    public function merchantVendors(): HasMany
+    {
+        return $this->hasMany(MerchantVendor::class);
+    }
+
+    /**
      * Get payment links for this merchant.
      */
     public function paymentLinks(): HasMany

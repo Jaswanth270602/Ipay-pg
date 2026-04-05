@@ -246,12 +246,6 @@
             font-size: 12px;
         }
 
-        .test-mode-badge div {
-            font-size: 11px;
-            line-height: 1.5;
-            opacity: 0.95;
-        }
-
         .secured-by {
             position: relative;
             z-index: 1;
@@ -795,10 +789,10 @@
                 <div class="test-mode-badge">
                     <strong><i class="bi bi-info-circle"></i> TEST MODE - Simulate Payment</strong>
                     <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn btn-sm btn-success" id="simulateSuccessBtn" style="width: 100%; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: white; font-weight: 600;">
+                        <button type="button" class="btn btn-sm btn-success" id="simulateSuccessBtn" style="width: 100%; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5); color: white; font-weight: 600;">
                             <i class="bi bi-check-circle"></i> Simulate Success
                         </button>
-                        <button class="btn btn-sm btn-danger" id="simulateFailBtn" style="width: 100%; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: white; font-weight: 600;">
+                        <button type="button" class="btn btn-sm btn-danger" id="simulateFailBtn" style="width: 100%; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5); color: white; font-weight: 600;">
                             <i class="bi bi-x-circle"></i> Simulate Failure
                         </button>
                     </div>
@@ -2592,7 +2586,6 @@
             customerPhoneInput.addEventListener('blur', () => validateForm(false));
         }
 
-        // Test mode simulation buttons
         @if($paymentLink->test_mode)
         const simulateSuccessBtn = document.getElementById('simulateSuccessBtn');
         const simulateFailBtn = document.getElementById('simulateFailBtn');
@@ -2606,11 +2599,10 @@
 
                 successAlert.style.display = 'none';
                 errorAlert.style.display = 'none';
-                
+
                 payButton.disabled = true;
                 payButtonText.innerHTML = '<span class="spinner"></span> Simulating Success...';
 
-                // Simulate successful payment
                 const paymentData = {
                     payment_method: selectedMethod || 'card',
                     customer_details: {
@@ -2642,8 +2634,7 @@
                         payButtonText.textContent = 'Payment Successful!';
                         payButton.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
                         successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // Redirect after showing success
+
                         setTimeout(() => {
                             const baseUrl = window.location.origin;
                             window.location.href = result.redirect_url || `${baseUrl}/success-simple.html?transaction_id=${result.transaction_id}`;
@@ -2652,8 +2643,7 @@
                         errorMessage.textContent = result.message || 'Simulation failed';
                         errorAlert.style.display = 'flex';
                         errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // Redirect to failure page after showing error
+
                         setTimeout(() => {
                             const baseUrl = window.location.origin;
                             window.location.href = result.redirect_url || `${baseUrl}/failure-simple.html?transaction_id=${result.transaction_id}`;
@@ -2667,9 +2657,9 @@
                     @if($paymentLink->allow_partial_payment)
                     const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
-                @else
+                    @else
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
-                @endif
+                    @endif
                 }
             });
         }
@@ -2683,11 +2673,10 @@
 
                 successAlert.style.display = 'none';
                 errorAlert.style.display = 'none';
-                
+
                 payButton.disabled = true;
                 payButtonText.innerHTML = '<span class="spinner"></span> Simulating Failure...';
 
-                // Simulate failed payment
                 const paymentData = {
                     payment_method: selectedMethod || 'card',
                     customer_details: {
@@ -2720,21 +2709,20 @@
                         errorMessage.textContent = result.message || 'Payment failed (simulated)';
                         errorAlert.style.display = 'flex';
                         errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // Redirect to failure page
+
                         setTimeout(() => {
                             const baseUrl = window.location.origin;
                             window.location.href = result.redirect_url || `${baseUrl}/failure-simple.html?transaction_id=${result.transaction_id || ''}`;
                         }, 2000);
                     }
-                    
+
                     payButton.disabled = false;
                     @if($paymentLink->allow_partial_payment)
                     const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
-                @else
+                    @else
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
-                @endif
+                    @endif
                 } catch (error) {
                     console.error('Simulation error:', error);
                     errorMessage.textContent = 'Payment failed (simulated)';
@@ -2743,9 +2731,9 @@
                     @if($paymentLink->allow_partial_payment)
                     const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
-                @else
+                    @else
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
-                @endif
+                    @endif
                 }
             });
         }

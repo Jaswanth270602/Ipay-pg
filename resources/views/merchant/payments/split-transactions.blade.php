@@ -196,6 +196,45 @@
                             <hr>
                         </div>
 
+                        <div ng-if="mstc.canManualSplit" class="card border-primary mb-4">
+                            <div class="card-header bg-light">
+                                <strong><i class="bi bi-sliders"></i> Manual split</strong>
+                                <span class="text-muted small ms-2">Set merchant share and vendor share; they must add up to the transaction total.</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Total (INR)</label>
+                                        <p class="form-control-plaintext fw-bold mb-0">₹ @{{ mstc.manualTotal | number:2 }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Your share (merchant) ₹</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" ng-model="mstc.manualSplit.primary_amount" ng-change="mstc.recalcManualSecondary()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Vendor share ₹</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" ng-model="mstc.manualSplit.secondary_amount" ng-change="mstc.recalcManualPrimary()">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Vendor payee</label>
+                                        <select class="form-select" ng-model="mstc.manualSplit.merchant_vendor_id"
+                                                ng-options="v.id as (v.vendor_name + ' (' + v.vendor_code + ')') for v in mstc.approvedVendors">
+                                            <option value="">— None (100% to you) —</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-primary" ng-click="mstc.saveManualSplit()" ng-disabled="mstc.savingManual">
+                                        <span ng-if="mstc.savingManual" class="spinner-border spinner-border-sm"></span>
+                                        Save manual split
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div ng-if="!mstc.canManualSplit && mstc.selectedTransaction" class="alert alert-secondary small mb-3">
+                            Manual split is only available for successful payments.
+                        </div>
+
                         <h6 class="mb-3">Split Details</h6>
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover">
@@ -228,6 +267,7 @@
                                                 <option value="all">All</option>
                                                 <option value="Primary">Primary</option>
                                                 <option value="Secondary">Secondary</option>
+                                                <option value="Vendor">Vendor</option>
                                                 <option value="Split">Split</option>
                                             </select>
                                         </th>
@@ -254,6 +294,7 @@
                                             <span class="badge" ng-class="{
                                                 'bg-primary': split.split_type === 'Primary',
                                                 'bg-success': split.split_type === 'Secondary',
+                                                'bg-secondary': split.split_type === 'Vendor',
                                                 'bg-info': split.split_type === 'Split'
                                             }">
                                                 @{{ split.split_type }}
@@ -289,6 +330,12 @@
             var app = angular.module('ipayApp');
             app.controller('MerchantSplitTransactionsController', ['$http', function($http) {
                 var vm = this;
+                var csrf = document.querySelector('meta[name="csrf-token"]').content;
+                vm.approvedVendors = [];
+                vm.manualSplit = { primary_amount: 0, secondary_amount: 0, merchant_vendor_id: null };
+                vm.manualTotal = 0;
+                vm.canManualSplit = false;
+                vm.savingManual = false;
                 vm.transactions = [];
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
                 vm.filters = {};
@@ -413,16 +460,98 @@
                     vm.applySplitFilters();
                 };
                 
+                vm.loadApprovedVendors = function() {
+                    $http.get('/merchant/payments/split-transactions/vendors').then(function(res) {
+                        vm.approvedVendors = res.data.data || [];
+                    }, function() { vm.approvedVendors = []; });
+                };
+                vm.loadApprovedVendors();
+
+                vm.recalcManualSecondary = function() {
+                    var t = parseFloat(vm.manualTotal) || 0;
+                    var p = parseFloat(vm.manualSplit.primary_amount);
+                    if (isNaN(p)) { p = 0; }
+                    vm.manualSplit.secondary_amount = Math.round((t - p) * 100) / 100;
+                };
+                vm.recalcManualPrimary = function() {
+                    var t = parseFloat(vm.manualTotal) || 0;
+                    var s = parseFloat(vm.manualSplit.secondary_amount);
+                    if (isNaN(s)) { s = 0; }
+                    vm.manualSplit.primary_amount = Math.round((t - s) * 100) / 100;
+                };
+
+                vm.reloadSplitDetailsInModal = function() {
+                    if (!vm.selectedTransaction) return;
+                    var transactionId = vm.selectedTransaction.id || vm.selectedTransaction.transaction_id;
+                    vm.loadingSplitDetails = true;
+                    $http.get('/merchant/payments/split-transactions/' + transactionId + '/details').then(function(response) {
+                        vm.loadingSplitDetails = false;
+                        if (response.data.success) {
+                            vm.splitDetails = response.data.data || [];
+                            vm.manualTotal = response.data.transaction.amount_numeric;
+                            vm.manualSplit = angular.extend(
+                                { primary_amount: 0, secondary_amount: 0, merchant_vendor_id: null },
+                                response.data.manual_split_defaults || {}
+                            );
+                            vm.canManualSplit = response.data.transaction.can_manual_split;
+                            vm.splitFilters = {
+                                filter_order_id: '',
+                                filter_amount: '',
+                                filter_account_holder_name: '',
+                                filter_account_number: '',
+                                filter_split_type: 'all'
+                            };
+                            vm.applySplitFilters();
+                        }
+                    }, function() { vm.loadingSplitDetails = false; });
+                };
+
+                vm.saveManualSplit = function() {
+                    if (!vm.selectedTransaction) return;
+                    var id = vm.selectedTransaction.id || vm.selectedTransaction.transaction_id;
+                    vm.savingManual = true;
+                    var vid = vm.manualSplit.merchant_vendor_id;
+                    if (vid === '' || vid === undefined) { vid = null; }
+                    $http.post('/merchant/payments/split-transactions/' + id + '/manual-split', {
+                        primary_amount: vm.manualSplit.primary_amount,
+                        secondary_amount: vm.manualSplit.secondary_amount,
+                        merchant_vendor_id: vid
+                    }, { headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/json', 'Accept': 'application/json' } })
+                    .then(function(res) {
+                        vm.savingManual = false;
+                        if (res.data.success) {
+                            vm.reloadSplitDetailsInModal();
+                            if (typeof showToast === 'function') {
+                                showToast(res.data.message || 'Split saved', 'success');
+                            } else {
+                                alert(res.data.message || 'Split saved');
+                            }
+                        } else {
+                            alert(res.data.message || 'Failed');
+                        }
+                    }, function(err) {
+                        vm.savingManual = false;
+                        var msg = (err.data && err.data.message) ? err.data.message : 'Request failed';
+                        alert(msg);
+                    });
+                };
+
                 vm.viewSplitDetails = function(transaction) {
                     vm.selectedTransaction = transaction;
                     vm.loadingSplitDetails = true;
                     vm.splitDetails = [];
-                    
+
                     var transactionId = transaction.id || transaction.transaction_id;
-                    
+
                     $http.get('/merchant/payments/split-transactions/' + transactionId + '/details').then(function(response) {
                         if (response.data.success) {
                             vm.splitDetails = response.data.data || [];
+                            vm.manualTotal = response.data.transaction.amount_numeric;
+                            vm.manualSplit = angular.extend(
+                                { primary_amount: 0, secondary_amount: 0, merchant_vendor_id: null },
+                                response.data.manual_split_defaults || {}
+                            );
+                            vm.canManualSplit = response.data.transaction.can_manual_split;
                             vm.splitFilters = {
                                 filter_order_id: '',
                                 filter_amount: '',

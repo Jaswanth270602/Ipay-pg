@@ -118,6 +118,7 @@ class PaymentCheckoutController extends Controller
             $merchant = $paymentLink->merchant;
             $acquirerAccount = $merchant->getActiveAcquirerAccount();
             $hasAcquirerAccount = $acquirerAccount !== null;
+            $isTestPaymentLink = (bool) $paymentLink->test_mode;
 
             if ($acquirerAccount) {
                 $this->logInfo('Active acquirer selected for checkout', [
@@ -139,7 +140,15 @@ class PaymentCheckoutController extends Controller
             $useAcquirerGateway = $hasAcquirerAccount
                 && $gatewayModeIsLive
                 && $merchantIsLive
-                && !$isSimulationRequest;
+                && !$isSimulationRequest
+                && !$isTestPaymentLink;
+
+            if ($isTestPaymentLink && $hasAcquirerAccount && $gatewayModeIsLive && $merchantIsLive) {
+                $this->logInfo('Test payment link – using internal simulation only (acquirer not called).', [
+                    'payment_link_id' => $paymentLink->id,
+                    'merchant_id' => $merchant->id,
+                ]);
+            }
 
             if ($hasAcquirerAccount && $gatewayModeIsLive && !$merchantIsLive) {
                 $this->logInfo('Merchant is in Test mode – using internal simulation only (acquirer not called). Switch merchant to Live to use Razorpay/Cashfree.', [
@@ -156,7 +165,7 @@ class PaymentCheckoutController extends Controller
 
             // Never silently simulate LIVE merchant payments when gateway mode is TEST.
             // This prevents false-success redirects and makes misconfiguration explicit.
-            if ($hasAcquirerAccount && $merchantIsLive && !$gatewayModeIsLive && !$isSimulationRequest) {
+            if ($hasAcquirerAccount && $merchantIsLive && !$gatewayModeIsLive && !$isSimulationRequest && !$isTestPaymentLink) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Gateway is in TEST mode. Set APP_PAYMENT_MODE=live to process Cashfree/Razorpay payments.',
@@ -314,7 +323,7 @@ class PaymentCheckoutController extends Controller
                 $paymentDetails = $request->payment_details ?? [];
                 
                 // For Razorpay Checkout.js or simulation mode, payment_details can be empty
-                if ($paymentMethod === 'card' && ($isRazorpayCard || !$hasAcquirerAccount) && !$isSimulationRequest) {
+                if ($paymentMethod === 'card' && ($isRazorpayCard || !$hasAcquirerAccount) && !$isSimulationRequest && !$isTestPaymentLink) {
                     // Razorpay will collect card details securely on the frontend
                     // Simulation service doesn't require real card details
                     $paymentDetails = [];

@@ -61,6 +61,8 @@ use App\Http\Controllers\Reseller\MerchantsController as ResellerMerchantsContro
 use App\Http\Controllers\Reseller\ProfileController as ResellerProfileController;
 use App\Http\Controllers\Reseller\TransactionsController as ResellerTransactionsController;
 use App\Http\Controllers\DocsController;
+use App\Http\Controllers\CronScheduleController;
+use App\Http\Controllers\Merchant\SettlementCronController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -81,6 +83,11 @@ Route::view('/contact', 'contact')->name('contact.page');
 Route::view('/privacy', 'privacy')->name('privacy.page');
 Route::view('/terms', 'terms')->name('terms.page');
 Route::get('/docs', [DocsController::class, 'index'])->name('docs.index');
+
+// HTTP cron ping: GET /cron/schedule?token=... — runs `php artisan schedule:run` (set SCHEDULER_CRON_TOKEN in .env)
+Route::get('/cron/schedule', [CronScheduleController::class, 'run'])
+    ->middleware('throttle:30,1')
+    ->name('cron.schedule.run');
 
 // Public payment checkout
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');
@@ -187,6 +194,11 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.split-transactions');
         Route::get('/payments/split-transactions/data', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getData'])
             ->name('merchant.payments.split-transactions.data');
+        Route::get('/payments/split-transactions/vendors', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getApprovedVendors'])
+            ->name('merchant.payments.split-transactions.vendors');
+        Route::post('/payments/split-transactions/{transactionId}/manual-split', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'updateManualSplit'])
+            ->middleware('throttle:30,1')
+            ->name('merchant.payments.split-transactions.manual-split');
         Route::get('/payments/split-transactions/{transactionId}/details', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getSplitDetails'])
             ->name('merchant.payments.split-transactions.details');
         Route::get('/payments/federal-vpa', [\App\Http\Controllers\Merchant\FederalVPAController::class, 'index'])
@@ -218,6 +230,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.settlements.details');
         Route::get('/settlements/details/data', [\App\Http\Controllers\Merchant\SettlementDetailsController::class, 'getData'])
             ->name('merchant.settlements.details.data');
+
+        Route::get('/settlements/cron', [SettlementCronController::class, 'index'])
+            ->name('merchant.settlements.cron');
+        Route::post('/settlements/cron/run', [SettlementCronController::class, 'run'])
+            ->middleware('throttle:30,60')
+            ->name('merchant.settlements.cron.run');
 
         // Reports
         Route::get('/reports', [ReportsController::class, 'index'])
@@ -275,6 +293,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings', [SettingsController::class, 'index'])->name('merchant.settings.index');
         Route::post('/settings/switch-mode', [SettingsController::class, 'switchMode'])->name('merchant.settings.switch-mode');
         Route::post('/settings/webhook', [SettingsController::class, 'updateWebhook'])->name('merchant.settings.update-webhook');
+        Route::post('/settings/split', [SettingsController::class, 'updateSplit'])->name('merchant.settings.update-split');
         
         // Profile
         Route::get('/profile', [ProfileController::class, 'index'])->name('merchant.profile.index');

@@ -1011,6 +1011,10 @@
                 <i class="bi bi-list-check"></i>
                 <span>Settlement Details</span>
             </a>
+            <a href="{{ route('merchant.settlements.cron') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('merchant.settlements.cron*') ? 'active' : '' }}" style="padding-left: 50px;">
+                <i class="bi bi-clock-history"></i>
+                <span>Cron &amp; schedule</span>
+            </a>
         </div>
         <div class="sidebar-divider"></div>
         <a href="{{ route('merchant.api_keys.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.api_keys.*') ? 'active' : '' }}">

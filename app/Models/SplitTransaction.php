@@ -20,6 +20,7 @@ class SplitTransaction extends Model
         'secondary_amount',
         'primary_merchant_id',
         'secondary_merchant_id',
+        'merchant_vendor_id',
         'primary_percentage',
         'secondary_percentage',
         'status',
@@ -68,6 +69,14 @@ class SplitTransaction extends Model
     public function secondaryMerchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class, 'secondary_merchant_id');
+    }
+
+    /**
+     * Secondary payee as a merchant vendor (bank profile under the primary merchant).
+     */
+    public function merchantVendor(): BelongsTo
+    {
+        return $this->belongsTo(MerchantVendor::class, 'merchant_vendor_id');
     }
 }
 

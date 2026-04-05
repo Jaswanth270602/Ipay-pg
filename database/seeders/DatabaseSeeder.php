@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             PaymentLinksSeeder::class,
             DisputesSeeder::class,
             WebhookEventTypesSeeder::class,
+            DemoMerchantsWithVendorsSeeder::class,
         ]);
     }
 }

@@ -286,6 +286,27 @@ class PaymentSimulationService
                 ];
             }
 
+            // Last-4 shortcuts (same convention as orchestration test simulator): ...1111 = approve, ...0000 = decline
+            if (strlen($cardNumber) >= 16) {
+                $last4 = substr($cardNumber, -4);
+                if ($last4 === '1111') {
+                    return [
+                        'success' => true,
+                        'gateway_txn_id' => 'TEST_' . strtoupper(uniqid()),
+                        'message' => 'Payment successful (test card ending 1111)',
+                        'payment_method' => 'card',
+                        'card_last4' => '1111',
+                    ];
+                }
+                if ($last4 === '0000') {
+                    return [
+                        'success' => false,
+                        'message' => '(Test Mode) Card ending 0000 — simulated decline',
+                        'error_code' => 'PAYMENT_DECLINED',
+                    ];
+                }
+            }
+
             // Unknown card - default to success in test mode
             return [
                 'success' => true,

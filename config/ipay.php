@@ -165,4 +165,15 @@ return [
     |--------------------------------------------------------------------------
     */
     'webhook_secret' => env('WEBHOOK_SECRET'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scheduler HTTP cron (optional)
+    |--------------------------------------------------------------------------
+    |
+    | Set SCHEDULER_CRON_TOKEN in .env, then GET /cron/schedule?token=... from
+    | cron-job.org or your server crontab to run `php artisan schedule:run`.
+    |
+    */
+    'scheduler_cron_token' => env('SCHEDULER_CRON_TOKEN'),
 ];
