@@ -12,8 +12,10 @@ use App\Contracts\PaymentGatewayInterface;
 use Illuminate\Http\Request;
 use App\Models\PaymentLink;
 use App\Models\Order;
+use App\Models\PaymentRoutingMonitor;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\PaymentOrchestration\AcquirerRoutingService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -116,9 +118,19 @@ class PaymentCheckoutController extends Controller
 
             // Get merchant and determine gateway requirements
             $merchant = $paymentLink->merchant;
-            $acquirerAccount = $merchant->getActiveAcquirerAccount();
+            $routing = app(AcquirerRoutingService::class)->resolve($merchant);
+            $acquirerAccount = $routing['account'];
+            $flowTrace = $routing['flow_trace'] ?? [];
             $hasAcquirerAccount = $acquirerAccount !== null;
             $isTestPaymentLink = (bool) $paymentLink->test_mode;
+            $this->persistCheckoutRoutingMonitor(
+                $merchant,
+                $request,
+                $flowTrace,
+                $acquirerAccount,
+                $hasAcquirerAccount ? 'pending' : 'failed',
+                $hasAcquirerAccount ? null : 'Acquirer not configured'
+            );
 
             if ($acquirerAccount) {
                 $this->logInfo('Active acquirer selected for checkout', [
@@ -1331,6 +1343,48 @@ class PaymentCheckoutController extends Controller
                 ], 500);
             }
             return redirect("/pay/{$token}")->with('error', 'Payment verification error. Please try again.');
+        }
+    }
+
+    /**
+     * Persist checkout routing trace so admin can inspect health-check decisions.
+     *
+     * @param  array<int, array<string, mixed>>  $flowTrace
+     */
+    protected function persistCheckoutRoutingMonitor(
+        $merchant,
+        Request $request,
+        array $flowTrace,
+        $acquirerAccount,
+        string $status,
+        ?string $errorMessage = null
+    ): void {
+        try {
+            $cd = $request->input('customer_details', []);
+            if (! is_array($cd)) {
+                $cd = [];
+            }
+
+            PaymentRoutingMonitor::create([
+                'merchant_id' => $merchant->id,
+                'txn_id' => null,
+                'customer_name' => $cd['name'] ?? null,
+                'customer_email' => $cd['email'] ?? null,
+                'customer_phone' => isset($cd['phone']) ? (string) $cd['phone'] : null,
+                'payment_method' => $request->input('payment_method'),
+                'final_acquirer_account_id' => $acquirerAccount?->id,
+                'final_acquirer_name' => $acquirerAccount?->acquirer_name,
+                'status' => $status,
+                'flow_trace' => $flowTrace,
+                'error_message' => $errorMessage,
+                'test_mode' => (bool) $merchant->test_mode,
+                'source' => 'payment_link_checkout',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('payment_routing_monitor persist failed (checkout)', [
+                'merchant_id' => $merchant->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

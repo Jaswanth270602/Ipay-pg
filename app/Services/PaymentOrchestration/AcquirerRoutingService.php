@@ -120,7 +120,6 @@ class AcquirerRoutingService
             'acquirer' => (string) ($candidate->acquirer_name ?? ''),
             'acquirer_account_id' => (int) $candidate->id,
             'mode' => (string) ($candidate->mode ?? ''),
-
             'source' => $source,
         ];
     }
