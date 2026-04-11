@@ -277,6 +277,22 @@
                 <div class="detail-section" ng-if="ddc.dispute.can_upload_evidence">
                     <h5 class="mb-3">Upload Evidence</h5>
                     <p class="text-muted mb-3">Upload documents to support your case. Accepted formats: PDF, JPG, PNG (Max 5MB per file)</p>
+                    <div class="alert alert-info">
+                        <strong>What to include in evidence:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Dispute ID, transaction/order ID, amount and date/time.</li>
+                            <li>Invoice/receipt with item/service details.</li>
+                            <li>Delivery or fulfillment proof (courier POD, confirmation screenshot, etc.).</li>
+                            <li>Customer communication (email/chat/call notes) relevant to the dispute.</li>
+                            <li>If refunded/cancelled, include refund proof and timeline.</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-danger" ng-if="ddc.uploadError">
+                        <strong>Upload failed:</strong> @{{ ddc.uploadError }}
+                    </div>
+                    <div class="alert alert-success" ng-if="ddc.uploadSuccess">
+                        @{{ ddc.uploadSuccess }}
+                    </div>
                     
                     <div class="evidence-upload-area" 
                          ng-click="ddc.selectFile()"
@@ -286,11 +302,20 @@
                         <p class="mt-3 mb-0">Click to upload or drag and drop</p>
                         <small class="text-muted">PDF, JPG, PNG up to 5MB</small>
                     </div>
+                    <div class="mt-2 small text-muted">
+                        Step 1: Select file -> Step 2: Choose document type -> Step 3: Click "Upload Evidence"
+                    </div>
+                    <div class="mt-2 small text-muted">
+                        <span ng-if="!ddc.selectedFile">No file selected yet.</span>
+                        <span ng-if="ddc.selectedFile">
+                            Selected file: <strong>@{{ ddc.selectedFile.name }}</strong>
+                            (@{{ (ddc.selectedFile.size / 1024 / 1024) | number:2 }} MB)
+                        </span>
+                    </div>
                     <input type="file" id="evidenceFileInput" style="display: none;" 
-                           accept=".pdf,.jpg,.jpeg,.png" 
-                           ng-change="ddc.onFileSelect($event)">
+                           accept=".pdf,.jpg,.jpeg,.png">
                     
-                    <div class="mt-3" ng-if="ddc.selectedFile">
+                    <div class="mt-3">
                         <label class="form-label">Document Type</label>
                         <select class="form-select" ng-model="ddc.uploadForm.document_type">
                             <option value="">Select Document Type</option>
@@ -301,7 +326,7 @@
                             <option value="other">Other</option>
                         </select>
                         <div class="mt-3">
-                            <button class="btn btn-primary" ng-click="ddc.uploadEvidence()" ng-disabled="ddc.uploading">
+                            <button class="btn btn-primary" ng-click="ddc.uploadEvidence()" ng-disabled="ddc.uploading || !ddc.selectedFile || !ddc.uploadForm.document_type">
                                 <span ng-if="ddc.uploading">
                                     <span class="spinner-border spinner-border-sm me-2"></span>
                                     Uploading...
@@ -403,6 +428,8 @@
                 vm.submitting = false;
                 vm.dragOver = false;
                 vm.selectedFile = null;
+                vm.uploadError = '';
+                vm.uploadSuccess = '';
                 vm.uploadForm = {
                     document_type: ''
                 };
@@ -439,6 +466,8 @@
                     if (file) {
                         vm.selectedFile = file;
                         vm.uploadForm.document_type = '';
+                        vm.uploadError = '';
+                        vm.uploadSuccess = '';
                         $scope.$apply();
                     }
                 };
@@ -446,6 +475,21 @@
                 // Initialize drag/drop handlers after controller loads
                 $timeout(function() {
                     var uploadArea = document.querySelector('.evidence-upload-area');
+                    var fileInput = document.getElementById('evidenceFileInput');
+
+                    if (fileInput) {
+                        fileInput.addEventListener('change', function(e) {
+                            var file = e.target.files && e.target.files.length ? e.target.files[0] : null;
+                            if (file) {
+                                vm.selectedFile = file;
+                                vm.uploadForm.document_type = '';
+                                vm.uploadError = '';
+                                vm.uploadSuccess = '';
+                                $scope.$applyAsync();
+                            }
+                        });
+                    }
+
                     if (uploadArea) {
                         uploadArea.addEventListener('dragover', function(e) {
                             e.preventDefault();
@@ -467,6 +511,8 @@
                             if (files.length > 0) {
                                 vm.selectedFile = files[0];
                                 vm.uploadForm.document_type = '';
+                                vm.uploadError = '';
+                                vm.uploadSuccess = '';
                                 $scope.$apply();
                             }
                         });
@@ -475,13 +521,27 @@
                 
                 // Upload evidence
                 vm.uploadEvidence = function() {
+                    vm.uploadError = '';
+                    vm.uploadSuccess = '';
+
                     if (!vm.selectedFile) {
-                        alert('Please select a file');
+                        vm.uploadError = 'Please select a file first.';
                         return;
                     }
                     
                     if (!vm.uploadForm.document_type) {
-                        alert('Please select a document type');
+                        vm.uploadError = 'Please select a document type.';
+                        return;
+                    }
+
+                    var fileName = (vm.selectedFile.name || '').toLowerCase();
+                    var validExt = /\.(pdf|jpg|jpeg|png)$/i.test(fileName);
+                    if (!validExt) {
+                        vm.uploadError = 'Invalid file type. Allowed formats: PDF, JPG, JPEG, PNG.';
+                        return;
+                    }
+                    if (vm.selectedFile.size > (5 * 1024 * 1024)) {
+                        vm.uploadError = 'File size exceeds 5MB limit.';
                         return;
                     }
                     
@@ -499,18 +559,21 @@
                         transformRequest: angular.identity
                     }).then(function(response) {
                         if (response.data.success) {
+                            vm.uploadSuccess = 'Evidence uploaded successfully.';
                             alert('Evidence uploaded successfully');
                             vm.selectedFile = null;
                             vm.uploadForm.document_type = '';
                             document.getElementById('evidenceFileInput').value = '';
                             vm.loadDispute(); // Reload dispute data
                         } else {
-                            alert('Failed to upload evidence: ' + (response.data.message || 'Unknown error'));
+                            vm.uploadError = response.data.message || 'Upload failed due to an unknown error.';
+                            alert('Upload failed: ' + vm.uploadError);
                         }
                         vm.uploading = false;
                     }, function(error) {
                         console.error('Error uploading evidence:', error);
-                        alert('Failed to upload evidence');
+                        vm.uploadError = (error.data && error.data.message) ? error.data.message : 'Failed to upload evidence.';
+                        alert('Upload failed: ' + vm.uploadError);
                         vm.uploading = false;
                     });
                 };

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
+use App\Models\ResellerCommission;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,8 +84,13 @@ class TransactionsController extends Controller
         }
 
         $transactions = $query->forPage($page, $perPage)->get();
+        $commissionByTxnId = ResellerCommission::query()
+            ->where('reseller_id', $reseller->id)
+            ->whereIn('transaction_id', $transactions->pluck('id'))
+            ->get()
+            ->keyBy('transaction_id');
 
-        $data = $transactions->map(function (Transaction $transaction) {
+        $data = $transactions->map(function (Transaction $transaction) use ($commissionByTxnId) {
             try {
                 $paymentDetails = $transaction->getSanitizedPaymentDetails() ?? [];
                 $gatewayResponse = $transaction->getSanitizedGatewayResponse() ?? [];
@@ -92,6 +98,10 @@ class TransactionsController extends Controller
                 $paymentDetails = [];
                 $gatewayResponse = [];
             }
+            $commissionRow = $commissionByTxnId->get($transaction->id);
+            $commissionNet = $commissionRow
+                ? max(0, (float) $commissionRow->commission_amount - (float) $commissionRow->reversed_amount)
+                : 0.0;
 
             return [
                 'id' => $transaction->id,
@@ -109,6 +119,8 @@ class TransactionsController extends Controller
                 'card_holder_name' => $paymentDetails['card_holder_name'] ?? $paymentDetails['card_holder'] ?? '-',
                 'card_number' => isset($paymentDetails['last4']) ? '****' . $paymentDetails['last4'] : '-',
                 'upi_id' => $gatewayResponse['upi_id'] ?? '-',
+                'commission' => number_format($commissionNet, 2),
+                'failure_reason' => $transaction->failure_reason ?: '-',
             ];
         });
 

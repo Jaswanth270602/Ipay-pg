@@ -86,6 +86,7 @@
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Mode</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,6 +98,7 @@
                         <td>@{{ row.amount_paid_by_customer }} @{{ row.currency_code }}</td>
                         <td>@{{ row.payment_status }}</td>
                         <td>@{{ row.payment_mode }}</td>
+                        <td><button class="btn btn-sm btn-outline-primary" type="button" ng-click="rtc.viewDetails(row)">View Details</button></td>
                     </tr>
                 </tbody>
             </table>
@@ -107,6 +109,32 @@
             <div class="btn-group btn-group-sm">
                 <button type="button" class="btn btn-outline-secondary" ng-disabled="rtc.pagination.current_page <= 1" ng-click="rtc.changePage(rtc.pagination.current_page - 1)">Prev</button>
                 <button type="button" class="btn btn-outline-secondary" ng-disabled="rtc.pagination.current_page >= rtc.pagination.last_page" ng-click="rtc.changePage(rtc.pagination.current_page + 1)">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="resellerTxnDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Transaction Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" ng-if="rtc.selectedRow">
+                    <div class="row g-2">
+                        <div class="col-md-6"><strong>Merchant:</strong> @{{ rtc.selectedRow.merchant_name }}</div>
+                        <div class="col-md-6"><strong>Transaction ID:</strong> @{{ rtc.selectedRow.transaction_id }}</div>
+                        <div class="col-md-6"><strong>Order:</strong> @{{ rtc.selectedRow.transaction_order_id }}</div>
+                        <div class="col-md-6"><strong>Date:</strong> @{{ rtc.selectedRow.transaction_datetime }}</div>
+                        <div class="col-md-6"><strong>Amount:</strong> @{{ rtc.selectedRow.amount_paid_by_customer }} @{{ rtc.selectedRow.currency_code }}</div>
+                        <div class="col-md-6"><strong>Status:</strong> @{{ rtc.selectedRow.payment_status }}</div>
+                        <div class="col-md-6"><strong>Mode:</strong> @{{ rtc.selectedRow.payment_mode }}</div>
+                        <div class="col-md-6"><strong>Reseller Commission:</strong> INR @{{ rtc.selectedRow.commission }}</div>
+                        <div class="col-md-12" ng-if="rtc.selectedRow.payment_status === 'failed'">
+                            <strong>Failure Reason:</strong> @{{ rtc.selectedRow.failure_reason }}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -132,6 +160,7 @@
                 vm.filters = { status: 'all', merchant_id: '' };
                 vm.dateFrom = null;
                 vm.dateTo = null;
+                vm.selectedRow = null;
 
                 vm.buildDateRange = function() {
                     if (!vm.dateFrom || !vm.dateTo) return '';
@@ -179,6 +208,14 @@
                     if (p >= 1 && p <= vm.pagination.last_page) {
                         vm.pagination.current_page = p;
                         vm.load();
+                    }
+                };
+
+                vm.viewDetails = function(row) {
+                    vm.selectedRow = row;
+                    if (window.bootstrap && document.getElementById('resellerTxnDetailsModal')) {
+                        var modal = new bootstrap.Modal(document.getElementById('resellerTxnDetailsModal'));
+                        modal.show();
                     }
                 };
 

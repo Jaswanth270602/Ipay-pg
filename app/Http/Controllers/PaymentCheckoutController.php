@@ -178,10 +178,36 @@ class PaymentCheckoutController extends Controller
             // Never silently simulate LIVE merchant payments when gateway mode is TEST.
             // This prevents false-success redirects and makes misconfiguration explicit.
             if ($hasAcquirerAccount && $merchantIsLive && !$gatewayModeIsLive && !$isSimulationRequest && !$isTestPaymentLink) {
+                $failedTxn = $this->createFailedCheckoutTransaction(
+                    $merchant,
+                    $paymentLink,
+                    $request,
+                    'Gateway is in TEST mode'
+                );
+                $baseUrl = $request->getSchemeAndHttpHost();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gateway is in TEST mode. Set APP_PAYMENT_MODE=live to process Cashfree/Razorpay payments.',
+                    'message' => 'Payment could not be processed at this time.',
                     'error_code' => 'GATEWAY_MODE_TEST',
+                    'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
+                ], 503);
+            }
+
+            // For LIVE merchant payments, never fallback to internal simulation when
+            // no acquirer passed routing health checks.
+            if (!$hasAcquirerAccount && $gatewayModeIsLive && $merchantIsLive && !$isSimulationRequest && !$isTestPaymentLink) {
+                $failedTxn = $this->createFailedCheckoutTransaction(
+                    $merchant,
+                    $paymentLink,
+                    $request,
+                    'Acquirer not configured'
+                );
+                $baseUrl = $request->getSchemeAndHttpHost();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment could not be processed at this time.',
+                    'error_code' => 'ACQUIRER_NOT_AVAILABLE',
+                    'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
                 ], 503);
             }
 
@@ -1385,6 +1411,67 @@ class PaymentCheckoutController extends Controller
                 'merchant_id' => $merchant->id ?? null,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    protected function createFailedCheckoutTransaction($merchant, PaymentLink $paymentLink, Request $request, string $reason): ?Transaction
+    {
+        try {
+            $amount = (float) $paymentLink->amount;
+            if ($paymentLink->allow_partial_payment && $request->filled('amount') && (float) $request->amount > 0) {
+                $amount = (float) $request->amount;
+            }
+
+            $order = $this->paymentService->createOrder($merchant, [
+                'amount' => $amount,
+                'currency' => $paymentLink->currency,
+                'customer_details' => $request->input('customer_details', []),
+                'description' => $paymentLink->title . ' (failed attempt)',
+                'metadata' => ['payment_link_id' => $paymentLink->id, 'failed_attempt' => true],
+            ]);
+
+            $baseRateService = app(\App\Services\BaseRateService::class);
+            $bank = $merchant->bank ?? null;
+            $method = (string) ($request->input('payment_method') ?: 'card');
+            $feeCalculation = $baseRateService->calculateFee(
+                $merchant,
+                $amount,
+                $method,
+                $bank,
+                \App\Models\BaseRate::SERVICE_TYPE_PAYMENT,
+                \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
+            );
+
+            $transaction = Transaction::create([
+                'order_id' => $order->id,
+                'merchant_id' => $merchant->id,
+                'txn_id' => Transaction::generateTxnId(),
+                'amount' => $amount,
+                'fee_amount' => $feeCalculation['fee_amount'] ?? 0,
+                'gst_amount' => $feeCalculation['gst_amount'] ?? 0,
+                'net_amount' => $amount - ($feeCalculation['total_fee'] ?? 0),
+                'currency' => $paymentLink->currency,
+                'payment_method' => $method,
+                'status' => 'failed',
+                'failure_reason' => $reason,
+                'gateway_response' => ['error' => $reason],
+                'test_mode' => (bool) $paymentLink->test_mode,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            $order->update(['status' => 'failed']);
+
+            return $transaction;
+        } catch (\Throwable $e) {
+            Log::warning('failed to create failed checkout transaction', [
+                'merchant_id' => $merchant->id ?? null,
+                'payment_link_id' => $paymentLink->id ?? null,
+                'reason' => $reason,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
         }
     }
 }

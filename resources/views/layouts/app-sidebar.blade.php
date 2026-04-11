@@ -2081,17 +2081,13 @@ document.addEventListener('click', function(event) {
         }
     });
 
-    // When dropdown opens, mark visible unread as read (bulk)
+    // When dropdown opens, mark all unread as read.
+    // This avoids stale badge counts from older unseen items not in the latest list window.
     dropdownBtn.addEventListener('show.bs.dropdown', function () {
         refreshNotifications().then(function () {
-            var unreadIds = (lastItems || []).filter(function (n) { return n && !n.is_read; })
-                .map(function (n) { return Number(n.id); })
-                .filter(function (x) { return !!x; });
-            if (unreadIds.length) {
-                postJSON('{{ route('notifications.mark-as-read') }}', { ids: unreadIds })
-                    .then(function () { refreshNotifications(); })
-                    .catch(function () {});
-            }
+            postJSON('{{ route('notifications.mark-as-read') }}', { all: true })
+                .then(function () { refreshNotifications(); })
+                .catch(function () {});
         });
     });
 

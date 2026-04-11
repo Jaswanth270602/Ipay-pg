@@ -121,8 +121,6 @@
             </div>
         </div>
     </div>
-</div>
-
 <!-- Create Fund Transfer Modal -->
 <div class="modal fade" id="createFundTransferModal" tabindex="-1" aria-labelledby="createFundTransferModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -217,6 +215,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 

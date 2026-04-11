@@ -54,18 +54,20 @@ class NotificationsController extends Controller
     private function markAsReadForUserIdAndRole(Request $request, int $userId, string $role): JsonResponse
     {
         $ids = $request->input('ids', []);
-        if (!is_array($ids) || empty($ids)) {
-            return response()->json([
-                'success' => true,
-                'updated' => 0,
-            ]);
-        }
+        $markAll = (bool) $request->input('all', false);
 
-        $updated = Notification::query()
+        $baseQuery = Notification::query()
             ->where('user_id', $userId)
             ->where('role', $role)
-            ->whereIn('id', $ids)
-            ->update(['is_read' => true]);
+            ->where('is_read', false);
+
+        if ($markAll) {
+            $updated = $baseQuery->update(['is_read' => true]);
+        } elseif (is_array($ids) && !empty($ids)) {
+            $updated = $baseQuery->whereIn('id', $ids)->update(['is_read' => true]);
+        } else {
+            $updated = 0;
+        }
 
         return response()->json([
             'success' => true,

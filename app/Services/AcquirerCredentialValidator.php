@@ -103,12 +103,48 @@ class AcquirerCredentialValidator
                 return ['ok' => false, 'message' => 'Enter valid API keys'];
             }
 
+            $domainHealth = $this->validateCashfreeCheckoutDomain($a);
+            if (!($domainHealth['ok'] ?? false)) {
+                return $domainHealth;
+            }
+
             return ['ok' => true, 'message' => 'OK'];
         } catch (ConnectionException $e) {
             return ['ok' => false, 'message' => 'No response from acquirer'];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'Enter valid API keys'];
         }
+    }
+
+    /**
+     * Cashfree checkout may still fail with "Broken Link" even when API keys are valid,
+     * if current app domain is not approved/whitelisted in Cashfree dashboard.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    private function validateCashfreeCheckoutDomain(AcquirerAccount $a): array
+    {
+        $appUrl = (string) config('app.url', '');
+        $appHost = strtolower((string) parse_url($appUrl, PHP_URL_HOST));
+        if ($appHost === '') {
+            return ['ok' => false, 'message' => 'APP_URL not configured'];
+        }
+
+        if (
+            $appHost === 'localhost'
+            || $appHost === '127.0.0.1'
+            || str_starts_with($appHost, '127.')
+            || str_ends_with($appHost, '.local')
+        ) {
+            return ['ok' => false, 'message' => 'Cashfree domain whitelist failed (localhost not allowed)'];
+        }
+
+        $allowed = strtolower((string) parse_url((string) ($a->whitelist_url ?? ''), PHP_URL_HOST));
+        if ($allowed !== '' && $allowed !== $appHost) {
+            return ['ok' => false, 'message' => 'Cashfree domain whitelist mismatch'];
+        }
+
+        return ['ok' => true, 'message' => 'OK'];
     }
 }
 

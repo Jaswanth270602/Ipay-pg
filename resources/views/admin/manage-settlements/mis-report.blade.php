@@ -117,10 +117,22 @@
                     }
 
                     vm.generating = true;
+
+                    var toYmd = function(value) {
+                        if (!value) return '';
+                        if (typeof value === 'string') {
+                            return value.slice(0, 10);
+                        }
+                        var d = new Date(value);
+                        if (isNaN(d.getTime())) return '';
+                        var m = String(d.getMonth() + 1).padStart(2, '0');
+                        var day = String(d.getDate()).padStart(2, '0');
+                        return d.getFullYear() + '-' + m + '-' + day;
+                    };
                     
                     var params = {
-                        start_date: vm.filters.start_date,
-                        end_date: vm.filters.end_date,
+                        start_date: toYmd(vm.filters.start_date),
+                        end_date: toYmd(vm.filters.end_date),
                         format: vm.filters.format
                     };
 

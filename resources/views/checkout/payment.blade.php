@@ -1234,7 +1234,7 @@
                     
                 }).catch(function(error) {
                     console.error('CashFree checkout error:', error);
-                    errorMessage.textContent = error.message || 'Payment processing failed';
+                    errorMessage.textContent = 'Payment failed';
                     errorAlert.style.display = 'flex';
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
@@ -1328,7 +1328,7 @@
                     
                     // Other permanent errors - don't retry
                     if (isPermanentError) {
-                        errorMessage.textContent = errorData.message || 'Payment verification failed. Please contact support.';
+                        errorMessage.textContent = 'Payment failed';
                         errorAlert.style.display = 'flex';
                         payButton.disabled = false;
                         payButton.dataset.processing = '';
@@ -1342,7 +1342,7 @@
                     }
                     
                     // Other errors - show error message
-                    errorMessage.textContent = errorData.message || 'Failed to verify payment status';
+                    errorMessage.textContent = 'Payment failed';
                     errorAlert.style.display = 'flex';
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
@@ -1377,7 +1377,7 @@
                         }, 2000);
                     } else if (verifyResult.status === 'failed') {
                         // Payment failed
-                        errorMessage.textContent = verifyResult.message || 'Payment processing failed';
+                        errorMessage.textContent = 'Payment failed';
                         errorAlert.style.display = 'flex';
                         payButton.disabled = false;
                         payButton.dataset.processing = '';
@@ -1413,7 +1413,7 @@
                     }
                 } else {
                     // Verification failed - show error
-                    errorMessage.textContent = verifyResult.message || 'Failed to verify payment status';
+                    errorMessage.textContent = 'Payment failed';
                     errorAlert.style.display = 'flex';
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
@@ -2258,7 +2258,7 @@
                                                     errorAlert.style.display = 'flex';
                                                 }
                                             } else {
-                                                errorMessage.textContent = verifyResult.message || 'Payment verification failed';
+                                                errorMessage.textContent = 'Payment failed';
                                                 errorAlert.style.display = 'flex';
                                                 payButton.disabled = false;
                                                 @if($paymentLink->allow_partial_payment)
@@ -2396,7 +2396,7 @@
                                 cardForm.style.display = '';
                             }
                             
-                            errorMessage.textContent = 'Payment failed: ' + (response.error?.description || response.error?.reason || 'Unknown error');
+                            errorMessage.textContent = 'Payment failed';
                             errorAlert.style.display = 'flex';
                             payButton.disabled = false;
                             @if($paymentLink->allow_partial_payment)
@@ -2515,7 +2515,7 @@
                         document.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
                     }
                 } else {
-                    errorMessage.textContent = result.message || 'Payment failed. Please try again.';
+                    errorMessage.textContent = 'Payment failed';
                     errorAlert.style.display = 'flex';
                     errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     
@@ -2536,23 +2536,20 @@
                 }
             } catch (error) {
                 console.error('Payment error:', error);
-                
-                // Try to get error message from response if available
-                let errorMsg = 'Network error. Please check your connection and try again.';
                 if (error.response) {
                     try {
                         const errorData = await error.response.json();
-                        if (errorData.message) {
-                            errorMsg = errorData.message;
+                        if (errorData && errorData.redirect_url) {
+                            setTimeout(() => {
+                                window.location.href = errorData.redirect_url;
+                            }, 600);
+                            return;
                         }
                     } catch (e) {
-                        // If response is not JSON, use default message
+                        // Ignore parse errors and show generic failure below.
                     }
-                } else if (error.message) {
-                    errorMsg = error.message;
                 }
-                
-                errorMessage.textContent = errorMsg;
+                errorMessage.textContent = 'Payment failed';
                 errorAlert.style.display = 'flex';
                 errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 payButton.disabled = false;

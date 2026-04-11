@@ -304,6 +304,14 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['reseller'])->prefix('reseller')->group(function () {
         Route::get('/dashboard', [ResellerDashboardController::class, 'index'])
             ->name('reseller.dashboard');
+        Route::get('/merchant-summary', [ResellerDashboardController::class, 'merchantSummary'])
+            ->name('reseller.merchant-summary');
+        Route::get('/merchant-transactions', [ResellerDashboardController::class, 'merchantTransactions'])
+            ->name('reseller.merchant-transactions');
+        Route::get('/merchant-transactions/view', [ResellerDashboardController::class, 'merchantTransactionsView'])
+            ->name('reseller.merchant-transactions.view');
+        Route::get('/report/download', [ResellerDashboardController::class, 'downloadReport'])
+            ->name('reseller.report.download');
         Route::get('/profile', [ResellerProfileController::class, 'index'])
             ->name('reseller.profile.index');
         Route::get('/merchants', [ResellerMerchantsController::class, 'index'])
