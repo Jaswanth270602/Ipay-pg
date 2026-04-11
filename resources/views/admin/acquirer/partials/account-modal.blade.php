@@ -20,9 +20,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Acquirer: <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="aac.accountForm.acquirer_name" required>
+                            <select class="form-select"
+                                ng-model="aac.accountForm.acquirer_name"
+                                ng-options="name for name in aac.acquirerNames track by name"
+                                required>
                                 <option value="">Select Acquirer</option>
-                                <option ng-repeat="name in aac.acquirerNames track by $index" ng-value="name" ng-bind="name"></option>
                             </select>
                             <small class="text-muted" ng-if="aac.acquirerNames && aac.acquirerNames.length > 0">
                                 <span ng-bind="aac.acquirerNames.length"></span> acquirers available
