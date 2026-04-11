@@ -11,6 +11,7 @@ use App\Models\MerchantResellerSplit;
 use App\Services\BaseRateService;
 use App\Http\Requests\Admin\BaseRates\StoreBaseRateRequest;
 use App\Http\Requests\Admin\BaseRates\UpdateBaseRateRequest;
+use App\Support\BaseRateCalculationNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -181,7 +182,7 @@ class BaseRatesController extends Controller
     public function store(StoreBaseRateRequest $request): JsonResponse
     {
         try {
-            $data = $request->validated();
+            $data = BaseRateCalculationNormalizer::normalize($request->validated());
             $splitData = [
                 'reseller_id' => $data['reseller_id'] ?? null,
                 'admin_share_pct' => $data['admin_share_pct'] ?? null,
@@ -226,7 +227,7 @@ class BaseRatesController extends Controller
     {
         try {
             $rate = BaseRate::findOrFail($id);
-            $payload = $request->validated();
+            $payload = BaseRateCalculationNormalizer::normalize($request->validated());
             $splitData = [
                 'reseller_id' => $payload['reseller_id'] ?? null,
                 'admin_share_pct' => $payload['admin_share_pct'] ?? null,

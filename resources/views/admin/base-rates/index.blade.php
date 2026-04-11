@@ -70,6 +70,7 @@
                             <th>Merchant Email</th>
                             <th>Reseller Email</th>
                             <th>Currency</th>
+                            <th>Calc</th>
                             <th>Fixed Fee</th>
                             <th>Percent Fee</th>
                             <th>Min Amount</th>
@@ -187,6 +188,7 @@
                                     <option value="ZMW">ZMW</option>
                                 </select>
                             </th>
+                            <th></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.flat_fee" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.percentage_fee" ng-change="brc.applyFilters()" placeholder=""></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="brc.filters.min_amount" ng-change="brc.applyFilters()" placeholder=""></th>
@@ -218,6 +220,7 @@
                             <td>@{{ rate.merchant_email || '-' }}</td>
                             <td>@{{ rate.reseller_email || '-' }}</td>
                             <td>@{{ rate.currency || '-' }}</td>
+                            <td><span class="badge bg-light text-dark border" title="@{{ rate.calculation_type }}">@{{ brc.calcTypeLabel(rate) }}</span></td>
                             <td>@{{ rate.flat_fee }}</td>
                             <td>@{{ rate.percentage_fee }}</td>
                             <td>@{{ rate.min_amount || '-' }}</td>
@@ -242,7 +245,7 @@
                             </td>
                         </tr>
                         <tr ng-if="brc.rates.length === 0 && !brc.loading">
-                            <td colspan="21" class="text-center text-muted py-4">
+                            <td colspan="22" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox" style="font-size: 48px;"></i>
                                 <p class="mt-2">No base rates found</p>
                             </td>
@@ -275,7 +278,7 @@
 
     <!-- New/Edit Base Rate Modal -->
     <div class="modal fade" id="baseRateModal" tabindex="-1" aria-labelledby="baseRateModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="baseRateModalLabel">
@@ -305,6 +308,9 @@
                                 </select>
                                 <small class="text-muted" ng-if="!brc.entities.length">Loading entities...</small>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('entity_id')">@{{ brc.firstError('entity_id') }}</div>
+                            </div>
+                            <div class="col-12" ng-if="brc.rateForm.rate_type === 'merchant'">
+                                <p class="small text-muted mb-0">Merchant list matches your admin session mode (Test vs Live). Switch mode from the admin toolbar if needed.</p>
                             </div>
                             <div class="col-md-6" ng-if="brc.rateForm.rate_type === 'merchant'">
                                 <label class="form-label">Reseller</label>
@@ -459,14 +465,61 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Percentage Fee (%) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('percentage_fee')}" ng-model="brc.rateForm.percentage_fee" ng-change="brc.validate('percentage_fee')" ng-blur="brc.validate('percentage_fee')" step="0.001" min="0" max="100" required>
+                                <label class="form-label">Calculation type <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('calculation_type')}" ng-model="brc.rateForm.calculation_type" ng-change="brc.onCalculationTypeChange(); brc.validate('calculation_type')" ng-blur="brc.validate('calculation_type')">
+                                    <option value="percentage_fixed">Percentage + fixed (default)</option>
+                                    <option value="percentage_only">Percentage only</option>
+                                    <option value="fixed_only">Fixed only</option>
+                                    <option value="tiered">Tiered (by transaction count)</option>
+                                </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('calculation_type')">@{{ brc.firstError('calculation_type') }}</div>
+                            </div>
+                            <div class="col-md-6" ng-show="brc.rateForm.calculation_type === 'tiered'">
+                                <label class="form-label">Tier fee unit <span class="text-danger">*</span></label>
+                                <select class="form-select" ng-class="{'is-invalid': brc.hasError('tier_fee_unit')}" ng-model="brc.rateForm.tier_fee_unit" ng-change="brc.validate('tier_fee_unit')" ng-blur="brc.validate('tier_fee_unit')">
+                                    <option value="percent">Percent (%)</option>
+                                    <option value="fixed">Fixed amount (same currency as flat fee)</option>
+                                </select>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('tier_fee_unit')">@{{ brc.firstError('tier_fee_unit') }}</div>
+                            </div>
+
+                            <div class="col-md-6" ng-show="brc.showPercentageFee()">
+                                <label class="form-label">Percentage Fee (%) <span class="text-danger" ng-show="brc.rateForm.calculation_type === 'percentage_only' || brc.rateForm.calculation_type === 'percentage_fixed'">*</span></label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('percentage_fee')}" ng-model="brc.rateForm.percentage_fee" ng-change="brc.validate('percentage_fee')" ng-blur="brc.validate('percentage_fee')" step="0.001" min="0" max="100">
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('percentage_fee')">@{{ brc.firstError('percentage_fee') }}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Flat Fee (INR) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('flat_fee')}" ng-model="brc.rateForm.flat_fee" ng-change="brc.validate('flat_fee')" ng-blur="brc.validate('flat_fee')" step="0.01" min="0" required>
+                            <div class="col-md-6" ng-show="brc.showFlatFee()">
+                                <label class="form-label">Flat Fee <span class="text-muted">(@{{ brc.rateForm.currency || 'INR' }})</span> <span class="text-danger" ng-show="brc.rateForm.calculation_type === 'fixed_only' || brc.rateForm.calculation_type === 'percentage_fixed'">*</span></label>
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('flat_fee')}" ng-model="brc.rateForm.flat_fee" ng-change="brc.validate('flat_fee')" ng-blur="brc.validate('flat_fee')" step="0.01" min="0">
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('flat_fee')">@{{ brc.firstError('flat_fee') }}</div>
+                            </div>
+
+                            <div class="col-12" ng-show="brc.rateForm.calculation_type === 'tiered'">
+                                <label class="form-label">Transaction count tiers <span class="text-danger">*</span></label>
+                                <div class="table-responsive border rounded">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width:22%">From (count)</th>
+                                                <th style="width:22%">To (count)</th>
+                                                <th style="width:36%">Fee value</th>
+                                                <th style="width:20%"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr ng-repeat="slab in brc.rateForm.tier_slabs track by $index">
+                                                <td><input type="number" class="form-control form-control-sm" ng-model="slab.txn_from" min="0" step="1"></td>
+                                                <td><input type="number" class="form-control form-control-sm" ng-model="slab.txn_to" min="0" step="1" placeholder="Open (last tier only)"></td>
+                                                <td><input type="number" class="form-control form-control-sm" ng-model="slab.fee_value" min="0" step="0.0001"></td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" ng-click="brc.removeTierSlab($index)" ng-disabled="brc.rateForm.tier_slabs.length <= 1"><i class="bi bi-dash-lg"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-2" ng-click="brc.addTierSlab()"><i class="bi bi-plus-lg"></i> Add tier</button>
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('tier_slabs')">@{{ brc.firstError('tier_slabs') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Min Amount</label>
@@ -600,6 +653,9 @@
                     payment_mode: '',
                     service_type: 'payment',
                     transaction_type: 'domestic',
+                    calculation_type: 'percentage_fixed',
+                    tier_fee_unit: 'percent',
+                    tier_slabs: [],
                     percentage_fee: 0,
                     flat_fee: 0,
                     team_id: null,
@@ -621,6 +677,45 @@
                     effective_from: null,
                     effective_to: null,
                     notes: ''
+                };
+
+                vm.calcTypeLabel = function(rate) {
+                    var t = rate.calculation_type || 'percentage_fixed';
+                    if (t === 'percentage_only') return '%';
+                    if (t === 'fixed_only') return 'Fixed';
+                    if (t === 'tiered') return 'Tiered';
+                    return '%+₹';
+                };
+
+                vm.showPercentageFee = function() {
+                    var t = vm.rateForm.calculation_type;
+                    return t === 'percentage_only' || t === 'percentage_fixed';
+                };
+
+                vm.showFlatFee = function() {
+                    var t = vm.rateForm.calculation_type;
+                    return t === 'fixed_only' || t === 'percentage_fixed';
+                };
+
+                vm.onCalculationTypeChange = function() {
+                    var t = vm.rateForm.calculation_type;
+                    if (t === 'tiered') {
+                        if (!vm.rateForm.tier_slabs || !vm.rateForm.tier_slabs.length) {
+                            vm.rateForm.tier_slabs = [{ txn_from: 0, txn_to: null, fee_value: 0 }];
+                        }
+                        if (!vm.rateForm.tier_fee_unit) {
+                            vm.rateForm.tier_fee_unit = 'percent';
+                        }
+                    }
+                };
+
+                vm.addTierSlab = function() {
+                    vm.rateForm.tier_slabs.push({ txn_from: 0, txn_to: null, fee_value: 0 });
+                };
+
+                vm.removeTierSlab = function(ix) {
+                    if (vm.rateForm.tier_slabs.length <= 1) return;
+                    vm.rateForm.tier_slabs.splice(ix, 1);
                 };
 
                 vm.firstError = function(field) {
@@ -669,8 +764,20 @@
                     req('bank_code', 'Bank Code is required.');
                     req('sector', 'Sector is required.');
                     req('currency', 'Currency is required.');
-                    req('percentage_fee', 'Percentage Fee is required.');
-                    req('flat_fee', 'Flat Fee is required.');
+                    req('calculation_type', 'Calculation type is required.');
+                    if (vm.rateForm.calculation_type === 'tiered') {
+                        req('tier_fee_unit', 'Tier fee unit is required.');
+                    }
+                    if (vm.showPercentageFee()) {
+                        if (vm.rateForm.calculation_type === 'percentage_only' || vm.rateForm.calculation_type === 'percentage_fixed') {
+                            req('percentage_fee', 'Percentage fee is required.');
+                        }
+                    }
+                    if (vm.showFlatFee()) {
+                        if (vm.rateForm.calculation_type === 'fixed_only' || vm.rateForm.calculation_type === 'percentage_fixed') {
+                            req('flat_fee', 'Flat fee is required.');
+                        }
+                    }
                     req('min_amount', 'Min Amount is required.');
                     req('max_amount', 'Max Amount is required.');
                     req('min_share', 'Min Share (%) is required.');
@@ -696,8 +803,77 @@
                         if (max !== null && n > max) e[field] = ['Must be ≤ ' + max + '.'];
                     }
 
-                    num('percentage_fee', 0, 100, 'Percentage Fee must be numeric.');
-                    num('flat_fee', 0, null, 'Flat Fee must be numeric.');
+                    if (vm.showPercentageFee()) {
+                        num('percentage_fee', 0, 100, 'Percentage Fee must be numeric.');
+                    }
+                    if (vm.showFlatFee()) {
+                        num('flat_fee', 0, null, 'Flat Fee must be numeric.');
+                    }
+
+                    if (vm.rateForm.calculation_type === 'tiered' && (hard || vm.touched['tier_slabs'])) {
+                        var slabs = vm.rateForm.tier_slabs || [];
+                        if (!slabs.length) {
+                            e.tier_slabs = ['Add at least one tier.'];
+                        } else {
+                            var rows = [];
+                            for (var ti = 0; ti < slabs.length; ti++) {
+                                var s = slabs[ti];
+                                var tf = s.txn_from;
+                                var tt = s.txn_to;
+                                if (tf === null || tf === undefined || String(tf).trim() === '') {
+                                    e.tier_slabs = ['Each tier needs a From (transaction count).'];
+                                    break;
+                                }
+                                if (isNaN(parseInt(tf, 10)) || parseInt(tf, 10) < 0) {
+                                    e.tier_slabs = ['From must be a non-negative integer.'];
+                                    break;
+                                }
+                                if (tt !== null && tt !== undefined && String(tt).trim() !== '') {
+                                    if (isNaN(parseInt(tt, 10)) || parseInt(tt, 10) < parseInt(tf, 10)) {
+                                        e.tier_slabs = ['To must be greater than or equal to From.'];
+                                        break;
+                                    }
+                                }
+                                if (s.fee_value === null || s.fee_value === undefined || String(s.fee_value).trim() === '') {
+                                    e.tier_slabs = ['Each tier needs a fee value.'];
+                                    break;
+                                }
+                                rows.push({
+                                    from: parseInt(tf, 10),
+                                    to: (tt === null || tt === undefined || String(tt).trim() === '') ? null : parseInt(tt, 10),
+                                    idx: ti
+                                });
+                            }
+                            if (!e.tier_slabs && rows.length) {
+                                rows.sort(function(a, b) { return a.from - b.from; });
+                                var openSeen = false;
+                                for (var ri = 0; ri < rows.length; ri++) {
+                                    if (rows[ri].to === null) {
+                                        if (openSeen) {
+                                            e.tier_slabs = ['Only one open-ended tier is allowed.'];
+                                            break;
+                                        }
+                                        openSeen = true;
+                                        if (ri !== rows.length - 1) {
+                                            e.tier_slabs = ['Open-ended tier must be last.'];
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!e.tier_slabs) {
+                                    for (var rj = 0; rj < rows.length - 1; rj++) {
+                                        var a = rows[rj];
+                                        var b = rows[rj + 1];
+                                        if (a.to === null) break;
+                                        if (b.from <= a.to) {
+                                            e.tier_slabs = ['Transaction count ranges must not overlap.'];
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     num('gst_percentage', 0, 100, 'GST Percentage must be between 0–100.');
                     num('min_amount', 0, null, 'Min Amount must be numeric.');
                     num('max_amount', 0, null, 'Max Amount must be numeric.');
@@ -884,6 +1060,9 @@
                         payment_mode: '',
                         service_type: 'payment',
                         transaction_type: 'domestic',
+                        calculation_type: 'percentage_fixed',
+                        tier_fee_unit: 'percent',
+                        tier_slabs: [],
                         percentage_fee: 0,
                         flat_fee: 0,
                         team_id: null,
@@ -924,6 +1103,9 @@
                          payment_mode: rate.payment_mode,
                         service_type: rate.service_type,
                         transaction_type: rate.transaction_type,
+                        calculation_type: rate.calculation_type || 'percentage_fixed',
+                        tier_fee_unit: rate.tier_fee_unit || 'percent',
+                        tier_slabs: (rate.tier_slabs && rate.tier_slabs.length) ? angular.copy(rate.tier_slabs) : [],
                         percentage_fee: parseFloat(rate.percentage_fee),
                         flat_fee: parseFloat(rate.flat_fee),
                         team_id: rate.team_id,
@@ -946,6 +1128,9 @@
                         effective_to: rate.effective_to,
                         notes: rate.notes || ''
                     };
+                    if (vm.rateForm.calculation_type === 'tiered' && (!vm.rateForm.tier_slabs || !vm.rateForm.tier_slabs.length)) {
+                        vm.rateForm.tier_slabs = [{ txn_from: 0, txn_to: null, fee_value: 0 }];
+                    }
                     vm.onRateTypeChange();
                     var modal = new bootstrap.Modal(document.getElementById('baseRateModal'));
                     modal.show();

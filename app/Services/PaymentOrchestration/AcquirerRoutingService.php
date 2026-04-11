@@ -26,17 +26,23 @@ class AcquirerRoutingService
             return ['account' => null, 'flow_trace' => []];
         }
 
-        // Case 1: explicit assignment — no health loop
+        // Case 1: explicit merchant assignment — still run the same credential health check as other
+        // routes so the admin trace shows passed/failed (not "skipped"). Payment routing continues
+        // to use this account regardless, matching prior behaviour.
         if ($merchant->acquirer_account_id) {
             $acquirer = $merchant->acquirerAccount;
             if ($acquirer && $acquirer->is_active) {
+                $result = $this->credentialValidator->validate($acquirer);
+                $health = ($result['ok'] ?? false) ? 'passed' : 'failed';
+
                 return [
                     'account' => $acquirer,
                     'flow_trace' => [[
                         'acquirer' => (string) ($acquirer->acquirer_name ?? ''),
                         'acquirer_account_id' => (int) $acquirer->id,
-                        'health' => 'skipped',
+                        'health' => $health,
                         'reason' => 'merchant_assigned_acquirer',
+                        'message' => $result['message'] ?? ($health === 'passed' ? 'OK' : 'Health check failed'),
                         'used_for_payment' => true,
                         'mode' => (string) $acquirer->mode,
                     ]],

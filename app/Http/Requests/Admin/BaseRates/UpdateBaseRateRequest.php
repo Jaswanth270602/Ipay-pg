@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin\BaseRates;
 
+use App\Models\BaseRate;
+use App\Support\BaseRateCalculationValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -33,8 +35,15 @@ class UpdateBaseRateRequest extends FormRequest
             'sector' => 'required|string|max:255',
             'currency' => 'required|string|max:10',
 
-            'percentage_fee' => 'required|numeric|between:0,100',
-            'flat_fee' => 'required|numeric|min:0',
+            'calculation_type' => 'required|in:percentage_only,percentage_fixed,fixed_only,tiered',
+            'tier_fee_unit' => 'nullable|required_if:calculation_type,tiered|in:percent,fixed',
+            'tier_slabs' => 'nullable|required_if:calculation_type,tiered|array|min:1',
+            'tier_slabs.*.txn_from' => 'required|integer|min:0',
+            'tier_slabs.*.txn_to' => 'nullable|integer|min:0',
+            'tier_slabs.*.fee_value' => 'required|numeric|min:0',
+
+            'percentage_fee' => 'nullable|numeric|min:0|max:100',
+            'flat_fee' => 'nullable|numeric|min:0',
             'gst_percentage' => 'required|numeric|min:0|max:100',
 
             'admin_share_pct' => 'required|numeric|min:0|max:100',
@@ -145,7 +154,18 @@ class UpdateBaseRateRequest extends FormRequest
             if (empty($resellerId) && $reseller > 0) {
                 $v->errors()->add('reseller_id', 'Select a reseller or set Reseller Share to 0%.');
             }
+
+            $type = $this->input('calculation_type');
+            if ($type === BaseRate::CALCULATION_TYPE_PERCENTAGE_FIXED) {
+                if ($this->input('percentage_fee') === null || $this->input('percentage_fee') === '') {
+                    $v->errors()->add('percentage_fee', 'Percentage fee is required for this calculation type.');
+                }
+                if ($this->input('flat_fee') === null || $this->input('flat_fee') === '') {
+                    $v->errors()->add('flat_fee', 'Flat fee is required for this calculation type.');
+                }
+            }
+
+            BaseRateCalculationValidation::validate($v, $this->all());
         });
     }
 }
-

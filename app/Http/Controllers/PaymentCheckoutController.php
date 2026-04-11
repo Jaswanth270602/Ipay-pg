@@ -27,6 +27,11 @@ class PaymentCheckoutController extends Controller
 {
     use LogsConditionally;
 
+    /**
+     * Shown on payment-link checkout — never name upstream PSPs or internal routing details.
+     */
+    private const CHECKOUT_PUBLIC_FAILURE_MESSAGE = 'Payment could not be completed. Please try again later or contact support.';
+
     protected PaymentService $paymentService;
     protected PaymentSimulationService $simulationService;
     protected FraudEngine $fraudEngine;
@@ -332,19 +337,45 @@ class PaymentCheckoutController extends Controller
 
             // Get merchant and determine gateway requirements
             $merchant = $paymentLink->merchant;
-            $routing = app(AcquirerRoutingService::class)->resolve($merchant);
-            $acquirerAccount = $routing['account'];
-            $flowTrace = $routing['flow_trace'] ?? [];
-            $hasAcquirerAccount = $acquirerAccount !== null;
+
+            // Gateway / merchant / link mode — used before routing so we skip expensive work in test flows.
+            $gatewayModeIsLive = GatewayModeService::isLive();
+            $merchantIsLive = ! $merchant->test_mode;
             $isTestPaymentLink = (bool) $paymentLink->test_mode;
-            $this->persistCheckoutRoutingMonitor(
-                $merchant,
-                $request,
-                $flowTrace,
-                $acquirerAccount,
-                $hasAcquirerAccount ? 'pending' : 'failed',
-                $hasAcquirerAccount ? null : 'Acquirer not configured'
-            );
+            // Frontend "Simulate success/fail" on test links — internal only, no acquirer routing.
+            $isSimulationRequest = (bool) $request->input('payment_details.simulate', false);
+
+            // Only resolve acquirers + health checks for live-merchant, non-test-link, non-simulation checkouts.
+            // Test payments use internal simulation — no routing monitor rows (avoids stuck "pending" without txn_id).
+            $shouldRunAcquirerRouting = $merchantIsLive
+                && ! $isTestPaymentLink
+                && ! $isSimulationRequest;
+
+            if ($shouldRunAcquirerRouting) {
+                $routing = app(AcquirerRoutingService::class)->resolve($merchant);
+                $acquirerAccount = $routing['account'];
+                $flowTrace = $routing['flow_trace'] ?? [];
+            } else {
+                $acquirerAccount = null;
+                $flowTrace = [];
+            }
+            $hasAcquirerAccount = $acquirerAccount !== null;
+
+            $shouldPersistRoutingMonitor = $gatewayModeIsLive
+                && $merchantIsLive
+                && ! $isTestPaymentLink
+                && ! $isSimulationRequest;
+
+            if ($shouldPersistRoutingMonitor) {
+                $this->persistCheckoutRoutingMonitor(
+                    $merchant,
+                    $request,
+                    $flowTrace,
+                    $acquirerAccount,
+                    $hasAcquirerAccount ? 'pending' : 'failed',
+                    $hasAcquirerAccount ? null : 'Acquirer not configured'
+                );
+            }
 
             if ($acquirerAccount) {
                 $this->logInfo('Active acquirer selected for checkout', [
@@ -357,11 +388,6 @@ class PaymentCheckoutController extends Controller
 
             // Acquirers (Razorpay, Cashfree) only when BOTH gateway and merchant are LIVE.
             // Gateway TEST = internal only. Merchant TEST = internal only (no Razorpay even if gateway is live).
-            $gatewayModeIsLive = GatewayModeService::isLive();
-            $merchantIsLive = !$merchant->test_mode;
-            // If frontend is explicitly simulating (test buttons), force internal simulation
-            // so failed/success simulations always create transactions + notifications.
-            $isSimulationRequest = (bool) $request->input('payment_details.simulate', false);
 
             $useAcquirerGateway = $hasAcquirerAccount
                 && $gatewayModeIsLive
@@ -392,16 +418,32 @@ class PaymentCheckoutController extends Controller
             // Never silently simulate LIVE merchant payments when gateway mode is TEST.
             // This prevents false-success redirects and makes misconfiguration explicit.
             if ($hasAcquirerAccount && $merchantIsLive && !$gatewayModeIsLive && !$isSimulationRequest && !$isTestPaymentLink) {
+                $adminDetail = $this->buildCheckoutFailureDetailForAdmin(
+                    $flowTrace,
+                    $acquirerAccount,
+                    'Application payment mode is TEST; live acquirer API calls are disabled.'
+                );
                 $failedTxn = $this->createFailedCheckoutTransaction(
                     $merchant,
                     $paymentLink,
                     $request,
-                    'Gateway is in TEST mode'
+                    $adminDetail,
+                    [
+                        'routing_flow_trace' => $flowTrace,
+                        'failure_class' => 'gateway_mode_test',
+                    ]
                 );
                 $baseUrl = $request->getSchemeAndHttpHost();
+                $this->logError('checkout_config_failure', [
+                    'merchant_id' => $merchant->id,
+                    'payment_link_id' => $paymentLink->id,
+                    'failure_class' => 'gateway_mode_test',
+                    'routing_flow_trace' => $flowTrace,
+                    'transaction_id' => $failedTxn?->txn_id,
+                ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment could not be processed at this time.',
+                    'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
                     'error_code' => 'GATEWAY_MODE_TEST',
                     'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
                 ], 503);
@@ -410,16 +452,32 @@ class PaymentCheckoutController extends Controller
             // For LIVE merchant payments, never fallback to internal simulation when
             // no acquirer passed routing health checks.
             if (!$hasAcquirerAccount && $gatewayModeIsLive && $merchantIsLive && !$isSimulationRequest && !$isTestPaymentLink) {
+                $adminDetail = $this->buildCheckoutFailureDetailForAdmin(
+                    $flowTrace,
+                    null,
+                    'No active acquirer account resolved for this merchant after routing.'
+                );
                 $failedTxn = $this->createFailedCheckoutTransaction(
                     $merchant,
                     $paymentLink,
                     $request,
-                    'Acquirer not configured'
+                    $adminDetail,
+                    [
+                        'routing_flow_trace' => $flowTrace,
+                        'failure_class' => 'acquirer_not_available',
+                    ]
                 );
                 $baseUrl = $request->getSchemeAndHttpHost();
+                $this->logError('checkout_config_failure', [
+                    'merchant_id' => $merchant->id,
+                    'payment_link_id' => $paymentLink->id,
+                    'failure_class' => 'acquirer_not_available',
+                    'routing_flow_trace' => $flowTrace,
+                    'transaction_id' => $failedTxn?->txn_id,
+                ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment could not be processed at this time.',
+                    'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
                     'error_code' => 'ACQUIRER_NOT_AVAILABLE',
                     'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
                 ], 503);
@@ -660,10 +718,16 @@ class PaymentCheckoutController extends Controller
 
             $fraudResult = $this->fraudEngine->evaluate($fraudContext);
             if (($fraudResult['decision'] ?? 'allow') === 'block') {
+                $this->logWarning('checkout_fraud_block', [
+                    'merchant_id' => $merchant->id,
+                    'payment_link_id' => $paymentLink->id,
+                    'fraud' => $fraudResult,
+                ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment blocked by fraud checks.',
-                    'fraud' => $fraudResult,
+                    'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
+                    'error_code' => 'FRAUD_BLOCKED',
                 ], 403);
             }
 
@@ -703,6 +767,7 @@ class PaymentCheckoutController extends Controller
 
             // Process payment through GatewayFactory (clean routing architecture)
             try {
+                $gatewayName = null;
                 if ($useAcquirerGateway) {
                     // Get or create gateway instance
                     if (!$gateway) {
@@ -767,6 +832,8 @@ class PaymentCheckoutController extends Controller
                         // Note: gateway_order_id is stored on Order model, not Transaction
                         // Transaction uses gateway_txn_id for payment IDs (will be set via webhook)
                         $transaction->save();
+
+                        $this->linkLatestCheckoutRoutingMonitorToTransaction($merchant, $transaction->txn_id);
                         
                         // Step 3: Return payment_session_id for frontend checkout
                         // CashFree SDK mode must match where the order was created (acquirer test vs live)
@@ -816,6 +883,21 @@ class PaymentCheckoutController extends Controller
                     
                     // Handle response based on gateway type
                     if ($gatewayName === 'razorpay' && $gateway->requiresFrontendSdk()) {
+                        if (!($gatewayResult['success'] ?? false)) {
+                            throw new \RuntimeException($gatewayResult['message'] ?? 'Could not create Razorpay order');
+                        }
+                        $rzpKey = trim((string) ($gatewayResult['razorpay_key'] ?? ''));
+                        $rzpOrderId = trim((string) ($gatewayResult['razorpay_order_id'] ?? ''));
+                        if ($rzpKey === '' || $rzpOrderId === '') {
+                            $this->logError('Razorpay checkout payload incomplete after charge', [
+                                'merchant_id' => $merchant->id,
+                                'order_id' => $order->id,
+                            ]);
+                            throw new \RuntimeException(
+                                'Razorpay checkout could not be prepared. Verify Key ID and Key Secret on the acquirer account.'
+                            );
+                        }
+
                         // Razorpay: Return order details for Checkout.js
                         $order->gateway_order_id = $gatewayResult['razorpay_order_id'] ?? null;
                         $order->save();
@@ -876,6 +958,8 @@ class PaymentCheckoutController extends Controller
                                 'error' => $e->getMessage(),
                             ]);
                         }
+
+                        $this->linkLatestCheckoutRoutingMonitorToTransaction($merchant, $transaction->txn_id);
                         
                         return response()->json([
                             'success' => true,
@@ -974,17 +1058,71 @@ class PaymentCheckoutController extends Controller
                     || str_contains($normalizedError, 'forbidden');
 
                 if ($isAcquirerAuthFailure) {
+                    $adminDetail = $this->buildCheckoutFailureDetailForAdmin(
+                        $flowTrace ?? [],
+                        $acquirerAccount ?? null,
+                        'Acquirer API rejected credentials or request: ' . $rawError
+                    );
+                    $this->logError('checkout_acquirer_auth_failure', [
+                        'merchant_id' => $merchant->id,
+                        'payment_link_id' => $paymentLink->id,
+                        'gateway' => $gatewayName ?? null,
+                        'acquirer_account_id' => $acquirerAccount?->id,
+                        'routing_flow_trace' => $flowTrace ?? [],
+                        'technical_error' => $rawError,
+                    ]);
+
+                    $failedTxn = $this->createFailedCheckoutTransaction(
+                        $merchant,
+                        $paymentLink,
+                        $request,
+                        $adminDetail,
+                        [
+                            'routing_flow_trace' => $flowTrace ?? [],
+                            'failure_class' => 'acquirer_auth_failed',
+                            'technical_error' => $rawError,
+                        ]
+                    );
+
+                    if ($failedTxn) {
+                        $this->linkLatestCheckoutRoutingMonitorToTransaction($merchant, $failedTxn->txn_id);
+                        $this->finalizeCheckoutRoutingMonitor(
+                            $failedTxn->txn_id,
+                            'failed',
+                            'Acquirer authentication or API failure (see transaction details)'
+                        );
+                    }
+
+                    $baseUrl = $request->getSchemeAndHttpHost();
+                    $port = $request->getPort();
+                    if ($port && $port != 80 && $port != 443) {
+                        if (strpos($baseUrl, ':') === false || (strpos($baseUrl, ':80') !== false && $port != 80) || (strpos($baseUrl, ':443') !== false && $port != 443)) {
+                            $baseUrl = preg_replace('/:\d+$/', '', $baseUrl);
+                            $baseUrl .= ':' . $port;
+                        }
+                    }
+                    if (!$baseUrl || $baseUrl === 'http://' || $baseUrl === 'https://') {
+                        $baseUrl = config('app.url', 'http://127.0.0.1:8000');
+                    }
+
                     return response()->json([
                         'success' => false,
-                        'message' => 'Gateway authentication failed. Check Cashfree/Razorpay credentials in acquirer settings.',
+                        'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
                         'error_code' => 'ACQUIRER_AUTH_FAILED',
-                        'gateway' => $gatewayName ?? null,
+                        'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
                     ], 422);
                 }
 
+                $this->logError('checkout_payment_processing_error', [
+                    'merchant_id' => $merchant->id ?? null,
+                    'payment_link_id' => $paymentLink->id ?? null,
+                    'error' => $rawError,
+                    'gateway' => $gatewayName ?? null,
+                ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment processing failed. Please try again.',
+                    'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
                     'error' => config('app.debug') ? $rawError : null,
                 ], 500);
             }
@@ -1001,10 +1139,9 @@ class PaymentCheckoutController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Always return the actual error message for better debugging
             return response()->json([
                 'success' => false,
-                'message' => $errorMessage,
+                'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
                 'error' => config('app.debug') ? [
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
@@ -1429,11 +1566,23 @@ class PaymentCheckoutController extends Controller
                     ];
                 }
 
+                $this->finalizeCheckoutRoutingMonitor($transaction->txn_id, 'success', null);
+
                 return response()->json($result);
             } else {
+                $failMessage = $verifyResult['message'] ?? 'Payment verification failed';
+                $failedTxn = $this->markPendingRazorpayTransactionFailedOnVerification(
+                    $order,
+                    $request->razorpay_order_id,
+                    $failMessage
+                );
+                if ($failedTxn) {
+                    $this->finalizeCheckoutRoutingMonitor($failedTxn->txn_id, 'failed', $failMessage);
+                }
+
                 return response()->json([
                     'success' => false,
-                    'message' => $verifyResult['message'] ?? 'Payment verification failed',
+                    'message' => $failMessage,
                 ], 400);
             }
 
@@ -1443,6 +1592,36 @@ class PaymentCheckoutController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
+            $merchantId = null;
+            try {
+                $pl = PaymentLink::where('link_token', $token)->first();
+                $merchantId = $pl?->merchant_id;
+            } catch (\Throwable $ignore) {
+            }
+
+            if ($merchantId && $request->filled('order_id') && $request->filled('razorpay_order_id')) {
+                try {
+                    $orderForFail = Order::where('order_id', $request->order_id)
+                        ->where('merchant_id', $merchantId)
+                        ->first();
+                    if ($orderForFail) {
+                        $failedTxn = $this->markPendingRazorpayTransactionFailedOnVerification(
+                            $orderForFail,
+                            (string) $request->razorpay_order_id,
+                            'Payment verification error: ' . $e->getMessage()
+                        );
+                        if ($failedTxn) {
+                            $this->finalizeCheckoutRoutingMonitor(
+                                $failedTxn->txn_id,
+                                'failed',
+                                'Verification error: ' . $e->getMessage()
+                            );
+                        }
+                    }
+                } catch (\Throwable $ignored) {
+                }
+            }
 
             return response()->json([
                 'success' => false,
@@ -1522,6 +1701,8 @@ class PaymentCheckoutController extends Controller
                 }
 
                 event(new \App\Events\PaymentFailed($transaction));
+
+                $this->finalizeCheckoutRoutingMonitor($transaction->txn_id, 'failed', $reason);
             }
 
             return response()->json([
@@ -1840,7 +2021,56 @@ class PaymentCheckoutController extends Controller
         }
     }
 
-    protected function createFailedCheckoutTransaction($merchant, PaymentLink $paymentLink, Request $request, string $reason): ?Transaction
+    /**
+     * Human-readable multi-line summary for admin (transaction.failure_reason + gateway_response).
+     *
+     * @param  array<int, array<string, mixed>>  $flowTrace
+     * @param  \App\Models\AcquirerAccount|null  $assignedAccount
+     */
+    protected function buildCheckoutFailureDetailForAdmin(array $flowTrace, $assignedAccount, string $technicalSummary): string
+    {
+        $lines = [];
+        if (! empty($flowTrace)) {
+            foreach ($flowTrace as $idx => $step) {
+                $name = $step['acquirer'] ?? 'Acquirer';
+                $accId = $step['acquirer_account_id'] ?? '?';
+                $health = $step['health'] ?? '—';
+                $msg = trim((string) ($step['message'] ?? ''));
+                $reason = trim((string) ($step['reason'] ?? ''));
+                $mode = trim((string) ($step['mode'] ?? ''));
+                $line = sprintf(
+                    'Route %d: %s #%s | mode=%s | health=%s',
+                    $idx + 1,
+                    $name,
+                    $accId,
+                    $mode !== '' ? $mode : '—',
+                    $health
+                );
+                if ($msg !== '') {
+                    $line .= ' | ' . $msg;
+                }
+                if ($reason !== '') {
+                    $line .= ' | reason=' . $reason;
+                }
+                $lines[] = $line;
+            }
+        } elseif ($assignedAccount) {
+            $lines[] = sprintf(
+                'Routing: assigned acquirer #%s (%s), mode=%s',
+                $assignedAccount->id,
+                $assignedAccount->acquirer_name ?? '',
+                $assignedAccount->mode ?? ''
+            );
+        }
+        $lines[] = 'Final: ' . $technicalSummary;
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $diagnostics  Merged into gateway_response for admin review only
+     */
+    protected function createFailedCheckoutTransaction($merchant, PaymentLink $paymentLink, Request $request, string $reason, ?array $diagnostics = null): ?Transaction
     {
         try {
             $amount = (float) $paymentLink->amount;
@@ -1868,6 +2098,11 @@ class PaymentCheckoutController extends Controller
                 \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
             );
 
+            $gatewayPayload = array_merge(
+                ['error' => $reason],
+                is_array($diagnostics) ? $diagnostics : []
+            );
+
             $transaction = Transaction::create([
                 'order_id' => $order->id,
                 'merchant_id' => $merchant->id,
@@ -1880,7 +2115,7 @@ class PaymentCheckoutController extends Controller
                 'payment_method' => $method,
                 'status' => 'failed',
                 'failure_reason' => $reason,
-                'gateway_response' => ['error' => $reason],
+                'gateway_response' => $gatewayPayload,
                 'test_mode' => (bool) $paymentLink->test_mode,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -1899,6 +2134,94 @@ class PaymentCheckoutController extends Controller
 
             return null;
         }
+    }
+
+    /**
+     * Attach the latest payment-link checkout routing row (same POST) to this transaction id.
+     */
+    protected function linkLatestCheckoutRoutingMonitorToTransaction($merchant, string $txnId): void
+    {
+        try {
+            $monitor = PaymentRoutingMonitor::query()
+                ->where('merchant_id', $merchant->id)
+                ->where('source', 'payment_link_checkout')
+                ->whereNull('txn_id')
+                ->where('created_at', '>=', now()->subMinutes(45))
+                ->orderByDesc('id')
+                ->first();
+
+            if ($monitor) {
+                $monitor->update(['txn_id' => $txnId]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('linkLatestCheckoutRoutingMonitorToTransaction failed', [
+                'merchant_id' => $merchant->id ?? null,
+                'txn_id' => $txnId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Update routing monitor row for this checkout once payment outcome is known (success / failed).
+     * Note: flow_trace "health: skipped" is routing-time only; this status is the payment outcome.
+     */
+    protected function finalizeCheckoutRoutingMonitor(string $txnId, string $status, ?string $errorMessage = null): void
+    {
+        try {
+            PaymentRoutingMonitor::query()
+                ->where('txn_id', $txnId)
+                ->update([
+                    'status' => $status,
+                    'error_message' => $errorMessage,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('finalizeCheckoutRoutingMonitor failed', [
+                'txn_id' => $txnId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * When Razorpay signature/API verification fails, mark the pending checkout transaction failed
+     * so it does not stay stuck in "pending".
+     */
+    protected function markPendingRazorpayTransactionFailedOnVerification(Order $order, string $razorpayOrderId, string $message): ?Transaction
+    {
+        $transaction = Transaction::query()
+            ->where('order_id', $order->id)
+            ->where('merchant_id', $order->merchant_id)
+            ->where('status', 'pending')
+            ->where(function ($q) use ($razorpayOrderId) {
+                $q->where('gateway_txn_id', $razorpayOrderId)
+                    ->orWhereJsonContains('gateway_response->gateway_order_id', $razorpayOrderId)
+                    ->orWhereJsonContains('gateway_response->order_id', $razorpayOrderId);
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$transaction) {
+            return null;
+        }
+
+        $transaction->status = 'failed';
+        $transaction->failure_reason = $message;
+        $transaction->gateway_response = array_merge($transaction->gateway_response ?? [], [
+            'verification_failed' => [
+                'message' => $message,
+                'at' => now()->toIso8601String(),
+            ],
+        ]);
+        $transaction->save();
+
+        if ($transaction->order) {
+            $transaction->order->update(['status' => 'failed']);
+        }
+
+        event(new \App\Events\PaymentFailed($transaction));
+
+        return $transaction;
     }
 }
 

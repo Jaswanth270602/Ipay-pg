@@ -53,6 +53,9 @@
         <div class="col-12">
             <div class="stat-card">
                 <h6 class="text-primary mb-3">Flow trace (acquirer health)</h6>
+                <p class="text-muted small mb-2">
+                    <strong>Health</strong> reflects a live credential check against each acquirer’s API (method varies by provider—e.g. a lightweight authenticated call where implemented). If the merchant has a fixed acquirer, that account is still used for payment, but you will see <strong>passed</strong> or <strong>failed</strong> here. The badge at the top is the <strong>checkout outcome</strong> after the transaction is linked.
+                </p>
                 @php
                     $trace = $monitor->flow_trace ?? [];
                 @endphp
@@ -69,6 +72,9 @@
                                 — health: <strong>{{ $step['health'] ?? '—' }}</strong>
                                 @if(!empty($step['message']))
                                     <span class="text-muted">({{ $step['message'] }})</span>
+                                @endif
+                                @if(!empty($step['reason']))
+                                    <span class="badge bg-light text-dark border" title="Routing reason">{{ str_replace('_', ' ', $step['reason']) }}</span>
                                 @endif
                                 @if(!empty($step['source']))
                                     <span class="badge bg-light text-dark border">{{ $step['source'] }}</span>

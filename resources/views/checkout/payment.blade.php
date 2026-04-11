@@ -2150,6 +2150,7 @@
                     },
                     body: JSON.stringify(paymentData),
                 });
+                const httpStatus = response.status;
 
                 // Check if response is ok before parsing JSON
                 let result;
@@ -2308,13 +2309,32 @@
                         return;
                     }
                     
-                    // RAZORPAY PAYMENT FLOW (only if gateway is razorpay)
-                    // IMPORTANT: Only use Razorpay Checkout.js if gateway is explicitly 'razorpay'
-                    // CashFree and other gateways should NOT trigger Razorpay logic
-                    if (result.gateway === 'razorpay' && result.use_razorpay_checkout && result.razorpay_key && result.razorpay_order_id) {
+                    // RAZORPAY CHECKOUT: success=true only means "order created, open modal" — NOT paid yet.
+                    // Never treat this like final success (that broke UX when key/order id was missing).
+                    if (result.gateway === 'razorpay' && result.use_razorpay_checkout) {
+                        const rk = result.razorpay_key && String(result.razorpay_key).trim() !== '';
+                        const ro = result.razorpay_order_id && String(result.razorpay_order_id).trim() !== '';
+                        if (!rk || !ro) {
+                            console.error('Razorpay checkout cannot open — missing key or order id', { rk, ro, result });
+                            errorMessage.textContent = !rk
+                                ? 'Payment could not start: Razorpay Key ID is missing. In Admin → Acquirer accounts, set the Key ID (publishable key) for this Razorpay account.'
+                                : 'Payment could not start: Razorpay order was not created. Check Razorpay API Key ID and Key Secret, then try again.';
+                            errorAlert.style.display = 'flex';
+                            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            payButton.disabled = false;
+                            payButton.dataset.processing = '';
+                            @if($paymentLink->allow_partial_payment)
+                            const remainingBalanceErr = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalanceErr.toFixed(2)}`;
+                            @else
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                            @endif
+                            return;
+                        }
+
                         const transactionIdForRazorpay = result.transaction_id || '';
-                        console.log('✅ All conditions met - Opening Razorpay Checkout.js', {
-                            key: result.razorpay_key,
+                        console.log('✅ Opening Razorpay Checkout.js', {
+                            key: result.razorpay_key ? '(set)' : '(missing)',
                             order_id: result.razorpay_order_id,
                             amount: result.amount
                         });
@@ -2700,9 +2720,25 @@
                             return false;
                         }
                     } else {
-                        // CashFree or other server-side gateway flow (NOT Razorpay)
+                        // Internal simulation / completed flows — not Razorpay Checkout "order created" (handled above).
                         const gatewayName = result.gateway || 'payment gateway';
-                        console.log(`Payment succeeded through ${gatewayName} (server-side processing)`);
+                        const msgLower = String(result.message || '').toLowerCase();
+                        if (msgLower.includes('razorpay') && msgLower.includes('complete payment')) {
+                            console.error('Unexpected: checkout instruction in generic success path', result);
+                            errorMessage.textContent = 'Payment was not completed. The Razorpay window may have failed to open. Refresh the page and try again, or contact support.';
+                            errorAlert.style.display = 'flex';
+                            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            payButton.disabled = false;
+                            payButton.dataset.processing = '';
+                            @if($paymentLink->allow_partial_payment)
+                            const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
+                            @else
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                            @endif
+                            return;
+                        }
+                        console.log(`Payment succeeded through ${gatewayName} (simulation or non-checkout)`);
                         console.log('Transaction ID:', result.transaction_id);
                         console.log('Gateway Payment ID:', result.gateway_payment_id);
                         
@@ -2742,7 +2778,22 @@
                         document.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
                     }
                 } else {
-                    errorMessage.textContent = 'Payment failed';
+                    // Never show upstream PSP names or internal routing — server sends safe copy for most cases
+                    let displayMsg = 'Payment could not be completed. Please try again later or contact support.';
+                    if (result.errors && typeof result.errors === 'object' && Object.keys(result.errors).length > 0) {
+                        displayMsg = (result.message && String(result.message).trim() !== '')
+                            ? result.message
+                            : 'Please check your details and try again.';
+                    } else if (httpStatus === 410 || httpStatus === 400) {
+                        displayMsg = (result.message && String(result.message).trim() !== '')
+                            ? result.message
+                            : displayMsg;
+                    } else if (result.message && String(result.message).trim() !== '') {
+                        const m = String(result.message);
+                        const looksInternal = /razorpay|cashfree|acquirer|credential|gateway|api key|authentication failed/i.test(m);
+                        displayMsg = looksInternal ? displayMsg : m;
+                    }
+                    errorMessage.textContent = displayMsg;
                     errorAlert.style.display = 'flex';
                     errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     

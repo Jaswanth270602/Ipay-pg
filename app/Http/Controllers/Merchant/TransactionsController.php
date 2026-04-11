@@ -135,7 +135,8 @@ class TransactionsController extends Controller
                     'transaction_id' => $transaction->txn_id,
                     'amount_paid_by_customer' => number_format($transaction->amount, 2),
                     'payment_status' => $transaction->status,
-                    'failure_reason' => $transaction->failure_reason ?? null,
+                    // Internal PSP/routing diagnostics — admin-only (see admin transactions API)
+                    'failure_reason' => null,
                     'payment_mode' => $transaction->payment_method ?? '-',
                     'payment_channel' => $gatewayResponse['channel'] ?? '-',
                     'merc_approved' => $transaction->status === 'success' ? 'Yes' : 'No',
@@ -363,7 +364,7 @@ class TransactionsController extends Controller
                     $paymentDetails['customer_email'] ?? '-',
                     $paymentDetails['customer_phone'] ?? '-',
                     $transaction->created_at->format('Y-m-d H:i:s'),
-                    $transaction->failure_reason ?? '-',
+                    '-',
                 ]);
             }
         });

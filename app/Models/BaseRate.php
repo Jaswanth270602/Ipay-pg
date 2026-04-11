@@ -26,6 +26,9 @@ class BaseRate extends Model
         'sector',
         'transaction_type',
         'currency',
+        'calculation_type',
+        'tier_slabs',
+        'tier_fee_unit',
         'percentage_fee',
         'flat_fee',
         'min_amount',
@@ -50,6 +53,7 @@ class BaseRate extends Model
         'is_active' => 'boolean',
         'effective_from' => 'date',
         'effective_to' => 'date',
+        'tier_slabs' => 'array',
     ];
 
     /**
@@ -80,6 +84,19 @@ class BaseRate extends Model
      */
     const TRANSACTION_TYPE_DOMESTIC = 'domestic';
     const TRANSACTION_TYPE_INTERNATIONAL = 'international';
+
+    /** How percentage_fee / flat_fee / tier_slabs are interpreted (runtime fee logic may use this later). */
+    const CALCULATION_TYPE_PERCENTAGE_ONLY = 'percentage_only';
+
+    const CALCULATION_TYPE_PERCENTAGE_FIXED = 'percentage_fixed';
+
+    const CALCULATION_TYPE_FIXED_ONLY = 'fixed_only';
+
+    const CALCULATION_TYPE_TIERED = 'tiered';
+
+    const TIER_FEE_UNIT_PERCENT = 'percent';
+
+    const TIER_FEE_UNIT_FIXED = 'fixed';
 
     /**
      * Get the merchant that owns this rate (if rate_type is merchant).
