@@ -14,29 +14,11 @@ class Kernel extends ConsoleKernel
     {
         $schedulerLog = storage_path('logs/scheduler.log');
 
-<<<<<<< Updated upstream
         // Pending live payments: poll gateway if callback missing
         $schedule->command('payments:reconcile-pending')
             ->everyTenMinutes()
             ->withoutOverlapping();
 
-        // Schedule settlement processing at 11 PM daily
-        $schedule->command('settlements:process-daily')
-            ->dailyAt('23:00')
-            ->timezone('Asia/Kolkata')
-            ->withoutOverlapping()
-            ->runInBackground();
-
-        // Test settlements: auto-complete after cooling-off (no acquirer dependency)
-        $schedule->command('settlements:auto-complete-test')
-            ->everyMinute()
-            ->withoutOverlapping();
-
-        // Cleanup stale temp/report CSV lifecycle files.
-        $schedule->command('csv:cleanup-lifecycle-files')
-            ->hourly()
-            ->withoutOverlapping();
-=======
         // Pending webhook deliveries (also picks up retries when queue workers were down)
         $schedule->command('webhooks:retry')
             ->everyFiveMinutes()
@@ -50,7 +32,16 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Kolkata')
             ->withoutOverlapping(180)
             ->appendOutputTo($schedulerLog);
->>>>>>> Stashed changes
+
+        // Test settlements: auto-complete after cooling-off (no acquirer dependency)
+        $schedule->command('settlements:auto-complete-test')
+            ->everyMinute()
+            ->withoutOverlapping();
+
+        // Cleanup stale temp/report CSV lifecycle files.
+        $schedule->command('csv:cleanup-lifecycle-files')
+            ->hourly()
+            ->withoutOverlapping();
     }
 
     /**
@@ -63,4 +54,3 @@ class Kernel extends ConsoleKernel
         require base_path('routes/console.php');
     }
 }
-
