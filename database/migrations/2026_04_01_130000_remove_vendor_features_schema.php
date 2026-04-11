@@ -35,15 +35,21 @@ return new class extends Migration
         }
 
         // Drop vendor-related tables (children first).
-        Schema::dropIfExists('vendor_settlement_items');
-        Schema::dropIfExists('vendor_settlements');
-        Schema::dropIfExists('vendor_balances');
-        Schema::dropIfExists('vendor_ledger_entries');
-        Schema::dropIfExists('refund_split_allocations');
-        Schema::dropIfExists('payment_splits');
-        Schema::dropIfExists('merchant_vendor_rate_snapshots');
-        Schema::dropIfExists('merchant_vendor_base_rates');
-        Schema::dropIfExists('merchant_vendors');
+        // Some legacy environments can still have stray FK constraints.
+        Schema::disableForeignKeyConstraints();
+        try {
+            Schema::dropIfExists('vendor_settlement_items');
+            Schema::dropIfExists('vendor_settlements');
+            Schema::dropIfExists('vendor_balances');
+            Schema::dropIfExists('vendor_ledger_entries');
+            Schema::dropIfExists('refund_split_allocations');
+            Schema::dropIfExists('payment_splits');
+            Schema::dropIfExists('merchant_vendor_rate_snapshots');
+            Schema::dropIfExists('merchant_vendor_base_rates');
+            Schema::dropIfExists('merchant_vendors');
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
     }
 
     public function down(): void

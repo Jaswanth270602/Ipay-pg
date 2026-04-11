@@ -91,7 +91,10 @@ Route::get('/cron/schedule', [CronScheduleController::class, 'run'])
 
 // Public payment checkout
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');
+Route::post('/pay/{token}/test-simulate/store', [PaymentCheckoutController::class, 'storeTestSimulate'])->name('payment.test-simulate.store');
+Route::get('/pay/{token}/test-simulate', [PaymentCheckoutController::class, 'showTestSimulate'])->name('payment.test-simulate');
 Route::post('/pay/{token}', [PaymentCheckoutController::class, 'process'])->name('payment.process');
+Route::post('/pay/{token}/native-upi/utr', [PaymentCheckoutController::class, 'submitNativeUpiUtr'])->name('payment.native-upi.utr');
 Route::post('/pay/{token}/verify-razorpay', [PaymentCheckoutController::class, 'verifyRazorpay'])->name('payment.verify.razorpay');
 Route::post('/pay/{token}/razorpay-failed', [PaymentCheckoutController::class, 'markRazorpayFailed'])->name('payment.razorpay.failed');
 Route::get('/pay/{token}/callback', [PaymentCheckoutController::class, 'handleEmbeddedCallback'])->name('payment.embedded.callback');
@@ -111,6 +114,7 @@ Route::middleware('guest')->group(function () {
 
     // Public merchant signup
     Route::get('/signup', [RegistrationController::class, 'showSignup'])->name('signup');
+    Route::get('/signup/locations', [RegistrationController::class, 'locations'])->name('signup.locations');
     Route::post('/signup', [RegistrationController::class, 'register'])->name('signup.post');
 });
 
@@ -362,6 +366,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.merchant-accounts.acquirers');
         Route::get('/merchant-accounts/resellers', [MerchantAccountsController::class, 'getResellersForSelect'])
             ->name('admin.merchant-accounts.resellers');
+        Route::get('/merchant-accounts/locations', [MerchantAccountsController::class, 'getLocationsForSelect'])
+            ->name('admin.merchant-accounts.locations');
+        Route::get('/merchant-accounts/partners', [MerchantAccountsController::class, 'getPartnersForSelect'])
+            ->name('admin.merchant-accounts.partners');
         Route::get('/merchant-accounts/{id}', [MerchantAccountsController::class, 'show'])
             ->name('admin.merchant-accounts.show');
         Route::post('/merchant-accounts', [MerchantAccountsController::class, 'store'])

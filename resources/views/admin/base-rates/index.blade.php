@@ -375,20 +375,24 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team Id</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.team_id" min="0">
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('team_id')}" ng-model="brc.rateForm.team_id" ng-change="brc.validate('team_id')" ng-blur="brc.validate('team_id')" min="0">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('team_id')">@{{ brc.firstError('team_id') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team Name</label>
-                                <input type="text" class="form-control" ng-model="brc.rateForm.team_name">
+                                <input type="text" class="form-control" ng-class="{'is-invalid': brc.hasError('team_name')}" ng-model="brc.rateForm.team_name" ng-change="brc.validate('team_name')" ng-blur="brc.validate('team_name')">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('team_name')">@{{ brc.firstError('team_name') }}</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Bank Code</label>
-                                <input type="text" class="form-control" ng-model="brc.rateForm.bank_code">
+                                <input type="text" class="form-control" ng-class="{'is-invalid': brc.hasError('bank_code')}" ng-model="brc.rateForm.bank_code" ng-change="brc.validate('bank_code')" ng-blur="brc.validate('bank_code')">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('bank_code')">@{{ brc.firstError('bank_code') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Bank Description</label>
-                                <input type="text" class="form-control" ng-model="brc.rateForm.bank_description">
+                                <input type="text" class="form-control" ng-class="{'is-invalid': brc.hasError('bank_description')}" ng-model="brc.rateForm.bank_description" ng-change="brc.validate('bank_description')" ng-blur="brc.validate('bank_description')">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('bank_description')">@{{ brc.firstError('bank_description') }}</div>
                             </div>
 
                             <div class="col-md-6">
@@ -466,19 +470,23 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Min Amount</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.min_amount" step="0.01" min="0">
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('min_amount')}" ng-model="brc.rateForm.min_amount" ng-change="brc.validate('min_amount')" ng-blur="brc.validate('min_amount')" step="0.01" min="0">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('min_amount')">@{{ brc.firstError('min_amount') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Max Amount</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.max_amount" step="0.01" min="0">
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('max_amount')}" ng-model="brc.rateForm.max_amount" ng-change="brc.validate('max_amount')" ng-blur="brc.validate('max_amount')" step="0.01" min="0">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('max_amount')">@{{ brc.firstError('max_amount') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Min Share (%)</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.min_share" step="0.0001" min="0" max="100">
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('min_share')}" ng-model="brc.rateForm.min_share" ng-change="brc.validate('min_share')" ng-blur="brc.validate('min_share')" step="0.0001" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('min_share')">@{{ brc.firstError('min_share') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Max Share (%)</label>
-                                <input type="number" class="form-control" ng-model="brc.rateForm.max_share" step="0.0001" min="0" max="100">
+                                <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('max_share')}" ng-model="brc.rateForm.max_share" ng-change="brc.validate('max_share')" ng-blur="brc.validate('max_share')" step="0.0001" min="0" max="100">
+                                <div class="invalid-feedback d-block" ng-if="brc.firstError('max_share')">@{{ brc.firstError('max_share') }}</div>
                             </div>
                             <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
                                 <label class="form-label">Admin Share (%)</label>
@@ -504,8 +512,8 @@
                                 <label class="form-label">Status <span class="text-danger">*</span></label>
                                 <select class="form-select" ng-class="{'is-invalid': brc.hasError('is_active')}" ng-model="brc.rateForm.is_active" ng-change="brc.validate('is_active')" ng-blur="brc.validate('is_active')">
                                     <option value="">Select Status</option>
-                                    <option value="true">Active</option>
-                                    <option value="false">Inactive</option>
+                                    <option ng-value="true">Active</option>
+                                    <option ng-value="false">Inactive</option>
                                 </select>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('is_active')">@{{ brc.firstError('is_active') }}</div>
                             </div>
@@ -656,10 +664,17 @@
                     req('payment_mode', 'Payment Mode is required.');
                     req('service_type', 'Service Type is required.');
                     req('transaction_type', 'Transaction Type is required.');
+                    req('team_id', 'Team ID is required.');
+                    req('team_name', 'Team Name is required.');
+                    req('bank_code', 'Bank Code is required.');
                     req('sector', 'Sector is required.');
                     req('currency', 'Currency is required.');
                     req('percentage_fee', 'Percentage Fee is required.');
                     req('flat_fee', 'Flat Fee is required.');
+                    req('min_amount', 'Min Amount is required.');
+                    req('max_amount', 'Max Amount is required.');
+                    req('min_share', 'Min Share (%) is required.');
+                    req('max_share', 'Max Share (%) is required.');
                     req('gst_percentage', 'GST Percentage is required.');
                     req('is_active', 'Status is required.');
                     req('effective_from', 'Effective From is required.');
@@ -689,11 +704,35 @@
                     num('min_share', 0, 100, 'Min Share must be between 0–100.');
                     num('max_share', 0, 100, 'Max Share must be between 0–100.');
 
+                    if ((vm.touched.team_name || hard) && vm.rateForm.team_name !== null && vm.rateForm.team_name !== undefined && String(vm.rateForm.team_name).trim() !== '') {
+                        if (!/^[A-Za-z ]+$/.test(String(vm.rateForm.team_name).trim())) {
+                            e.team_name = ['Team Name may contain only letters and spaces.'];
+                        }
+                    }
+                    if ((vm.touched.bank_code || hard) && vm.rateForm.bank_code !== null && vm.rateForm.bank_code !== undefined && String(vm.rateForm.bank_code).trim() !== '') {
+                        if (!/^[A-Za-z0-9]+$/.test(String(vm.rateForm.bank_code).trim())) {
+                            e.bank_code = ['Bank Code may contain only letters and numbers.'];
+                        }
+                        if (String(vm.rateForm.bank_code).trim().length > 20) {
+                            e.bank_code = ['Bank Code may not exceed 20 characters.'];
+                        }
+                    }
+                    if ((vm.touched.bank_description || hard) && vm.rateForm.bank_description !== null && vm.rateForm.bank_description !== undefined && String(vm.rateForm.bank_description).length > 255) {
+                        e.bank_description = ['Bank Description may not exceed 255 characters.'];
+                    }
+
                     if (vm.rateForm.min_amount !== null && vm.rateForm.max_amount !== null && vm.rateForm.min_amount !== '' && vm.rateForm.max_amount !== '') {
                         var a = parseFloat(vm.rateForm.min_amount);
                         var b = parseFloat(vm.rateForm.max_amount);
                         if (!isNaN(a) && !isNaN(b) && a > b) {
-                            e.min_amount = ['Min Amount must be less than or equal to Max Amount.'];
+                            e.max_amount = ['Max Amount must be greater than or equal to Min Amount.'];
+                        }
+                    }
+                    if (vm.rateForm.min_share !== null && vm.rateForm.max_share !== null && vm.rateForm.min_share !== '' && vm.rateForm.max_share !== '') {
+                        var msMin = parseFloat(vm.rateForm.min_share);
+                        var msMax = parseFloat(vm.rateForm.max_share);
+                        if (!isNaN(msMin) && !isNaN(msMax) && msMax < msMin) {
+                            e.max_share = ['Max Share must be greater than or equal to Min Share.'];
                         }
                     }
 

@@ -315,27 +315,28 @@
                                 </div>
                                 <div>
                                     <label class="su-label">Country <span class="text-danger">*</span></label>
-                                    <select name="business_country" class="su-select @error('business_country') is-invalid @enderror" required>
+                                    <select id="business_country" name="business_country" class="su-select @error('business_country') is-invalid @enderror" required>
                                         <option value="">Select</option>
-                                        <option value="India" @selected(old('business_country') === 'India')>India</option>
-                                        <option value="USA" @selected(old('business_country') === 'USA')>USA</option>
-                                        <option value="UK" @selected(old('business_country') === 'UK')>UK</option>
                                     </select>
                                     @error('business_country')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
                                     <label class="su-label">State <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_state" value="{{ old('business_state') }}" class="su-input @error('business_state') is-invalid @enderror" required>
+                                    <select id="business_state" name="business_state" class="su-select @error('business_state') is-invalid @enderror" required>
+                                        <option value="">Select</option>
+                                    </select>
                                     @error('business_state')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
                                     <label class="su-label">City <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_city" value="{{ old('business_city') }}" class="su-input @error('business_city') is-invalid @enderror" required>
+                                    <select id="business_city" name="business_city" class="su-select @error('business_city') is-invalid @enderror" required>
+                                        <option value="">Select</option>
+                                    </select>
                                     @error('business_city')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
                                     <label class="su-label">Pin / ZIP Code <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_postal_code" value="{{ old('business_postal_code') }}" class="su-input @error('business_postal_code') is-invalid @enderror" maxlength="10" required>
+                                    <input type="text" name="business_postal_code" value="{{ old('business_postal_code') }}" class="su-input @error('business_postal_code') is-invalid @enderror" pattern="[0-9]+" maxlength="10" required>
                                     @error('business_postal_code')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div style="grid-column: 1 / -1;">
@@ -356,17 +357,17 @@
                             <div class="su-form-grid">
                                 <div>
                                     <label class="su-label">PAN Number <span class="text-danger">*</span></label>
-                                    <input type="text" name="merchant_pan_number" value="{{ old('merchant_pan_number') }}" class="su-input text-uppercase @error('merchant_pan_number') is-invalid @enderror" maxlength="10" required>
+                                    <input type="text" name="merchant_pan_number" value="{{ old('merchant_pan_number') }}" class="su-input text-uppercase @error('merchant_pan_number') is-invalid @enderror" pattern="[A-Za-z0-9]+" maxlength="10" required>
                                     @error('merchant_pan_number')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
                                     <label class="su-label">Name on PAN <span class="text-danger">*</span></label>
-                                    <input type="text" name="name_on_pan_card" value="{{ old('name_on_pan_card') }}" class="su-input @error('name_on_pan_card') is-invalid @enderror" required>
+                                    <input type="text" name="name_on_pan_card" value="{{ old('name_on_pan_card') }}" class="su-input @error('name_on_pan_card') is-invalid @enderror" pattern="[A-Za-z ]+" required>
                                     @error('name_on_pan_card')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
                                     <label class="su-label">GSTIN (optional)</label>
-                                    <input type="text" name="gst_identification_no" value="{{ old('gst_identification_no') }}" class="su-input @error('gst_identification_no') is-invalid @enderror">
+                                    <input type="text" name="gst_identification_no" value="{{ old('gst_identification_no') }}" class="su-input @error('gst_identification_no') is-invalid @enderror" pattern="[A-Za-z0-9]+">
                                     @error('gst_identification_no')<div class="su-error">{{ $message }}</div>@enderror
                                 </div>
                                 <div>
@@ -504,6 +505,74 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     (function () {
+        const oldCountry = @json(old('business_country'));
+        const oldState = @json(old('business_state'));
+        const oldCity = @json(old('business_city'));
+        const countrySelect = document.getElementById('business_country');
+        const stateSelect = document.getElementById('business_state');
+        const citySelect = document.getElementById('business_city');
+        let locationMap = {};
+
+        function fillOptions(selectEl, values, placeholder, selected) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = placeholder;
+            selectEl.appendChild(defaultOpt);
+
+            values.forEach(function (value) {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = value;
+                if (selected && selected === value) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+        }
+
+        function onCountryChange(resetState) {
+            const country = countrySelect ? countrySelect.value : '';
+            const states = (country && locationMap[country]) ? Object.keys(locationMap[country]) : [];
+            fillOptions(stateSelect, states, 'Select', resetState ? '' : oldState);
+            stateSelect.disabled = states.length === 0;
+            onStateChange(true);
+        }
+
+        function onStateChange(resetCity) {
+            const country = countrySelect ? countrySelect.value : '';
+            const state = stateSelect ? stateSelect.value : '';
+            const cities = (country && state && locationMap[country] && locationMap[country][state]) ? locationMap[country][state] : [];
+            fillOptions(citySelect, cities, 'Select', resetCity ? '' : oldCity);
+            citySelect.disabled = cities.length === 0;
+        }
+
+        if (countrySelect && stateSelect && citySelect) {
+            stateSelect.disabled = true;
+            citySelect.disabled = true;
+
+            fetch('/signup/locations')
+                .then(function (res) { return res.json(); })
+                .then(function (payload) {
+                    if (!payload || !payload.success || !payload.data) return;
+                    locationMap = payload.data;
+                    const countries = Object.keys(locationMap);
+                    fillOptions(countrySelect, countries, 'Select', oldCountry || 'India');
+                    onCountryChange(false);
+                })
+                .catch(function () {
+                    // Keep empty dropdowns on fetch failure.
+                });
+
+            countrySelect.addEventListener('change', function () {
+                onCountryChange(true);
+            });
+            stateSelect.addEventListener('change', function () {
+                onStateChange(true);
+            });
+        }
+
         const tabs = ['business','tax','bank','login'];
         let currentIndex = 0;
         const prevBtn = document.getElementById('prevStepBtn');

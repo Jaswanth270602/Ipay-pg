@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
 use App\Models\PaymentLink;
-use App\Services\AcquirerCredentialValidator;
 use App\Services\PaymentLinks\PaymentLinkAttemptService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -73,33 +72,7 @@ class PaymentLinkController extends Controller
                 $merchant->setAttribute('test_mode', $effectiveMode === 'test');
             }
 
-            // Live mode: validate acquirer credentials before creating link so wrong keys don't pass.
-            if (!$merchant->test_mode) {
-                $acquirerAccount = $merchant->getActiveAcquirerAccount();
-                $credValidator = app(AcquirerCredentialValidator::class);
-                $credResult = $credValidator->validate($acquirerAccount);
-
-                if (!$credResult['ok']) {
-                    $payload = [
-                        'success' => false,
-                        'error' => 'ACQUIRER_CREDENTIALS_INVALID',
-                        'message' => $credResult['message'] ?? 'Enter valid API keys',
-                    ];
-                    $attemptService->fail($attempt, 'ACQUIRER_CREDENTIALS_INVALID', $payload);
-                    return response()->json($payload, 422);
-                }
-            }
-
-            if (!$merchant->test_mode && !$merchant->canUseLiveMode()) {
-                $payload = [
-                    'success' => false,
-                    'error' => 'LIVE_MODE_NOT_CONFIGURED',
-                    'message' => 'Live mode requires an active acquirer (e.g. Razorpay, Cashfree) or full live credentials. Assign an acquirer in Settings before creating live payment links.',
-                    'action_required' => 'Assign an acquirer in merchant Settings, or configure live API credentials and bank details.',
-                ];
-                $attemptService->fail($attempt, 'LIVE_MODE_NOT_CONFIGURED', $payload);
-                return response()->json($payload, 403);
-            }
+            // Payment links are platform records + URL only. Acquirers are resolved when the customer pays (checkout).
 
             $expiresAt = isset($request->expires_in) 
                 ? now()->addSeconds($request->expires_in) 

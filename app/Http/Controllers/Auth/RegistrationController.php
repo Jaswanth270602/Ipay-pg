@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -25,44 +26,78 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Public endpoint for signup location dropdowns.
+     */
+    public function locations(): JsonResponse
+    {
+        try {
+            $path = database_path('data/merchant_locations_dataset.json');
+            $locations = [];
+
+            if (is_file($path)) {
+                $decoded = json_decode((string) file_get_contents($path), true);
+                if (is_array($decoded)) {
+                    $locations = $decoded;
+                }
+            }
+
+            if ($locations === []) {
+                $fallback = config('merchant_locations', []);
+                $locations = is_array($fallback) ? $fallback : [];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $locations,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load locations',
+                'data' => [],
+            ], 500);
+        }
+    }
+
+    /**
      * Handle merchant self-registration.
      */
     public function register(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             // Business basics
-            'business_name' => 'required|string|max:255',
-            'legal_name' => 'required|string|max:255',
+            'business_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'legal_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
             'business_email' => 'required|email|unique:merchants,email',
-            'business_phone' => 'required|string|regex:/^[0-9]{10,15}$/',
+            'business_phone' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
             'website_link' => 'nullable|url|max:255',
             'merchant_category' => 'required|string|max:100',
             'business_country' => 'required|string|max:100',
             'business_state' => 'required|string|max:100',
             'business_city' => 'required|string|max:100',
-            'business_postal_code' => 'required|string|max:10',
+            'business_postal_code' => ['required', 'string', 'regex:/^[0-9]+$/', 'max:15'],
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',
 
             // Tax / compliance
-            'merchant_pan_number' => 'required|string|size:10',
-            'name_on_pan_card' => 'required|string|max:255',
-            'gst_identification_no' => 'nullable|string|max:20',
-            'gstin_state' => 'nullable|string|max:100',
-            'tan_no' => 'nullable|string|max:20',
+            'merchant_pan_number' => 'required|string|size:10|regex:/^[A-Za-z0-9]+$/',
+            'name_on_pan_card' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'gst_identification_no' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]*$/'],
+            'gstin_state' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z ]*$/'],
+            'tan_no' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9 ]*$/'],
 
             // Contact
-            'contact_name' => 'required|string|max:255',
-            'contact_mobile' => 'required|string|regex:/^[0-9]{10,15}$/',
+            'contact_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'contact_mobile' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
             'contact_email' => 'required|email',
 
             // Bank
-            'bank_account_holder_name' => 'required|string|max:255',
-            'bank_account_number' => 'required|string|min:8|max:25',
-            'bank_name' => 'required|string|max:255',
+            'bank_account_holder_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'bank_account_number' => ['required', 'string', 'min:8', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
+            'bank_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
             'account_type' => 'required|string|in:Savings Account,Current Account',
-            'bank_branch' => 'required|string|max:255',
-            'bank_ifsc_code' => 'required|string|regex:/^[A-Z]{4}0[A-Z0-9]{6}$/i',
+            'bank_branch' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]+$/'],
+            'bank_ifsc_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
 
             // Login
             'login_name' => 'required|email|unique:users,email',
@@ -74,13 +109,26 @@ class RegistrationController extends Controller
             ],
             'password_confirmation' => 'required|same:password',
         ], [
-            'business_phone.regex' => 'Business phone must be 10-15 digits.',
-            'contact_mobile.regex' => 'Contact mobile must be 10-15 digits.',
+            'business_phone.regex' => 'Business phone may contain only digits and the + symbol.',
+            'contact_mobile.regex' => 'Contact mobile may contain only digits and the + symbol.',
             'merchant_pan_number.size' => 'PAN must be exactly 10 characters.',
+            'business_postal_code.regex' => 'Zipcode must contain only numbers.',
+            'merchant_pan_number.regex' => 'Merchant PAN number may contain only letters and numbers.',
+            'name_on_pan_card.regex' => 'Name on PAN card may contain only letters and spaces.',
+            'gst_identification_no.regex' => 'GST identification number may contain only letters and numbers.',
+            'gstin_state.regex' => 'GSTIN state may contain only letters and spaces.',
+            'tan_no.regex' => 'TAN number may contain only letters, numbers, and spaces.',
+            'contact_name.regex' => 'Contact name may contain only letters and spaces.',
+            'bank_account_holder_name.regex' => 'Account holder name may contain only letters and numbers.',
+            'bank_name.regex' => 'Bank name may contain only letters and spaces.',
+            'bank_branch.regex' => 'Bank branch may contain only letters, numbers, and spaces.',
             'bank_account_number.min' => 'Bank account number looks too short.',
             'bank_account_number.max' => 'Bank account number looks too long.',
-            'bank_ifsc_code.regex' => 'Please enter a valid IFSC code (e.g. HDFC0001234).',
+            'bank_account_number.regex' => 'Bank account number may contain only letters and numbers.',
+            'bank_ifsc_code.regex' => 'IFSC code may contain only letters and numbers.',
             'password.regex' => 'Password must have minimum 12 characters and include at least 1 uppercase, 1 lowercase, 1 number and 1 special character.',
+            'business_name.regex' => 'Business name may contain only letters and spaces.',
+            'legal_name.regex' => 'Legal name may contain only letters and spaces.',
         ]);
 
         if ($validator->fails()) {

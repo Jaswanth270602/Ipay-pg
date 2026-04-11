@@ -67,7 +67,29 @@ class GSTInvoicesController extends Controller
                 $query->whereDate('invoice_date', $request->get('invoice_date'));
             }
 
+            if ($request->filled('non_taxable_tdr')) {
+                $query->where('non_taxable_tdr', $request->get('non_taxable_tdr'));
+            }
+            if ($request->filled('taxable_tdr')) {
+                $query->where('taxable_tdr', $request->get('taxable_tdr'));
+            }
+            if ($request->filled('sgst')) {
+                $query->where('sgst', $request->get('sgst'));
+            }
+            if ($request->filled('cgst')) {
+                $query->where('cgst', $request->get('cgst'));
+            }
+            if ($request->filled('igst')) {
+                $query->where('igst', $request->get('igst'));
+            }
+            if ($request->filled('utgst')) {
+                $query->where('utgst', $request->get('utgst'));
+            }
+
             // Amount filters
+            if ($request->filled('invoice_value')) {
+                $query->where('invoice_value', $request->get('invoice_value'));
+            }
             if ($request->filled('invoice_value_min')) {
                 $query->where('invoice_value', '>=', $request->get('invoice_value_min'));
             }
@@ -79,6 +101,16 @@ class GSTInvoicesController extends Controller
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
             $sortDirection = $request->get('sort_direction', 'desc');
+            $allowedSortColumns = [
+                'id', 'invoice_number', 'month', 'year', 'merchant_id', 'gst_provided_by',
+                'gst_payer_name', 'payer_gstin', 'payer_gstin_state', 'non_taxable_tdr',
+                'taxable_tdr', 'sgst', 'cgst', 'igst', 'utgst', 'invoice_value',
+                'invoice_date', 'created_at', 'updated_at',
+            ];
+            if (!in_array($sortBy, $allowedSortColumns, true)) {
+                $sortBy = 'id';
+            }
+            $sortDirection = strtolower($sortDirection) === 'asc' ? 'asc' : 'desc';
             $query->orderBy($sortBy, $sortDirection);
 
             $invoices = $query->paginate($perPage);
@@ -124,8 +156,8 @@ class GSTInvoicesController extends Controller
      */
     public function getMerchants(): JsonResponse
     {
-        $merchants = Merchant::select('id', 'business_name', 'merchant_id')
-            ->orderBy('business_name')
+        $merchants = Merchant::select('id', 'business_name', 'name', 'merchant_id')
+            ->orderByRaw('COALESCE(business_name, name) asc')
             ->get();
 
         return response()->json([
@@ -152,13 +184,23 @@ class GSTInvoicesController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $payload = $request->all();
+        foreach (['gst_provided_by', 'gst_payer_name', 'payer_gstin', 'payer_gstin_state', 'notes'] as $field) {
+            if (array_key_exists($field, $payload) && is_string($payload[$field])) {
+                $payload[$field] = trim($payload[$field]);
+            }
+        }
+        if (!empty($payload['payer_gstin']) && is_string($payload['payer_gstin'])) {
+            $payload['payer_gstin'] = strtoupper($payload['payer_gstin']);
+        }
+
+        $validator = Validator::make($payload, [
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2020|max:2099',
             'merchant_id' => 'nullable|exists:merchants,id',
             'gst_provided_by' => 'nullable|string|max:255',
             'gst_payer_name' => 'required|string|max:255',
-            'payer_gstin' => 'nullable|string|size:15',
+            'payer_gstin' => 'nullable|string|size:15|regex:/^[A-Z0-9]{15}$/',
             'payer_gstin_state' => 'nullable|string|max:255',
             'non_taxable_tdr' => 'nullable|numeric|min:0',
             'taxable_tdr' => 'nullable|numeric|min:0',
@@ -169,6 +211,13 @@ class GSTInvoicesController extends Controller
             'invoice_value' => 'required|numeric|min:0',
             'invoice_date' => 'nullable|date',
             'notes' => 'nullable|string',
+        ], [
+            'month.required' => 'Month is required.',
+            'year.required' => 'Year is required.',
+            'gst_payer_name.required' => 'GST payer name is required.',
+            'payer_gstin.size' => 'Payer GSTIN must be exactly 15 characters.',
+            'payer_gstin.regex' => 'Payer GSTIN must contain only uppercase letters and numbers.',
+            'invoice_value.required' => 'Invoice value is required.',
         ]);
 
         if ($validator->fails()) {
@@ -180,6 +229,11 @@ class GSTInvoicesController extends Controller
         }
 
         $data = $validator->validated();
+        foreach (['non_taxable_tdr', 'taxable_tdr', 'sgst', 'cgst', 'igst', 'utgst'] as $n) {
+            if (!array_key_exists($n, $data) || $data[$n] === null || $data[$n] === '') {
+                $data[$n] = 0;
+            }
+        }
         $data['invoice_number'] = GSTInvoice::generateInvoiceNumber($data['month'], $data['year']);
 
         $invoice = GSTInvoice::create($data);
@@ -198,13 +252,23 @@ class GSTInvoicesController extends Controller
     {
         $invoice = GSTInvoice::findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
+        $payload = $request->all();
+        foreach (['gst_provided_by', 'gst_payer_name', 'payer_gstin', 'payer_gstin_state', 'notes'] as $field) {
+            if (array_key_exists($field, $payload) && is_string($payload[$field])) {
+                $payload[$field] = trim($payload[$field]);
+            }
+        }
+        if (!empty($payload['payer_gstin']) && is_string($payload['payer_gstin'])) {
+            $payload['payer_gstin'] = strtoupper($payload['payer_gstin']);
+        }
+
+        $validator = Validator::make($payload, [
             'month' => 'sometimes|required|integer|between:1,12',
             'year' => 'sometimes|required|integer|min:2020|max:2099',
             'merchant_id' => 'nullable|exists:merchants,id',
             'gst_provided_by' => 'nullable|string|max:255',
             'gst_payer_name' => 'sometimes|required|string|max:255',
-            'payer_gstin' => 'nullable|string|size:15',
+            'payer_gstin' => 'nullable|string|size:15|regex:/^[A-Z0-9]{15}$/',
             'payer_gstin_state' => 'nullable|string|max:255',
             'non_taxable_tdr' => 'nullable|numeric|min:0',
             'taxable_tdr' => 'nullable|numeric|min:0',
@@ -215,6 +279,11 @@ class GSTInvoicesController extends Controller
             'invoice_value' => 'sometimes|required|numeric|min:0',
             'invoice_date' => 'nullable|date',
             'notes' => 'nullable|string',
+        ], [
+            'gst_payer_name.required' => 'GST payer name is required.',
+            'payer_gstin.size' => 'Payer GSTIN must be exactly 15 characters.',
+            'payer_gstin.regex' => 'Payer GSTIN must contain only uppercase letters and numbers.',
+            'invoice_value.required' => 'Invoice value is required.',
         ]);
 
         if ($validator->fails()) {

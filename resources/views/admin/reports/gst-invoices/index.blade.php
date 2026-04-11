@@ -214,8 +214,6 @@
             </div>
         </div>
     </div>
-</div>
-
 <!-- Create/Edit Modal -->
 <div class="modal fade" id="gstInvoiceModal" tabindex="-1" aria-labelledby="gstInvoiceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -229,7 +227,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Month <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="gst.form.month" required>
+                            <select class="form-select" ng-model="gst.form.month" ng-class="{'is-invalid': gst.formErrors.month}" ng-change="gst.validateForm()" required>
                                 <option value="">Select Month</option>
                                 <option value="1">January</option>
                                 <option value="2">February</option>
@@ -244,72 +242,88 @@
                                 <option value="11">November</option>
                                 <option value="12">December</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.month">@{{ gst.formErrors.month }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Year <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" ng-model="gst.form.year" min="2020" max="2099" required>
+                            <input type="number" class="form-control" ng-model="gst.form.year" ng-class="{'is-invalid': gst.formErrors.year}" ng-change="gst.validateForm()" min="2020" max="2099" required>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.year">@{{ gst.formErrors.year }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Merchant</label>
-                            <select class="form-select" ng-model="gst.form.merchant_id">
+                            <select class="form-select" ng-model="gst.form.merchant_id" ng-class="{'is-invalid': gst.formErrors.merchant_id}">
                                 <option value="">Select Merchant</option>
-                                <option ng-repeat="merchant in gst.merchants" value="@{{ merchant.id }}">@{{ merchant.business_name || merchant.merchant_id }}</option>
+                                <option ng-repeat="merchant in gst.merchants" ng-value="merchant.id">@{{ merchant.business_name || merchant.name || merchant.merchant_id }}</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.merchant_id">@{{ gst.formErrors.merchant_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">GST Provided By</label>
-                            <input type="text" class="form-control" ng-model="gst.form.gst_provided_by">
+                            <input type="text" class="form-control" ng-model="gst.form.gst_provided_by" ng-class="{'is-invalid': gst.formErrors.gst_provided_by}">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.gst_provided_by">@{{ gst.formErrors.gst_provided_by }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">GST Payer Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" ng-model="gst.form.gst_payer_name" required>
+                            <input type="text" class="form-control" ng-model="gst.form.gst_payer_name" ng-class="{'is-invalid': gst.formErrors.gst_payer_name}" ng-change="gst.validateForm()" required>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.gst_payer_name">@{{ gst.formErrors.gst_payer_name }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Payer GSTIN</label>
-                            <input type="text" class="form-control" ng-model="gst.form.payer_gstin" maxlength="15">
+                            <input type="text" class="form-control" ng-model="gst.form.payer_gstin" ng-class="{'is-invalid': gst.formErrors.payer_gstin}" ng-change="gst.enforceGstin(); gst.validateForm()" maxlength="15">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.payer_gstin">@{{ gst.formErrors.payer_gstin }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Payer GSTIN State</label>
-                            <select class="form-select" ng-model="gst.form.payer_gstin_state">
+                            <select class="form-select" ng-model="gst.form.payer_gstin_state" ng-class="{'is-invalid': gst.formErrors.payer_gstin_state}">
                                 <option value="">Select State</option>
                                 <option ng-repeat="state in gst.states" value="@{{ state }}">@{{ state }}</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.payer_gstin_state">@{{ gst.formErrors.payer_gstin_state }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Non-Taxable TDR</label>
-                            <input type="number" class="form-control" ng-model="gst.form.non_taxable_tdr" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.non_taxable_tdr" ng-class="{'is-invalid': gst.formErrors.non_taxable_tdr}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.non_taxable_tdr">@{{ gst.formErrors.non_taxable_tdr }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Taxable TDR</label>
-                            <input type="number" class="form-control" ng-model="gst.form.taxable_tdr" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.taxable_tdr" ng-class="{'is-invalid': gst.formErrors.taxable_tdr}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.taxable_tdr">@{{ gst.formErrors.taxable_tdr }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">SGST</label>
-                            <input type="number" class="form-control" ng-model="gst.form.sgst" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.sgst" ng-class="{'is-invalid': gst.formErrors.sgst}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.sgst">@{{ gst.formErrors.sgst }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">CGST</label>
-                            <input type="number" class="form-control" ng-model="gst.form.cgst" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.cgst" ng-class="{'is-invalid': gst.formErrors.cgst}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.cgst">@{{ gst.formErrors.cgst }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">IGST</label>
-                            <input type="number" class="form-control" ng-model="gst.form.igst" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.igst" ng-class="{'is-invalid': gst.formErrors.igst}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.igst">@{{ gst.formErrors.igst }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">UTGST</label>
-                            <input type="number" class="form-control" ng-model="gst.form.utgst" step="0.01" min="0">
+                            <input type="number" class="form-control" ng-model="gst.form.utgst" ng-class="{'is-invalid': gst.formErrors.utgst}" ng-change="gst.validateForm()" step="0.01" min="0">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.utgst">@{{ gst.formErrors.utgst }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Invoice Value <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" ng-model="gst.form.invoice_value" step="0.01" min="0" required>
+                            <input type="number" class="form-control" ng-model="gst.form.invoice_value" ng-class="{'is-invalid': gst.formErrors.invoice_value}" ng-change="gst.validateForm()" step="0.01" min="0" required>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.invoice_value">@{{ gst.formErrors.invoice_value }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Invoice Date</label>
-                            <input type="date" class="form-control" ng-model="gst.form.invoice_date">
+                            <input type="date" class="form-control" ng-model="gst.form.invoice_date" ng-class="{'is-invalid': gst.formErrors.invoice_date}">
+                            <div class="invalid-feedback" ng-if="gst.formErrors.invoice_date">@{{ gst.formErrors.invoice_date }}</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Notes</label>
-                            <textarea class="form-control" ng-model="gst.form.notes" rows="3"></textarea>
+                            <textarea class="form-control" ng-model="gst.form.notes" ng-class="{'is-invalid': gst.formErrors.notes}" rows="3"></textarea>
+                            <div class="invalid-feedback" ng-if="gst.formErrors.notes">@{{ gst.formErrors.notes }}</div>
                         </div>
                     </div>
                 </form>
@@ -323,6 +337,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 
@@ -350,6 +365,7 @@
                 vm.selectedInvoice = null;
                 vm.isEditing = false;
                 vm.saving = false;
+                vm.formErrors = {};
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
 
                 vm.visibleColumns = {
@@ -499,6 +515,7 @@
 
                 vm.openCreateModal = function () {
                     vm.isEditing = false;
+                    vm.formErrors = {};
                     vm.form = {
                         month: '',
                         year: new Date().getFullYear(),
@@ -523,21 +540,77 @@
 
                 vm.editInvoice = function (invoice) {
                     vm.isEditing = true;
+                    vm.formErrors = {};
                     vm.form = angular.copy(invoice);
                     vm.form.id = invoice.id;
                     var modal = new bootstrap.Modal(document.getElementById('gstInvoiceModal'));
                     modal.show();
                 };
 
+                vm.enforceGstin = function () {
+                    if (!vm.form.payer_gstin) {
+                        return;
+                    }
+                    vm.form.payer_gstin = String(vm.form.payer_gstin).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                };
+
+                vm.validateForm = function () {
+                    vm.formErrors = {};
+                    var month = Number(vm.form.month);
+                    var year = Number(vm.form.year);
+                    var invoiceValue = Number(vm.form.invoice_value);
+                    var gstin = (vm.form.payer_gstin || '').trim();
+                    var nonNegativeFields = ['non_taxable_tdr', 'taxable_tdr', 'sgst', 'cgst', 'igst', 'utgst'];
+
+                    if (!month || month < 1 || month > 12) vm.formErrors.month = 'Month is required.';
+                    if (!year || year < 2020 || year > 2099) vm.formErrors.year = 'Year must be between 2020 and 2099.';
+                    if (!vm.form.gst_payer_name || !String(vm.form.gst_payer_name).trim()) vm.formErrors.gst_payer_name = 'GST payer name is required.';
+                    if (gstin && !/^[A-Z0-9]{15}$/.test(gstin)) vm.formErrors.payer_gstin = 'Payer GSTIN must be exactly 15 uppercase letters/numbers.';
+                    if (vm.form.invoice_value === '' || vm.form.invoice_value === null || vm.form.invoice_value === undefined || Number.isNaN(invoiceValue) || invoiceValue < 0) {
+                        vm.formErrors.invoice_value = 'Invoice value must be 0 or greater.';
+                    }
+                    nonNegativeFields.forEach(function (field) {
+                        if (vm.form[field] === '' || vm.form[field] === null || vm.form[field] === undefined) {
+                            return;
+                        }
+                        var value = Number(vm.form[field]);
+                        if (Number.isNaN(value) || value < 0) {
+                            vm.formErrors[field] = 'This value must be 0 or greater.';
+                        }
+                    });
+
+                    return Object.keys(vm.formErrors).length === 0;
+                };
+
                 vm.saveInvoice = function () {
+                    vm.enforceGstin();
+                    if (!vm.validateForm()) {
+                        return;
+                    }
+
                     vm.saving = true;
                     var url = vm.isEditing ? "{{ url('admin/reports/gst-invoices') }}/" + vm.form.id : "{{ route('admin.reports.gst-invoices.store') }}";
                     var method = 'POST';
+                    var payload = angular.copy(vm.form);
+                    payload.month = payload.month ? Number(payload.month) : null;
+                    payload.year = payload.year ? Number(payload.year) : null;
+                    payload.merchant_id = payload.merchant_id ? Number(payload.merchant_id) : null;
+                    payload.gst_provided_by = payload.gst_provided_by ? String(payload.gst_provided_by).trim() : '';
+                    payload.gst_payer_name = payload.gst_payer_name ? String(payload.gst_payer_name).trim() : '';
+                    payload.payer_gstin_state = payload.payer_gstin_state ? String(payload.payer_gstin_state).trim() : '';
+                    payload.notes = payload.notes ? String(payload.notes).trim() : '';
+                    ['non_taxable_tdr', 'taxable_tdr', 'sgst', 'cgst', 'igst', 'utgst', 'invoice_value'].forEach(function (field) {
+                        if (payload[field] === '' || payload[field] === null || payload[field] === undefined) {
+                            payload[field] = 0;
+                        } else {
+                            payload[field] = Number(payload[field]);
+                        }
+                    });
 
                     $http({
                         method: method,
                         url: url,
-                        data: vm.form,
+                        data: payload,
                         headers: { 'X-CSRF-TOKEN': csrf }
                     }).then(function (response) {
                         vm.saving = false;
@@ -562,11 +635,17 @@
                         }
                     }, function (error) {
                         vm.saving = false;
+                        vm.formErrors = {};
                         var msg = 'Failed to save GST invoice';
                         if (error.data && error.data.message) {
                             msg = error.data.message;
-                        } else if (error.data && error.data.errors) {
-                            var errors = Object.values(error.data.errors).flat();
+                        }
+                        if (error.data && error.data.errors) {
+                            vm.formErrors = Object.keys(error.data.errors).reduce(function (acc, key) {
+                                acc[key] = (error.data.errors[key] || [])[0] || 'Invalid value';
+                                return acc;
+                            }, {});
+                            var errors = Object.values(vm.formErrors);
                             msg = errors.join(', ');
                         }
                         if (typeof showToast === 'function') {

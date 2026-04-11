@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class SettlementDetailsController extends Controller
@@ -122,21 +123,95 @@ class SettlementDetailsController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $payload = $request->all();
+        foreach ([
+            'order_id',
+            'tran_seq_id',
+            'transaction_qualifier',
+            'settlement_qualifier',
+            'setl_id',
+            'bank_reference',
+            'settlement_account_name',
+            'settlement_account_number',
+            'settlement_ifsc_code',
+            'settlement_bank_name',
+            'settlement_bank_branch',
+            'payment_mode',
+            'payment_channel',
+            'setd_id',
+            'provider',
+            'account_id',
+            'acq_payment_id',
+        ] as $field) {
+            if (array_key_exists($field, $payload) && is_string($payload[$field])) {
+                $payload[$field] = trim($payload[$field]);
+            }
+        }
+        if (!empty($payload['settlement_ifsc_code']) && is_string($payload['settlement_ifsc_code'])) {
+            $payload['settlement_ifsc_code'] = strtoupper($payload['settlement_ifsc_code']);
+        }
+
+        $validator = Validator::make($payload, [
             'merchant_id' => 'required|exists:merchants,id',
-            'transaction_id' => 'nullable|exists:transactions,id',
-            'order_id' => 'nullable|string|max:255',
-            'tran_seq_id' => 'nullable|string|max:255',
+            'settlement_id' => Schema::hasTable('settlements')
+                ? 'nullable|integer|exists:settlements,id'
+                : 'nullable|integer',
+            'transaction_id' => Schema::hasTable('transactions')
+                ? 'nullable|integer|exists:transactions,id'
+                : 'nullable|integer',
+            'order_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
+            'tran_seq_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
             'transaction_date' => 'required|date',
+            'transaction_qualifier' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9 _\\-\\/]*$/'],
+            'settlement_qualifier' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9 _\\-\\/]*$/'],
+            'setl_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
             'amount_paid_by_customer' => 'required|numeric|min:0',
             'settlement_amount' => 'required|numeric|min:0',
-            'settlement_account_name' => 'required|string|max:255',
-            'settlement_account_number' => 'required|string|max:255',
-            'settlement_ifsc_code' => 'required|string|max:255',
-            'settlement_bank_name' => 'required|string|max:255',
-            'settlement_bank_branch' => 'nullable|string|max:255',
-            'payment_mode' => 'nullable|string|max:255',
-            'payment_channel' => 'nullable|string|max:255',
+            'bank_settlement_date' => 'nullable|date',
+            'bank_settlement_amount' => 'nullable|numeric|min:0',
+            'bank_reference' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 _\\-\\/]*$/'],
+            'settlement_account_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]+$/'],
+            'settlement_account_number' => ['required', 'string', 'min:6', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
+            'settlement_ifsc_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
+            'settlement_bank_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'settlement_bank_branch' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
+            'payment_mode' => 'nullable|string|in:card,netbanking,upi,wallet,emi,cash,bank_transfer,bbps,bharat_qr',
+            'payment_channel' => 'nullable|string|in:web,mobile,pos,api',
+            'tdr_percentage' => 'nullable|numeric|between:0,100',
+            'tdr_fixed_fee' => 'nullable|numeric|min:0',
+            'tdr_amount' => 'nullable|numeric|min:0',
+            'earliest_priority_settlement_date' => 'nullable|date',
+            'latest_priority_settlement_date' => 'nullable|date|after_or_equal:earliest_priority_settlement_date',
+            'tax_amount' => 'nullable|numeric|min:0',
+            'setd_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
+            'provider' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 _\\-\\.]*$/'],
+            'account_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
+            'acq_payment_id' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9_\\-\\/]*$/'],
+        ], [
+            'merchant_id.required' => 'Merchant is required.',
+            'merchant_id.exists' => 'Selected merchant is invalid.',
+            'transaction_date.required' => 'Transaction date is required.',
+            'amount_paid_by_customer.required' => 'Amount paid by customer is required.',
+            'amount_paid_by_customer.min' => 'Amount paid by customer cannot be negative.',
+            'settlement_amount.required' => 'Settlement amount is required.',
+            'settlement_amount.min' => 'Settlement amount cannot be negative.',
+            'bank_settlement_amount.min' => 'Bank settlement amount cannot be negative.',
+            'settlement_account_name.required' => 'Settlement account name is required.',
+            'settlement_account_name.regex' => 'Settlement account name may contain only letters, numbers, and spaces.',
+            'settlement_account_number.required' => 'Settlement account number is required.',
+            'settlement_account_number.regex' => 'Settlement account number may contain only letters and numbers.',
+            'settlement_ifsc_code.required' => 'Settlement IFSC code is required.',
+            'settlement_ifsc_code.regex' => 'Settlement IFSC code may contain only letters and numbers.',
+            'settlement_bank_name.required' => 'Settlement bank name is required.',
+            'settlement_bank_name.regex' => 'Settlement bank name may contain only letters and spaces.',
+            'settlement_bank_branch.regex' => 'Settlement bank branch may contain only letters, numbers, and spaces.',
+            'payment_mode.in' => 'Payment source is invalid.',
+            'payment_channel.in' => 'Payment channel is invalid.',
+            'tdr_percentage.between' => 'TDR percentage must be between 0 and 100.',
+            'tdr_fixed_fee.min' => 'TDR fixed fee cannot be negative.',
+            'tdr_amount.min' => 'TDR amount cannot be negative.',
+            'tax_amount.min' => 'Tax amount cannot be negative.',
+            'latest_priority_settlement_date.after_or_equal' => 'Latest priority settlement date must be on or after earliest priority settlement date.',
         ]);
 
         if ($validator->fails()) {
@@ -148,41 +223,42 @@ class SettlementDetailsController extends Controller
         }
 
         try {
-            $merchant = Merchant::findOrFail($request->merchant_id);
+            $data = $validator->validated();
+            $merchant = Merchant::findOrFail($data['merchant_id']);
 
             $settlementDetail = DB::table('settlement_details')->insertGetId([
-                'merchant_id' => $request->merchant_id,
+                'merchant_id' => $data['merchant_id'],
                 'test_mode' => (bool) $merchant->test_mode,
-                'transaction_id' => $request->transaction_id,
-                'settlement_id' => $request->settlement_id,
-                'order_id' => $request->order_id,
-                'tran_seq_id' => $request->tran_seq_id,
-                'transaction_date' => $request->transaction_date,
-                'transaction_qualifier' => $request->transaction_qualifier,
-                'settlement_qualifier' => $request->settlement_qualifier,
-                'setl_id' => $request->setl_id,
-                'amount_paid_by_customer' => $request->amount_paid_by_customer,
-                'settlement_amount' => $request->settlement_amount,
-                'bank_settlement_date' => $request->bank_settlement_date,
-                'bank_settlement_amount' => $request->bank_settlement_amount,
-                'bank_reference' => $request->bank_reference,
-                'settlement_account_name' => $request->settlement_account_name,
-                'settlement_account_number' => $request->settlement_account_number,
-                'settlement_ifsc_code' => $request->settlement_ifsc_code,
-                'settlement_bank_name' => $request->settlement_bank_name,
-                'settlement_bank_branch' => $request->settlement_bank_branch,
-                'payment_mode' => $request->payment_mode,
-                'payment_channel' => $request->payment_channel,
-                'tdr_percentage' => $request->tdr_percentage,
-                'tdr_fixed_fee' => $request->tdr_fixed_fee,
-                'tdr_amount' => $request->tdr_amount,
-                'earliest_priority_settlement_date' => $request->earliest_priority_settlement_date,
-                'latest_priority_settlement_date' => $request->latest_priority_settlement_date,
-                'tax_amount' => $request->tax_amount,
-                'setd_id' => $request->setd_id,
-                'provider' => $request->provider,
-                'account_id' => $request->account_id,
-                'acq_payment_id' => $request->acq_payment_id,
+                'transaction_id' => $data['transaction_id'] ?? null,
+                'settlement_id' => $data['settlement_id'] ?? null,
+                'order_id' => $data['order_id'] ?? null,
+                'tran_seq_id' => $data['tran_seq_id'] ?? null,
+                'transaction_date' => $data['transaction_date'],
+                'transaction_qualifier' => $data['transaction_qualifier'] ?? null,
+                'settlement_qualifier' => $data['settlement_qualifier'] ?? null,
+                'setl_id' => $data['setl_id'] ?? null,
+                'amount_paid_by_customer' => $data['amount_paid_by_customer'],
+                'settlement_amount' => $data['settlement_amount'],
+                'bank_settlement_date' => $data['bank_settlement_date'] ?? null,
+                'bank_settlement_amount' => $data['bank_settlement_amount'] ?? 0,
+                'bank_reference' => $data['bank_reference'] ?? null,
+                'settlement_account_name' => $data['settlement_account_name'],
+                'settlement_account_number' => $data['settlement_account_number'],
+                'settlement_ifsc_code' => $data['settlement_ifsc_code'],
+                'settlement_bank_name' => $data['settlement_bank_name'],
+                'settlement_bank_branch' => $data['settlement_bank_branch'] ?? null,
+                'payment_mode' => $data['payment_mode'] ?? null,
+                'payment_channel' => $data['payment_channel'] ?? null,
+                'tdr_percentage' => $data['tdr_percentage'] ?? 0,
+                'tdr_fixed_fee' => $data['tdr_fixed_fee'] ?? 0,
+                'tdr_amount' => $data['tdr_amount'] ?? 0,
+                'earliest_priority_settlement_date' => $data['earliest_priority_settlement_date'] ?? null,
+                'latest_priority_settlement_date' => $data['latest_priority_settlement_date'] ?? null,
+                'tax_amount' => $data['tax_amount'] ?? 0,
+                'setd_id' => $data['setd_id'] ?? null,
+                'provider' => $data['provider'] ?? null,
+                'account_id' => $data['account_id'] ?? null,
+                'acq_payment_id' => $data['acq_payment_id'] ?? null,
                 'settlement_status' => 'pending',
                 'created_at' => now(),
                 'updated_at' => now(),

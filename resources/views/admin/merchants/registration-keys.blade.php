@@ -180,7 +180,14 @@
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">IP Address</label>
-                                <input type="text" class="form-control" ng-model="mrk.form.ip_address" placeholder="IP Address">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="mrk.form.ip_address"
+                                       ng-change="mrk.validateIpAddress()"
+                                       ng-class="{'is-invalid': mrk.formErrors.ip_address}">
+                                <div class="invalid-feedback" ng-if="mrk.formErrors.ip_address">
+                                    <span ng-repeat="msg in mrk.formErrors.ip_address">@{{ msg }}<br></span>
+                                </div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Copy Merchant Params</label>
@@ -249,6 +256,7 @@
                 vm.saving = false;
                 vm.isEditing = false;
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
+                vm.formErrors = {};
 
                 vm.filters = {
                     id: '',
@@ -358,7 +366,30 @@
                     modal.show();
                 };
 
+                vm.validateIpAddress = function () {
+                    vm.formErrors.ip_address = [];
+                    var value = (vm.form.ip_address || '').toString().trim();
+
+                    if (value && !/^[0-9.]+$/.test(value)) {
+                        vm.formErrors.ip_address.push('IP Address may contain only numbers and dot (.)');
+                    }
+
+                    if (vm.formErrors.ip_address.length === 0) {
+                        delete vm.formErrors.ip_address;
+                    }
+                };
+
                 vm.saveKey = function () {
+                    vm.validateIpAddress();
+                    if (vm.formErrors.ip_address && vm.formErrors.ip_address.length) {
+                        if (typeof showToast === 'function') {
+                            showToast(vm.formErrors.ip_address[0], 'error');
+                        } else {
+                            alert(vm.formErrors.ip_address[0]);
+                        }
+                        return;
+                    }
+
                     if (!vm.form.key_description || !vm.form.status || (!vm.isEditing && !vm.form.merchant_id)) {
                         if (typeof showToast === 'function') {
                             showToast('Please fill all required fields', 'error');

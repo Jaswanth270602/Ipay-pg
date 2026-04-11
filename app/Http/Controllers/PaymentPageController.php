@@ -73,7 +73,7 @@ class PaymentPageController extends Controller
             $validator = Validator::make($request->all(), [
                 'payment_method' => 'required|in:card,upi,netbanking,wallet',
                 'customer_details' => 'required|array',
-                'customer_details.name' => 'required|string|max:255',
+                'customer_details.name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
                 'customer_details.email' => 'required|email',
                 'customer_details.phone' => 'required|string|regex:/^[0-9]{10}$/',
                 'payment_details' => 'required|array',

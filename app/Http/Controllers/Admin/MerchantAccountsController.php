@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\Merchant;
+use App\Models\Partner;
 use App\Models\Reseller;
 use App\Models\User;
 use App\Models\Role;
@@ -16,6 +17,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class MerchantAccountsController extends Controller
@@ -31,9 +33,11 @@ class MerchantAccountsController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
+            $hasResellerTables = $this->hasResellerTables();
             $this->logInfo('Admin merchant accounts data requested', [
                 'user_id' => auth()->id(),
-                'filters' => $request->all()
+                'filters' => $request->all(),
+                'has_reseller_tables' => $hasResellerTables,
             ]);
 
             $perPage = min($request->get('per_page', 5), 50);
@@ -102,7 +106,7 @@ class MerchantAccountsController extends Controller
             if ($request->has('filter_challan_urn') && $request->get('filter_challan_urn')) {
                 $query->where('challan_urn', 'like', "%{$request->get('filter_challan_urn')}%");
             }
-            if ($request->filled('filter_reseller_id')) {
+            if ($hasResellerTables && $request->filled('filter_reseller_id')) {
                 $resellerFilter = $request->get('filter_reseller_id');
                 if ($resellerFilter === 'none') {
                     $query->whereDoesntHave('resellers');
@@ -123,12 +127,17 @@ class MerchantAccountsController extends Controller
                 $query->latest();
             }
 
-            $merchants =             $query->with(['acquirerAccount', 'resellers', 'reseller'])->paginate($perPage);
+            $relations = ['acquirerAccount'];
+            if ($hasResellerTables) {
+                $relations[] = 'resellers';
+                $relations[] = 'reseller';
+            }
+            $merchants = $query->with($relations)->paginate($perPage);
 
             // TC_03: mask bank details in list payload (full values via show() for edit)
-            $merchants->getCollection()->transform(function (Merchant $merchant) {
+            $merchants->getCollection()->transform(function (Merchant $merchant) use ($hasResellerTables) {
                 $data = SensitiveDataMasker::maskMerchantAttributes($merchant);
-                $data['reseller'] = $merchant->relationLoaded('reseller') && $merchant->reseller
+                $data['reseller'] = $hasResellerTables && $merchant->relationLoaded('reseller') && $merchant->reseller
                     ? [
                         'id' => $merchant->reseller->id,
                         'name' => $merchant->reseller->name,
@@ -136,7 +145,7 @@ class MerchantAccountsController extends Controller
                         'email' => $merchant->reseller->email,
                     ]
                     : null;
-                $data['resellers'] = $merchant->relationLoaded('resellers')
+                $data['resellers'] = $hasResellerTables && $merchant->relationLoaded('resellers')
                     ? $merchant->resellers->map(function (Reseller $r) {
                         return [
                             'id' => $r->id,
@@ -202,6 +211,13 @@ class MerchantAccountsController extends Controller
     public function getResellersForSelect(): JsonResponse
     {
         try {
+            if (! $this->hasResellerTables()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
+
             $resellers = Reseller::query()
                 ->where('status', 'active')
                 ->orderBy('name')
@@ -220,10 +236,82 @@ class MerchantAccountsController extends Controller
         }
     }
 
+    public function getLocationsForSelect(): JsonResponse
+    {
+        try {
+            $path = database_path('data/merchant_locations_dataset.json');
+            $locations = [];
+
+            if (is_file($path)) {
+                $decoded = json_decode((string) file_get_contents($path), true);
+                if (is_array($decoded)) {
+                    $locations = $decoded;
+                }
+            }
+
+            if ($locations === []) {
+                $fallback = config('merchant_locations', []);
+                $locations = is_array($fallback) ? $fallback : [];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $locations,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load locations',
+                'data' => [],
+            ], 500);
+        }
+    }
+
+    public function getPartnersForSelect(): JsonResponse
+    {
+        try {
+            if (! Schema::hasTable('partners')) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
+
+            $partners = Partner::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'team_name']);
+
+            $data = $partners->map(function (Partner $p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'team_name' => $p->team_name,
+                    'teams' => $this->parsePartnerTeamNames($p->team_name),
+                ];
+            })->values()->all();
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load partners',
+                'data' => [],
+            ], 500);
+        }
+    }
+
     public function show($id): JsonResponse
     {
         try {
-            $merchant = Merchant::with(['acquirerAccount', 'resellers', 'reseller'])->findOrFail($id);
+            $relations = ['acquirerAccount'];
+            if ($this->hasResellerTables()) {
+                $relations[] = 'resellers';
+                $relations[] = 'reseller';
+            }
+            $merchant = Merchant::with($relations)->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $merchant,
@@ -239,38 +327,25 @@ class MerchantAccountsController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'legal_name' => 'required|string|max:255',
-                'email' => 'required|email|unique:merchants,email',
-                'phone' => 'required|string|max:20',
-                'merchant_category' => 'required|string',
-                'team_id' => 'required_if:is_partner_merchant,true',
-                'address_line_1' => 'required|string',
-                'business_country' => 'required|string',
-                'business_state' => 'required|string',
-                'business_city' => 'required|string',
-                'business_postal_code' => 'required|string',
-                'merchant_pan_number' => 'required|string|max:10',
-                'name_on_pan_card' => 'required|string',
-                'contact_name' => 'required|string',
-                'contact_mobile' => 'required|string',
-                'contact_email' => 'required|email',
-                'bank_account_holder_name' => 'required|string',
-                'bank_account_number' => 'required|string',
-                'bank_name' => 'required|string',
-                'account_type' => 'required|string',
-                'bank_branch' => 'required|string',
-                'bank_ifsc_code' => 'required|string',
-                'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
-                'is_reseller_merchant' => 'nullable|boolean',
-                'reseller_id' => 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id',
-                'login_name' => 'nullable|email|unique:users,email',
-                'password' => 'nullable|string|min:12|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/',
-                'retype_password' => 'nullable|same:password',
-            ], [
-                'password.regex' => 'Password must have minimum 12 characters and should include at least 1 uppercase, 1 lowercase, 1 numeric and 1 special character.',
+            $request->merge([
+                'bank_account_holder_name' => $request->filled('bank_account_holder_name')
+                    ? (string) $request->input('bank_account_holder_name')
+                    : $request->input('bank_account_holder_name'),
             ]);
+
+            $hasResellerTables = $this->hasResellerTables();
+            $rules = $this->merchantAccountValidationRules(null);
+            $rules['login_name'] = 'nullable|email|unique:users,email';
+            $rules['password'] = 'nullable|string|min:12|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/';
+            $rules['retype_password'] = 'nullable|same:password';
+            if ($hasResellerTables) {
+                $rules['reseller_id'] = 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id';
+            }
+
+            $validator = Validator::make($request->all(), $rules, $this->merchantAccountValidationMessages());
+            $validator->after(function ($validator) use ($request) {
+                $this->validatePartnerTeamSelection($validator, $request);
+            });
 
             if ($validator->fails()) {
                 return response()->json([
@@ -286,6 +361,15 @@ class MerchantAccountsController extends Controller
             ]);
 
             DB::beginTransaction();
+
+            $partnerName = $request->input('partner_name');
+            if ($request->filled('partner_id') && Schema::hasTable('partners')) {
+                $partnerRow = Partner::find($request->partner_id);
+                if ($partnerRow) {
+                    $partnerName = $partnerRow->name;
+                }
+            }
+            $teamSelection = trim((string) ($request->input('team_name') ?: $request->input('team_id')));
 
             // Create merchant
             $merchant = Merchant::create([
@@ -317,9 +401,9 @@ class MerchantAccountsController extends Controller
                 'contact_email' => $request->contact_email,
                 'is_partner_merchant' => $request->boolean('is_partner_merchant'),
                 'partner_id' => $request->partner_id,
-                'partner_name' => $request->partner_name,
-                'team_id' => $request->team_id,
-                'team_name' => $request->team_name,
+                'partner_name' => $partnerName,
+                'team_id' => $teamSelection !== '' ? $teamSelection : null,
+                'team_name' => $teamSelection !== '' ? $teamSelection : null,
                 'bank_account_holder_name' => $request->bank_account_holder_name,
                 'bank_account_number' => $request->bank_account_number,
                 'bank_name' => $request->bank_name,
@@ -336,20 +420,20 @@ class MerchantAccountsController extends Controller
                 'settlement_cycle_domestic' => $request->get('settlement_cycle_domestic', 1),
                 'settlement_cycle_international' => $request->get('settlement_cycle_international', 7),
                 'acquirer_account_id' => $request->filled('acquirer_account_id') ? (int) $request->acquirer_account_id : null,
-                'reseller_id' => $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
+                'reseller_id' => $hasResellerTables && $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
                     ? (int) $request->reseller_id
                     : null,
             ]);
 
             $merchant->acquirerAccounts()->sync($request->filled('acquirer_account_id') ? [(int) $request->acquirer_account_id] : []);
-            if ($request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
+            if ($hasResellerTables && $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
                 $merchant->resellers()->sync([
                     (int) $request->reseller_id => [
                         'status' => 'active',
                         'assigned_by' => auth()->id(),
                     ],
                 ]);
-            } else {
+            } elseif ($hasResellerTables) {
                 $merchant->resellers()->detach();
             }
 
@@ -433,35 +517,24 @@ class MerchantAccountsController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         try {
-            $merchant = Merchant::findOrFail($id);
-
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'legal_name' => 'required|string|max:255',
-                'email' => 'required|email|unique:merchants,email,' . (int) $id,
-                'phone' => 'required|string|max:20',
-                'merchant_category' => 'required|string',
-                'team_id' => 'required_if:is_partner_merchant,true',
-                'address_line_1' => 'required|string',
-                'business_country' => 'required|string',
-                'business_state' => 'required|string',
-                'business_city' => 'required|string',
-                'business_postal_code' => 'required|string',
-                'merchant_pan_number' => 'required|string|max:10',
-                'name_on_pan_card' => 'required|string',
-                'contact_name' => 'required|string',
-                'contact_mobile' => 'required|string',
-                'contact_email' => 'required|email',
-                'bank_account_holder_name' => 'required|string',
-                'bank_account_number' => 'required|string',
-                'bank_name' => 'required|string',
-                'account_type' => 'required|string',
-                'bank_branch' => 'required|string',
-                'bank_ifsc_code' => 'required|string',
-                'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
-                'is_reseller_merchant' => 'nullable|boolean',
-                'reseller_id' => 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id',
+            $request->merge([
+                'bank_account_holder_name' => $request->filled('bank_account_holder_name')
+                    ? (string) $request->input('bank_account_holder_name')
+                    : $request->input('bank_account_holder_name'),
             ]);
+
+            $merchant = Merchant::findOrFail($id);
+            $hasResellerTables = $this->hasResellerTables();
+
+            $rules = $this->merchantAccountValidationRules((int) $id);
+            if ($hasResellerTables) {
+                $rules['reseller_id'] = 'nullable|required_if:is_reseller_merchant,true|exists:resellers,id';
+            }
+
+            $validator = Validator::make($request->all(), $rules, $this->merchantAccountValidationMessages());
+            $validator->after(function ($validator) use ($request) {
+                $this->validatePartnerTeamSelection($validator, $request);
+            });
 
             if ($validator->fails()) {
                 return response()->json([
@@ -499,9 +572,15 @@ class MerchantAccountsController extends Controller
             $merchant->contact_email = $request->contact_email;
             $merchant->is_partner_merchant = $request->boolean('is_partner_merchant');
             $merchant->partner_id = $request->partner_id;
-            $merchant->partner_name = $request->partner_name;
-            $merchant->team_id = $request->team_id;
-            $merchant->team_name = $request->team_name;
+            if ($request->filled('partner_id') && Schema::hasTable('partners')) {
+                $partnerRow = Partner::find($request->partner_id);
+                $merchant->partner_name = $partnerRow ? $partnerRow->name : $request->partner_name;
+            } else {
+                $merchant->partner_name = $request->partner_name;
+            }
+            $teamSelection = trim((string) ($request->input('team_name') ?: $request->input('team_id')));
+            $merchant->team_id = $teamSelection !== '' ? $teamSelection : null;
+            $merchant->team_name = $teamSelection !== '' ? $teamSelection : null;
             $merchant->bank_account_holder_name = $request->bank_account_holder_name;
             $merchant->bank_account_number = $request->bank_account_number;
             $merchant->bank_name = $request->bank_name;
@@ -513,20 +592,20 @@ class MerchantAccountsController extends Controller
             $merchant->settlement_cycle_domestic = $request->get('settlement_cycle_domestic', 1);
             $merchant->settlement_cycle_international = $request->get('settlement_cycle_international', 7);
             $merchant->acquirer_account_id = $request->filled('acquirer_account_id') ? (int) $request->acquirer_account_id : null;
-            $merchant->reseller_id = $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
+            $merchant->reseller_id = $hasResellerTables && $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')
                 ? (int) $request->reseller_id
                 : null;
             $merchant->save();
 
             $merchant->acquirerAccounts()->sync($request->filled('acquirer_account_id') ? [(int) $request->acquirer_account_id] : []);
-            if ($request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
+            if ($hasResellerTables && $request->boolean('is_reseller_merchant') && $request->filled('reseller_id')) {
                 $merchant->resellers()->sync([
                     (int) $request->reseller_id => [
                         'status' => 'active',
                         'assigned_by' => auth()->id(),
                     ],
                 ]);
-            } else {
+            } elseif ($hasResellerTables) {
                 $merchant->resellers()->detach();
             }
 
@@ -690,6 +769,142 @@ class MerchantAccountsController extends Controller
                 'message' => 'Failed to duplicate merchant account',
             ], 500);
         }
+    }
+
+    protected function hasResellerTables(): bool
+    {
+        return Schema::hasTable('resellers') && Schema::hasTable('reseller_merchant');
+    }
+
+    /**
+     * Split partner.team_name into individual team labels (comma, semicolon, or pipe).
+     *
+     * @return list<string>
+     */
+    protected function parsePartnerTeamNames(?string $teamName): array
+    {
+        if ($teamName === null || trim($teamName) === '') {
+            return [];
+        }
+
+        $parts = preg_split('/[,;|]/', $teamName);
+
+        return array_values(array_filter(array_map('trim', is_array($parts) ? $parts : []), fn ($s) => $s !== ''));
+    }
+
+    protected function validatePartnerTeamSelection(\Illuminate\Validation\Validator $validator, Request $request): void
+    {
+        if (! $request->boolean('is_partner_merchant')) {
+            return;
+        }
+        if (! Schema::hasTable('partners')) {
+            return;
+        }
+        if (! $request->filled('partner_id')) {
+            $validator->errors()->add('partner_id', 'Please select a partner.');
+
+            return;
+        }
+        $partner = Partner::find($request->partner_id);
+        if (! $partner) {
+            $validator->errors()->add('partner_id', 'Selected partner is invalid.');
+
+            return;
+        }
+        $teams = $this->parsePartnerTeamNames($partner->team_name);
+        $selected = trim((string) ($request->input('team_name') ?: $request->input('team_id')));
+        if (count($teams) > 0) {
+            if ($selected === '') {
+                $validator->errors()->add('team_name', 'Please select a team.');
+            } elseif (! in_array($selected, $teams, true)) {
+                $validator->errors()->add('team_name', 'Selected team is not valid for this partner.');
+            }
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function merchantAccountValidationRules(?int $merchantId): array
+    {
+        $emailRule = $merchantId === null
+            ? 'required|email|unique:merchants,email'
+            : 'required|email|unique:merchants,email,' . $merchantId;
+
+        $partnerIdRule = Schema::hasTable('partners')
+            ? 'nullable|exists:partners,id'
+            : 'nullable|string|max:255';
+
+        return [
+            'name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'legal_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'email' => $emailRule,
+            'phone' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
+            'merchant_category' => 'required|string',
+            'address_line_1' => 'required|string|max:250',
+            'business_country' => 'required|string',
+            'business_state' => 'required|string',
+            'business_city' => 'required|string',
+            'business_postal_code' => ['required', 'string', 'regex:/^[0-9]+$/', 'max:15'],
+            'merchant_pan_number' => ['required', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
+            'name_on_pan_card' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'gst_identification_no' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9]*$/'],
+            'gstin_state' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z ]*$/'],
+            'tan_no' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9 ]*$/'],
+            'contact_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'contact_mobile' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
+            'contact_landline' => ['nullable', 'string', 'max:20', 'regex:/^[+0-9]*$/'],
+            'contact_email' => 'required|email|max:120',
+            'bank_account_holder_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'bank_account_number' => ['required', 'string', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
+            'bank_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'account_type' => 'required|string',
+            'bank_branch' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]+$/'],
+            'bank_ifsc_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
+            'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
+            'is_reseller_merchant' => 'nullable|boolean',
+            'is_partner_merchant' => 'nullable|boolean',
+            'partner_id' => $partnerIdRule,
+            'partner_name' => 'nullable|string|max:255',
+            'team_id' => 'nullable|string|max:255',
+            'team_name' => 'nullable|string|max:255',
+            'organization_name' => 'nullable|string|max:255',
+            'merchant_category_code' => 'nullable|string|max:255',
+            'ownership_type' => 'nullable|string|max:255',
+            'website_link' => 'nullable|string|max:500',
+            'address_line_2' => 'nullable|string|max:250',
+            'is_dummy_account' => 'nullable|boolean',
+            'settlement_cycle_domestic' => 'nullable|integer|min:1|max:30',
+            'settlement_cycle_international' => 'nullable|integer|min:1|max:30',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function merchantAccountValidationMessages(): array
+    {
+        return [
+            'password.regex' => 'Password must have minimum 12 characters and should include at least 1 uppercase, 1 lowercase, 1 numeric and 1 special character.',
+            'name.regex' => 'Merchant name may contain only letters and spaces.',
+            'legal_name.regex' => 'Merchant legal name may contain only letters and spaces.',
+            'phone.regex' => 'Merchant phone may contain only digits and the + symbol.',
+            'business_postal_code.regex' => 'Zip code must contain only digits.',
+            'business_postal_code.max' => 'Zip code may not be greater than 15 digits.',
+            'merchant_pan_number.regex' => 'Merchant PAN number may contain only letters and numbers.',
+            'name_on_pan_card.regex' => 'Name on PAN card may contain only letters and spaces.',
+            'gst_identification_no.regex' => 'GST identification number may contain only letters and numbers.',
+            'gstin_state.regex' => 'GSTIN state may contain only letters and spaces.',
+            'tan_no.regex' => 'TAN number may contain only letters, numbers, and spaces.',
+            'contact_name.regex' => 'Contact name may contain only letters and spaces.',
+            'contact_mobile.regex' => 'Contact mobile may contain only digits and the + symbol.',
+            'contact_landline.regex' => 'Contact landline may contain only digits and the + symbol.',
+            'bank_account_holder_name.regex' => 'Account holder name may contain only letters and numbers.',
+            'bank_name.regex' => 'Bank name may contain only letters and spaces.',
+            'bank_branch.regex' => 'Bank branch may contain only letters, numbers, and spaces.',
+            'bank_account_number.regex' => 'Bank account number may contain only letters and numbers.',
+            'bank_ifsc_code.regex' => 'IFSC code may contain only letters and numbers.',
+        ];
     }
 }
 

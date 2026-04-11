@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\ApiKey;
 use App\Models\PaymentLink;
-use App\Services\AcquirerCredentialValidator;
 use App\Services\ApiCredentialValidator;
 use App\Services\PaymentLinks\PaymentLinkAttemptService;
 use Illuminate\Http\Request;
@@ -212,54 +211,7 @@ class PaymentLinksController extends Controller
                 return response()->json($payload, 404);
             }
 
-            // Live mode: fail fast when acquirer credentials are invalid so bad keys don't create links.
-            if (!$merchant->test_mode) {
-                if (! $merchant->isApprovedForAcquirer()) {
-                    $payload = [
-                        'success' => false,
-                        'status' => 'ERROR',
-                        'error' => 'MERCHANT_NOT_APPROVED',
-                        'message' => 'Live payments require merchant approval (Test approved or Approved). Ask your administrator to update approval status.',
-                    ];
-                    $attemptService->fail($attempt, 'MERCHANT_NOT_APPROVED', $payload);
-                    return response()->json($payload, 403);
-                }
-
-                $acquirerAccount = $merchant->getActiveAcquirerAccount();
-                $credValidator = app(AcquirerCredentialValidator::class);
-                $credResult = $credValidator->validate($acquirerAccount);
-
-                if (! $credResult['ok']) {
-                    $msg = $credResult['message'] ?? 'Enter valid API keys';
-                    if ($acquirerAccount === null && $msg === 'Acquirer not configured') {
-                        $msg = 'No usable acquirer: add an active acquirer in Admin (Acquirer accounts), link it to this merchant or ensure at least one platform acquirer exists with API keys. If you only have Test keys, create a TEST-mode acquirer or switch merchant to Test mode.';
-                    }
-                    $payload = [
-                        'success' => false,
-                        'status' => 'ERROR',
-                        'error' => 'ACQUIRER_CREDENTIALS_INVALID',
-                        'message' => $msg,
-                    ];
-                    $attemptService->fail($attempt, 'ACQUIRER_CREDENTIALS_INVALID', $payload);
-                    return response()->json($payload, 422);
-                }
-            }
-
-            // Live (merchant) mode: allow when merchant has an active acquirer (aggregator) or full live credentials
-            if (!$merchant->test_mode && !$merchant->canUseLiveMode()) {
-                $this->logWarning('Attempted to create payment link in LIVE mode without acquirer or credentials', [
-                    'merchant_id' => $merchant->id,
-                    'test_mode' => $merchant->test_mode
-                ]);
-                $payload = [
-                    'success' => false,
-                    'message' => 'Live mode requires an active acquirer (e.g. Razorpay, Cashfree) or full live credentials. Please assign an acquirer in Settings or configure live API credentials and bank details.',
-                    'error_code' => 'LIVE_MODE_NOT_CONFIGURED',
-                    'action_required' => 'Assign an acquirer (Razorpay Test/Live, Cashfree, etc.) in Settings, or configure live credentials.',
-                ];
-                $attemptService->fail($attempt, 'LIVE_MODE_NOT_CONFIGURED', $payload);
-                return response()->json($payload, 403);
-            }
+            // Payment links are platform-owned; acquirers apply at payment time (checkout), not here.
 
             $cred = app(ApiCredentialValidator::class)->validatePortalRequest($request, $merchant);
             if (!$cred['ok']) {

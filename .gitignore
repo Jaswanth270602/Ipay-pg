@@ -23,3 +23,8 @@
 
 /storage/logs/*
 !/storage/logs/.gitkeep
+
+# Large raw location dumps (regenerate dataset with database/scripts/build_merchant_locations_dataset.py)
+/database/data/countries_states_cities.json
+/database/data/countries_cities.json
+/database/data/states.json

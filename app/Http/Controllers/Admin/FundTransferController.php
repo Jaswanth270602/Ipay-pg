@@ -99,13 +99,35 @@ class FundTransferController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $payload = $request->all();
+        foreach (['purpose_of_payment', 'transfer_reference_no', 'to_account', 'bank_name_ca'] as $field) {
+            if (array_key_exists($field, $payload) && is_string($payload[$field])) {
+                $payload[$field] = trim($payload[$field]);
+            }
+        }
+
+        $validator = Validator::make($payload, [
             'merchant_id' => 'required|exists:merchants,id',
             'transfer_qualifier' => 'required|in:MERCHANT LEDGER,SETTLEMENT,REFUND',
             'transfer_date' => 'required|date',
             'transfer_amount' => 'required|numeric|min:0',
-            'to_account' => 'nullable|string|max:255',
-            'bank_name_ca' => 'nullable|string|max:255',
+            'purpose_of_payment' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
+            'transfer_reference_no' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
+            'credited_amount' => 'nullable|numeric|min:0',
+            'debited_amount' => 'nullable|numeric|min:0',
+            'to_account' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
+            'bank_name_ca' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
+        ], [
+            'transfer_amount.numeric' => 'Transfer amount may contain only numbers and decimal.',
+            'transfer_amount.min' => 'Transfer amount cannot be negative.',
+            'purpose_of_payment.regex' => 'Purpose of payment may contain only letters, numbers, and spaces.',
+            'transfer_reference_no.regex' => 'Transfer reference no may contain only letters, numbers, and spaces.',
+            'credited_amount.numeric' => 'Credited amount may contain only numbers and decimal.',
+            'credited_amount.min' => 'Credited amount cannot be negative.',
+            'debited_amount.numeric' => 'Debited amount may contain only numbers and decimal.',
+            'debited_amount.min' => 'Debited amount cannot be negative.',
+            'to_account.regex' => 'To account may contain only letters, numbers, and spaces.',
+            'bank_name_ca.regex' => 'Bank Name (CA) may contain only letters, numbers, and spaces.',
         ]);
 
         if ($validator->fails()) {
@@ -119,20 +141,22 @@ class FundTransferController extends Controller
         try {
             $referenceId = 'FT_' . strtoupper(uniqid());
             
+            $data = $validator->validated();
+
             $fundTransfer = DB::table('fund_transfers')->insertGetId([
-                'merchant_id' => $request->merchant_id,
+                'merchant_id' => $data['merchant_id'],
                 'reference_id' => $referenceId,
                 'transfer_reference_id' => $request->transfer_reference_id,
-                'transfer_qualifier' => $request->transfer_qualifier,
-                'purpose_of_payment' => $request->purpose_of_payment,
-                'transfer_reference_no' => $request->transfer_reference_no,
+                'transfer_qualifier' => $data['transfer_qualifier'],
+                'purpose_of_payment' => $data['purpose_of_payment'] ?? null,
+                'transfer_reference_no' => $data['transfer_reference_no'] ?? null,
                 'transfer_mode' => $request->transfer_mode ?? 'SFTI ADJ',
-                'transfer_date' => $request->transfer_date,
-                'transfer_amount' => $request->transfer_amount,
-                'credited_amount' => $request->credited_amount ?? 0,
-                'debited_amount' => $request->debited_amount ?? 0,
-                'to_account' => $request->to_account,
-                'bank_name_ca' => $request->bank_name_ca,
+                'transfer_date' => $data['transfer_date'],
+                'transfer_amount' => $data['transfer_amount'],
+                'credited_amount' => $data['credited_amount'] ?? 0,
+                'debited_amount' => $data['debited_amount'] ?? 0,
+                'to_account' => $data['to_account'] ?? null,
+                'bank_name_ca' => $data['bank_name_ca'] ?? null,
                 'fund_received' => $request->fund_received ?? 'No',
                 'fund_received_with_commission' => $request->fund_received_with_commission ?? 'No',
                 'notes' => $request->notes,

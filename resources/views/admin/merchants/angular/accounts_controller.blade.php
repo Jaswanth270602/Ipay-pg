@@ -9,7 +9,7 @@
         }
         try {
             var app = angular.module('ipayApp');
-            app.controller('AdminMerchantAccountsController', ['$http', '$scope', function($http, $scope) {
+            app.controller('AdminMerchantAccountsController', ['$http', '$scope', '$timeout', function($http, $scope, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
                 vm.merchants = [];
@@ -57,6 +57,8 @@
 
                 vm.acquirers = [];
                 vm.resellers = [];
+                vm.partners = [];
+                vm.merchantTab = 'details';
                 vm.editingMerchantId = null;
                 vm.formErrors = {};
 
@@ -72,14 +74,87 @@
                     }
                 };
 
+                vm.enforceDigitsOnly = function(field, max) {
+                    if (!vm.merchantForm || !field) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/\D+/g, '');
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.merchantForm[field] = current;
+                };
+
+                vm.enforceAlphaNumericOnly = function(field, max) {
+                    if (!vm.merchantForm || !field) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^A-Za-z0-9]+/g, '');
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.merchantForm[field] = current;
+                };
+
+                vm.enforceLettersAndSpacesOnly = function(field, max) {
+                    if (!vm.merchantForm || !field) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^A-Za-z ]+/g, '');
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.merchantForm[field] = current;
+                };
+
+                vm.enforceAlphaNumericAndSpacesOnly = function(field, max) {
+                    if (!vm.merchantForm || !field) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^A-Za-z0-9 ]+/g, '');
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.merchantForm[field] = current;
+                };
+
+                vm.enforcePlusAndDigitsOnly = function(field, max) {
+                    if (!vm.merchantForm || !field) return;
+                    var current = vm.merchantForm[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^0-9+]+/g, '');
+                    if (current.indexOf('+') > 0) {
+                        current = '+' + current.replace(/\+/g, '');
+                    } else if (current.indexOf('+') === 0) {
+                        current = '+' + current.substring(1).replace(/\+/g, '');
+                    }
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.merchantForm[field] = current;
+                };
+
                 // Per-field validation helpers (used on blur)
                 vm.validateMerchantName = function () {
                     vm.formErrors.name = [];
                     var value = (vm.merchantForm.name || '').toString();
+                    var merchantNameRegex = /^[A-Za-z ]+$/;
                     if (!value.trim()) {
                         vm.formErrors.name.push('Merchant name is required.');
                     } else if (value.length >= 250) {
                         vm.formErrors.name.push('Merchant name cannot exceed 250 characters.');
+                    } else if (!merchantNameRegex.test(value.trim())) {
+                        vm.formErrors.name.push('Merchant name may contain only letters and spaces.');
                     }
                     if (vm.formErrors.name.length === 0) {
                         delete vm.formErrors.name;
@@ -89,10 +164,13 @@
                 vm.validateLegalName = function () {
                     vm.formErrors.legal_name = [];
                     var value = (vm.merchantForm.legal_name || '').toString();
+                    var merchantNameRegex = /^[A-Za-z ]+$/;
                     if (!value.trim()) {
                         vm.formErrors.legal_name.push('Merchant legal name is required.');
                     } else if (value.length >= 250) {
                         vm.formErrors.legal_name.push('Merchant legal name cannot exceed 250 characters.');
+                    } else if (!merchantNameRegex.test(value.trim())) {
+                        vm.formErrors.legal_name.push('Merchant legal name may contain only letters and spaces.');
                     }
                     if (vm.formErrors.legal_name.length === 0) {
                         delete vm.formErrors.legal_name;
@@ -145,8 +223,8 @@
                     var value = (vm.merchantForm.phone || '').trim();
                     if (!value) {
                         vm.formErrors.phone.push('Merchant phone is required.');
-                    } else if (!/^\d{10}$/.test(value)) {
-                        vm.formErrors.phone.push('Enter valid 10 digit mobile number.');
+                    } else if (!/^\+?[0-9]+$/.test(value) || value.length > 20) {
+                        vm.formErrors.phone.push('Merchant phone may contain only digits and the + symbol (max 20 characters).');
                     }
                     if (vm.formErrors.phone.length === 0) {
                         delete vm.formErrors.phone;
@@ -177,12 +255,355 @@
                     var value = (vm.merchantForm.contact_mobile || '').trim();
                     if (!value) {
                         vm.formErrors.contact_mobile.push('Contact mobile is required.');
-                    } else if (!/^\d{10}$/.test(value)) {
-                        vm.formErrors.contact_mobile.push('Enter valid 10 digit mobile number.');
+                    } else if (!/^\+?[0-9]+$/.test(value) || value.length > 20) {
+                        vm.formErrors.contact_mobile.push('Contact mobile may contain only digits and the + symbol (max 20 characters).');
                     }
                     if (vm.formErrors.contact_mobile.length === 0) {
                         delete vm.formErrors.contact_mobile;
                     }
+                };
+
+                vm.validateZipCode = function () {
+                    vm.formErrors.business_postal_code = [];
+                    var value = (vm.merchantForm.business_postal_code || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.business_postal_code.push('Zip code is required.');
+                    } else if (!/^\d+$/.test(value)) {
+                        vm.formErrors.business_postal_code.push('Zip code must contain only numbers.');
+                    } else if (value.length > 15) {
+                        vm.formErrors.business_postal_code.push('Zip code may not exceed 15 digits.');
+                    }
+                    if (vm.formErrors.business_postal_code.length === 0) delete vm.formErrors.business_postal_code;
+                };
+
+                vm.validateMerchantPan = function () {
+                    vm.formErrors.merchant_pan_number = [];
+                    var value = (vm.merchantForm.merchant_pan_number || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.merchant_pan_number.push('Merchant PAN number is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.merchant_pan_number.push('Merchant PAN number may contain only letters and numbers.');
+                    }
+                    if (vm.formErrors.merchant_pan_number.length === 0) delete vm.formErrors.merchant_pan_number;
+                };
+
+                vm.validateNameOnPan = function () {
+                    vm.formErrors.name_on_pan_card = [];
+                    var value = (vm.merchantForm.name_on_pan_card || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.name_on_pan_card.push('Name on PAN card is required.');
+                    } else if (!/^[A-Za-z ]+$/.test(value)) {
+                        vm.formErrors.name_on_pan_card.push('Name on PAN card may contain only letters and spaces.');
+                    }
+                    if (vm.formErrors.name_on_pan_card.length === 0) delete vm.formErrors.name_on_pan_card;
+                };
+
+                vm.validateGstin = function () {
+                    vm.formErrors.gst_identification_no = [];
+                    var value = (vm.merchantForm.gst_identification_no || '').toString().trim();
+                    if (value && !/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.gst_identification_no.push('GST identification number may contain only letters and numbers.');
+                    }
+                    if (vm.formErrors.gst_identification_no.length === 0) delete vm.formErrors.gst_identification_no;
+                };
+
+                vm.validateGstinState = function () {
+                    vm.formErrors.gstin_state = [];
+                    var value = (vm.merchantForm.gstin_state || '').toString().trim();
+                    if (value && !/^[A-Za-z ]+$/.test(value)) {
+                        vm.formErrors.gstin_state.push('GSTIN state may contain only letters and spaces.');
+                    }
+                    if (vm.formErrors.gstin_state.length === 0) delete vm.formErrors.gstin_state;
+                };
+
+                vm.validateTanNo = function () {
+                    vm.formErrors.tan_no = [];
+                    var value = (vm.merchantForm.tan_no || '').toString().trim();
+                    if (value && !/^[A-Za-z0-9 ]+$/.test(value)) {
+                        vm.formErrors.tan_no.push('TAN number may contain only letters, numbers, and spaces.');
+                    }
+                    if (vm.formErrors.tan_no.length === 0) delete vm.formErrors.tan_no;
+                };
+
+                vm.validateContactName = function () {
+                    vm.formErrors.contact_name = [];
+                    var value = (vm.merchantForm.contact_name || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.contact_name.push('Contact name is required.');
+                    } else if (!/^[A-Za-z ]+$/.test(value)) {
+                        vm.formErrors.contact_name.push('Contact name may contain only letters and spaces.');
+                    }
+                    if (vm.formErrors.contact_name.length === 0) delete vm.formErrors.contact_name;
+                };
+
+                vm.validateContactLandline = function () {
+                    vm.formErrors.contact_landline = [];
+                    var value = (vm.merchantForm.contact_landline || '').toString().trim();
+                    if (value && (!/^\+?[0-9]+$/.test(value) || value.length > 20)) {
+                        vm.formErrors.contact_landline.push('Contact landline may contain only digits and the + symbol (max 20 characters).');
+                    }
+                    if (vm.formErrors.contact_landline.length === 0) delete vm.formErrors.contact_landline;
+                };
+
+                vm.validateAccountHolderName = function () {
+                    vm.formErrors.bank_account_holder_name = [];
+                    var value = (vm.merchantForm.bank_account_holder_name || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.bank_account_holder_name.push('Account holder name is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.bank_account_holder_name.push('Account holder name may contain only letters and numbers.');
+                    }
+                    if (vm.formErrors.bank_account_holder_name.length === 0) delete vm.formErrors.bank_account_holder_name;
+                };
+
+                vm.validateBankAccountNumber = function () {
+                    vm.formErrors.bank_account_number = [];
+                    var value = (vm.merchantForm.bank_account_number || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.bank_account_number.push('Bank account number is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.bank_account_number.push('Bank account number may contain only letters and numbers.');
+                    }
+                    if (vm.formErrors.bank_account_number.length === 0) delete vm.formErrors.bank_account_number;
+                };
+
+                vm.validateBankName = function () {
+                    vm.formErrors.bank_name = [];
+                    var value = (vm.merchantForm.bank_name || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.bank_name.push('Bank name is required.');
+                    } else if (!/^[A-Za-z ]+$/.test(value)) {
+                        vm.formErrors.bank_name.push('Bank name may contain only letters and spaces.');
+                    }
+                    if (vm.formErrors.bank_name.length === 0) delete vm.formErrors.bank_name;
+                };
+
+                vm.validateBankBranch = function () {
+                    vm.formErrors.bank_branch = [];
+                    var value = (vm.merchantForm.bank_branch || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.bank_branch.push('Bank branch is required.');
+                    } else if (!/^[A-Za-z0-9 ]+$/.test(value)) {
+                        vm.formErrors.bank_branch.push('Bank branch may contain only letters, numbers, and spaces.');
+                    }
+                    if (vm.formErrors.bank_branch.length === 0) delete vm.formErrors.bank_branch;
+                };
+
+                vm.validateIfscCode = function () {
+                    vm.formErrors.bank_ifsc_code = [];
+                    var value = (vm.merchantForm.bank_ifsc_code || '').toString().trim();
+                    if (!value) {
+                        vm.formErrors.bank_ifsc_code.push('IFSC code is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.bank_ifsc_code.push('IFSC code may contain only letters and numbers.');
+                    }
+                    if (vm.formErrors.bank_ifsc_code.length === 0) delete vm.formErrors.bank_ifsc_code;
+                };
+
+                var MERCHANT_TAB_FIELDS = {
+                    details: ['name', 'legal_name', 'email', 'phone', 'partner_id', 'team_name', 'reseller_id', 'merchant_category', 'address_line_1', 'business_country', 'business_state', 'business_city', 'business_postal_code'],
+                    tax: ['merchant_pan_number', 'name_on_pan_card', 'gst_identification_no', 'gstin_state', 'tan_no'],
+                    contact: ['contact_name', 'contact_mobile', 'contact_landline', 'contact_email'],
+                    bank: ['bank_account_holder_name', 'bank_account_number', 'bank_name', 'account_type', 'bank_branch', 'bank_ifsc_code'],
+                    login: ['password', 'retype_password', 'login_name']
+                };
+
+                vm.validateMerchantTab = function (tab) {
+                    var fields = MERCHANT_TAB_FIELDS[tab];
+                    if (!fields) {
+                        return true;
+                    }
+                    fields.forEach(function (field) {
+                        if (vm.formErrors[field]) {
+                            delete vm.formErrors[field];
+                        }
+                    });
+
+                    function add(field, msg) {
+                        if (!vm.formErrors[field]) {
+                            vm.formErrors[field] = [];
+                        }
+                        vm.formErrors[field].push(msg);
+                    }
+
+                    var f = vm.merchantForm;
+
+                    switch (tab) {
+                    case 'details':
+                        vm.validateMerchantName();
+                        vm.validateLegalName();
+                        vm.validateMerchantEmail();
+                        vm.validateMerchantPhone();
+                        if (!f.merchant_category) {
+                            add('merchant_category', 'Merchant category is required.');
+                        }
+                        if (!f.address_line_1 || !String(f.address_line_1).trim()) {
+                            add('address_line_1', 'Address Line 1 is required.');
+                        } else if (String(f.address_line_1).length > 250) {
+                            add('address_line_1', 'Address Line 1 cannot exceed 250 characters.');
+                        }
+                        if (!f.business_country) {
+                            add('business_country', 'Country is required.');
+                        }
+                        if (!f.business_state) {
+                            add('business_state', 'State is required.');
+                        }
+                        if (!f.business_city) {
+                            add('business_city', 'City is required.');
+                        }
+                        if (!f.business_postal_code) {
+                            add('business_postal_code', 'Zip code is required.');
+                        } else if (!/^\d+$/.test(String(f.business_postal_code))) {
+                            add('business_postal_code', 'Zip code must contain only numbers.');
+                        } else if (String(f.business_postal_code).length > 15) {
+                            add('business_postal_code', 'Zip code may not exceed 15 digits.');
+                        }
+                        if (f.is_reseller_merchant && !f.reseller_id) {
+                            add('reseller_id', 'Please select a reseller.');
+                        }
+                        if (f.is_partner_merchant) {
+                            if (!f.partner_id) {
+                                add('partner_id', 'Please select a partner.');
+                            }
+                            if (vm.teams && vm.teams.length > 0) {
+                                var tn = (f.team_name || '').toString().trim();
+                                if (!tn) {
+                                    add('team_name', 'Please select a team.');
+                                }
+                            }
+                        }
+                        break;
+                    case 'tax':
+                        if (!f.merchant_pan_number || !String(f.merchant_pan_number).trim()) {
+                            add('merchant_pan_number', 'Merchant PAN number is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.merchant_pan_number))) {
+                            add('merchant_pan_number', 'Merchant PAN number may contain only letters and numbers.');
+                        }
+                        if (!f.name_on_pan_card || !String(f.name_on_pan_card).trim()) {
+                            add('name_on_pan_card', 'Name on PAN card is required.');
+                        } else if (!/^[A-Za-z ]+$/.test(String(f.name_on_pan_card).trim())) {
+                            add('name_on_pan_card', 'Name on PAN card may contain only letters and spaces.');
+                        }
+                        if (f.gst_identification_no && String(f.gst_identification_no).trim() && !/^[A-Za-z0-9]+$/.test(String(f.gst_identification_no).trim())) {
+                            add('gst_identification_no', 'GST identification number may contain only letters and numbers.');
+                        }
+                        if (f.gstin_state && String(f.gstin_state).trim() && !/^[A-Za-z ]+$/.test(String(f.gstin_state).trim())) {
+                            add('gstin_state', 'GSTIN state may contain only letters and spaces.');
+                        }
+                        if (f.tan_no && String(f.tan_no).trim() && !/^[A-Za-z0-9 ]+$/.test(String(f.tan_no).trim())) {
+                            add('tan_no', 'TAN number may contain only letters, numbers, and spaces.');
+                        }
+                        break;
+                    case 'contact':
+                        if (!f.contact_name || !String(f.contact_name).trim()) {
+                            add('contact_name', 'Contact name is required.');
+                        } else if (!/^[A-Za-z ]+$/.test(String(f.contact_name).trim())) {
+                            add('contact_name', 'Contact name may contain only letters and spaces.');
+                        }
+                        vm.validateContactMobile();
+                        vm.validateContactEmail();
+                        if (f.contact_landline && String(f.contact_landline).trim()) {
+                            if (!/^\+?[0-9]+$/.test(String(f.contact_landline).trim()) || String(f.contact_landline).trim().length > 20) {
+                                add('contact_landline', 'Contact landline may contain only digits and the + symbol (max 20 characters).');
+                            }
+                        }
+                        break;
+                    case 'bank':
+                        if (!f.bank_account_holder_name || !String(f.bank_account_holder_name).trim()) {
+                            add('bank_account_holder_name', 'Account holder name is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.bank_account_holder_name == null ? '' : f.bank_account_holder_name).trim())) {
+                            add('bank_account_holder_name', 'Account holder name may contain only letters and numbers.');
+                        }
+                        if (!f.bank_account_number || !String(f.bank_account_number).trim()) {
+                            add('bank_account_number', 'Bank account number is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.bank_account_number).trim())) {
+                            add('bank_account_number', 'Bank account number may contain only letters and numbers.');
+                        }
+                        if (!f.bank_name || !String(f.bank_name).trim()) {
+                            add('bank_name', 'Bank name is required.');
+                        } else if (!/^[A-Za-z ]+$/.test(String(f.bank_name).trim())) {
+                            add('bank_name', 'Bank name may contain only letters and spaces.');
+                        }
+                        if (!f.account_type) {
+                            add('account_type', 'Account type is required.');
+                        }
+                        if (!f.bank_branch || !String(f.bank_branch).trim()) {
+                            add('bank_branch', 'Bank branch is required.');
+                        } else if (!/^[A-Za-z0-9 ]+$/.test(String(f.bank_branch).trim())) {
+                            add('bank_branch', 'Bank branch may contain only letters, numbers, and spaces.');
+                        }
+                        if (!f.bank_ifsc_code || !String(f.bank_ifsc_code).trim()) {
+                            add('bank_ifsc_code', 'IFSC code is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.bank_ifsc_code).trim())) {
+                            add('bank_ifsc_code', 'IFSC code may contain only letters and numbers.');
+                        }
+                        break;
+                    case 'login':
+                        if (!vm.editingMerchantId) {
+                            var pwd = f.password || '';
+                            var rp = f.retype_password || '';
+                            if (pwd && pwd !== rp) {
+                                add('retype_password', 'Passwords do not match.');
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+
+                    var hasErr = false;
+                    fields.forEach(function (field) {
+                        if (vm.formErrors[field] && vm.formErrors[field].length) {
+                            hasErr = true;
+                        }
+                    });
+                    return !hasErr;
+                };
+
+                vm.validateMerchantFormFull = function () {
+                    var tabs = ['details', 'tax', 'contact', 'bank'];
+                    if (!vm.editingMerchantId) {
+                        tabs.push('login');
+                    }
+                    var i;
+                    for (i = 0; i < tabs.length; i++) {
+                        if (!vm.validateMerchantTab(tabs[i])) {
+                            vm.merchantTab = tabs[i];
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                vm.goMerchantTab = function (target) {
+                    var order = ['details', 'tax', 'contact', 'bank', 'login'];
+                    var cur = vm.merchantTab || 'details';
+                    var ci = order.indexOf(cur);
+                    var ti = order.indexOf(target);
+                    if (ti < 0) {
+                        return;
+                    }
+                    if (ti > ci) {
+                        if (!vm.validateMerchantTab(cur)) {
+                            if (typeof showToast === 'function') {
+                                showToast('Please fix the errors in this section before continuing.', 'error');
+                            }
+                            return;
+                        }
+                    }
+                    vm.merchantTab = target;
+                };
+
+                vm.loadPartners = function () {
+                    return $http.get('/admin/merchant-accounts/partners').then(function (res) {
+                        if (res.data && res.data.success && res.data.data) {
+                            vm.partners = res.data.data;
+                        } else {
+                            vm.partners = [];
+                        }
+                    }, function () {
+                        vm.partners = [];
+                    });
                 };
 
                 // Merchant form
@@ -235,10 +656,49 @@
                     reseller_id: ''
                 };
 
-                // States and cities (sample data - should be loaded from API)
-                vm.states = ['Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'];
-                vm.cities = ['Bombooflat', 'Port Blair', 'Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Mumbai', 'Pune', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata'];
+                vm.locationMap = {};
+                vm.availableCountries = [];
+                vm.availableStates = [];
+                vm.availableCities = [];
                 vm.teams = [];
+
+                vm.loadLocations = function() {
+                    return $http.get('/admin/merchant-accounts/locations').then(function(res) {
+                        if (res.data && res.data.success && res.data.data) {
+                            vm.locationMap = res.data.data;
+                            vm.availableCountries = Object.keys(vm.locationMap);
+                        } else {
+                            vm.locationMap = {};
+                            vm.availableCountries = [];
+                        }
+                    }, function() {
+                        vm.locationMap = {};
+                        vm.availableCountries = [];
+                    });
+                };
+
+                vm.onCountryChange = function () {
+                    var country = vm.merchantForm.business_country;
+                    if (country && vm.locationMap[country]) {
+                        vm.availableStates = Object.keys(vm.locationMap[country]);
+                    } else {
+                        vm.availableStates = [];
+                    }
+                    vm.merchantForm.business_state = '';
+                    vm.availableCities = [];
+                    vm.merchantForm.business_city = '';
+                };
+
+                vm.onStateChange = function () {
+                    var country = vm.merchantForm.business_country;
+                    var state = vm.merchantForm.business_state;
+                    if (country && state && vm.locationMap[country] && vm.locationMap[country][state]) {
+                        vm.availableCities = vm.locationMap[country][state];
+                    } else {
+                        vm.availableCities = [];
+                    }
+                    vm.merchantForm.business_city = '';
+                };
 
                 vm.loadMerchants = function() {
                     vm.loading = true;
@@ -378,6 +838,7 @@
 
                 vm.openNewModal = function() {
                     vm.editingMerchantId = null;
+                    vm.merchantTab = 'details';
                     vm.merchantForm = {
                         acquirer_account_id: '',
                         is_partner_merchant: false,
@@ -428,12 +889,21 @@
                     };
                     vm.loadAcquirers();
                     vm.loadResellers();
+                    vm.loadPartners();
+                    vm.teams = [];
+                    if (!vm.availableCountries.length) {
+                        vm.loadLocations();
+                    }
+                    vm.onCountryChange();
                     var modal = new bootstrap.Modal(document.getElementById('newMerchantModal'));
                     modal.show();
                 };
 
                 vm.openEditModal = function(merchant) {
                     vm.editingMerchantId = merchant.id;
+                    if (!vm.availableCountries.length) {
+                        vm.loadLocations();
+                    }
                     vm.loadAcquirers();
                     vm.loadResellers();
                     $http.get('/admin/merchant-accounts/' + merchant.id).then(function(res) {
@@ -445,10 +915,10 @@
                         vm.merchantForm = {
                             acquirer_account_id: m.acquirer_account_id ? String(m.acquirer_account_id) : '',
                             is_partner_merchant: !!m.is_partner_merchant,
-                            partner_id: m.partner_id || '',
+                            partner_id: m.partner_id != null && m.partner_id !== '' ? String(m.partner_id) : '',
                             partner_name: m.partner_name || '',
                             team_id: m.team_id || '',
-                            team_name: m.team_name || '',
+                            team_name: m.team_name || m.team_id || '',
                             name: m.name || '',
                             legal_name: m.legal_name || '',
                             email: m.email || '',
@@ -490,6 +960,30 @@
                             is_reseller_merchant: !!assignedResellerId,
                             reseller_id: assignedResellerId
                         };
+                        // Prefill dependent dropdowns based on existing country/state.
+                        var existingCountry = vm.merchantForm.business_country;
+                        var existingState = vm.merchantForm.business_state;
+                        var existingCity = vm.merchantForm.business_city;
+                        if (existingCountry && vm.locationMap[existingCountry]) {
+                            vm.availableStates = Object.keys(vm.locationMap[existingCountry]);
+                        } else if (existingState) {
+                            vm.availableStates = [existingState];
+                        } else {
+                            vm.availableStates = [];
+                        }
+                        if (existingCountry && existingState && vm.locationMap[existingCountry] && vm.locationMap[existingCountry][existingState]) {
+                            vm.availableCities = vm.locationMap[existingCountry][existingState];
+                        } else if (existingCity) {
+                            vm.availableCities = [existingCity];
+                        } else {
+                            vm.availableCities = [];
+                        }
+                        vm.merchantForm.business_state = existingState;
+                        vm.merchantForm.business_city = existingCity;
+                        vm.merchantTab = 'details';
+                        vm.loadPartners().then(function () {
+                            vm.loadPartnerTeams();
+                        });
                         var modal = new bootstrap.Modal(document.getElementById('newMerchantModal'));
                         modal.show();
                     }, function() {
@@ -497,85 +991,42 @@
                     });
                 };
 
-                vm.loadPartnerTeams = function() {
-                    // Load teams for selected partner
-                    // This should be an API call
-                    vm.teams = [
-                        { id: 1, name: 'Team 1' },
-                        { id: 2, name: 'Team 2' }
-                    ];
+                vm.onPartnerMerchantPartnerChange = function () {
+                    if (!vm.merchantForm) {
+                        return;
+                    }
+                    vm.merchantForm.team_name = '';
+                    vm.loadPartnerTeams();
+                };
+
+                vm.loadPartnerTeams = function () {
+                    vm.teams = [];
+                    if (!vm.merchantForm) {
+                        return;
+                    }
+                    if (!vm.merchantForm.partner_id) {
+                        vm.merchantForm.partner_name = '';
+                        vm.merchantForm.team_name = '';
+                        return;
+                    }
+                    var pid = String(vm.merchantForm.partner_id);
+                    var p = (vm.partners || []).filter(function (x) {
+                        return String(x.id) === pid;
+                    })[0];
+                    if (p) {
+                        vm.merchantForm.partner_name = p.name;
+                        vm.teams = Array.isArray(p.teams) ? p.teams.slice() : [];
+                    } else {
+                        vm.merchantForm.partner_name = '';
+                    }
                 };
 
                 vm.submitMerchant = function() {
                     vm.formErrors = {};
-
-                    // Basic front-end required checks
-                    function addError(field, message) {
-                        if (!vm.formErrors[field]) {
-                            vm.formErrors[field] = [];
-                        }
-                        vm.formErrors[field].push(message);
+                    if (vm.merchantForm && vm.merchantForm.bank_account_holder_name != null && vm.merchantForm.bank_account_holder_name !== '') {
+                        vm.merchantForm.bank_account_holder_name = String(vm.merchantForm.bank_account_holder_name);
                     }
-
-                    if (!vm.merchantForm.name) {
-                        addError('name', 'Merchant name is required.');
-                    } else if (vm.merchantForm.name.length > 250) {
-                        addError('name', 'Merchant name cannot exceed 250 characters.');
-                    }
-                    if (!vm.merchantForm.legal_name) {
-                        addError('legal_name', 'Merchant legal name is required.');
-                    } else if (vm.merchantForm.legal_name.length > 250) {
-                        addError('legal_name', 'Merchant legal name cannot exceed 250 characters.');
-                    }
-                    if (!vm.merchantForm.email) {
-                        addError('email', 'Merchant email is required.');
-                    } else {
-                        if (vm.merchantForm.email.length > 120) {
-                            addError('email', 'Merchant email cannot exceed 120 characters.');
-                        }
-                        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(vm.merchantForm.email)) {
-                            addError('email', 'Please enter a valid email ID.');
-                        }
-                    }
-                    if (!vm.merchantForm.phone) {
-                        addError('phone', 'Merchant phone is required.');
-                    } else if (!/^\d{10}$/.test(vm.merchantForm.phone)) {
-                        addError('phone', 'Enter valid 10 digit mobile number.');
-                    }
-                    if (!vm.merchantForm.contact_name) {
-                        addError('contact_name', 'Contact name is required.');
-                    }
-                    if (!vm.merchantForm.contact_mobile) {
-                        addError('contact_mobile', 'Contact mobile is required.');
-                    } else if (!/^\d{10}$/.test(vm.merchantForm.contact_mobile)) {
-                        addError('contact_mobile', 'Enter valid 10 digit mobile number.');
-                    }
-                    if (!vm.merchantForm.contact_email) {
-                        addError('contact_email', 'Contact email is required.');
-                    } else {
-                        if (vm.merchantForm.contact_email.length > 120) {
-                            addError('contact_email', 'Contact email cannot exceed 120 characters.');
-                        }
-                        var cEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!cEmailRegex.test(vm.merchantForm.contact_email)) {
-                            addError('contact_email', 'Please enter a valid email ID.');
-                        }
-                    }
-                    if (!vm.merchantForm.bank_ifsc_code) {
-                        addError('bank_ifsc_code', 'IFSC code is required.');
-                    } else {
-                        // Standard IFSC pattern: 4 letters + 0 + 6 alphanumeric
-                        var ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
-                        if (!ifscRegex.test(vm.merchantForm.bank_ifsc_code)) {
-                            addError('bank_ifsc_code', 'Please enter a valid IFSC code (e.g. HDFC0123456).');
-                        }
-                    }
-                    if (vm.merchantForm.is_reseller_merchant && !vm.merchantForm.reseller_id) {
-                        addError('reseller_id', 'Please select a reseller.');
-                    }
-
-                    if (Object.keys(vm.formErrors).length > 0) {
+                    if (!vm.validateMerchantFormFull()) {
                         if (typeof showToast === 'function') {
                             showToast('Please correct the highlighted errors in the form.', 'error');
                         }
@@ -899,6 +1350,7 @@
                 };
 
                 // Initialize
+                vm.loadLocations();
                 vm.loadResellers();
                 vm.loadMerchants();
             }]);

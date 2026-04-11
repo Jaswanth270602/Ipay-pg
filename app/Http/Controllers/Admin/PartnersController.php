@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Partner;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
@@ -108,21 +110,65 @@ class PartnersController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'user_name' => 'nullable|string|max:255',
+        $input = $request->all();
+        $organization = $input['organization'] ?? ($input['organization_name'] ?? null);
+        $partnerName = $input['partner_name'] ?? ($input['name'] ?? null);
+        $mobile = $input['mobile'] ?? ($input['phone'] ?? null);
+
+        $normalize = [
+            'organization_name' => is_string($organization) ? trim($organization) : $organization,
+            'name' => is_string($partnerName) ? trim($partnerName) : $partnerName,
+            'user_name' => isset($input['user_name']) && is_string($input['user_name']) ? trim($input['user_name']) : ($input['user_name'] ?? null),
+            'phone' => is_string($mobile) ? trim($mobile) : $mobile,
+            'email' => isset($input['email']) && is_string($input['email']) ? strtolower(trim($input['email'])) : ($input['email'] ?? null),
+            'team_name' => isset($input['team_name']) && is_string($input['team_name']) ? trim($input['team_name']) : ($input['team_name'] ?? null),
+            'team_type' => isset($input['team_type']) && is_string($input['team_type']) && trim($input['team_type']) !== '' ? trim($input['team_type']) : 'Partner',
+            'referral_code' => isset($input['referral_code']) && is_string($input['referral_code']) ? strtoupper(trim($input['referral_code'])) : ($input['referral_code'] ?? null),
+            'ref' => isset($input['ref']) && is_string($input['ref']) ? trim($input['ref']) : ($input['ref'] ?? null),
+            'whitelabel_url' => isset($input['whitelabel_url']) && is_string($input['whitelabel_url']) ? trim($input['whitelabel_url']) : ($input['whitelabel_url'] ?? null),
+            'registration_date' => isset($input['registration_date']) && is_string($input['registration_date']) ? trim($input['registration_date']) : ($input['registration_date'] ?? null),
+            'notes' => isset($input['notes']) && is_string($input['notes']) ? trim($input['notes']) : ($input['notes'] ?? null),
+            'is_approved' => $input['is_approved'] ?? null,
+            'is_internal' => $input['is_internal'] ?? null,
+        ];
+
+        $validator = Validator::make($normalize, [
+            'organization_name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+            'user_name' => 'required|alpha_dash|max:100|unique:users,name',
             'team_name' => 'nullable|string|max:255',
             'team_type' => 'nullable|string|max:255',
-            'organization_name' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'regex:/^\+[1-9]\d{7,14}$/', 'unique:partners,phone'],
             'email' => 'required|email|max:255|unique:partners,email',
-            'is_approved' => 'boolean',
-            'is_internal' => 'boolean',
-            'referral_code' => 'nullable|string|max:255|unique:partners,referral_code',
+            'is_approved' => 'required|boolean',
+            'is_internal' => 'required|boolean',
+            'referral_code' => ['nullable', 'string', 'size:8', 'regex:/^[A-Z0-9]{8}$/', 'unique:partners,referral_code'],
             'whitelabel_url' => 'nullable|url|max:500',
-            'registration_date' => 'nullable|date',
-            'ref' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
+            'registration_date' => 'nullable|date_format:d-m-Y',
+            'ref' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'organization_name.required' => 'Organization is required.',
+            'name.required' => 'Partner name is required.',
+            'name.regex' => 'Partner name may contain only letters and spaces.',
+            'user_name.required' => 'User name is required.',
+            'user_name.alpha_dash' => 'User name may only contain letters, numbers, dashes and underscores.',
+            'user_name.max' => 'User name may not be greater than 100 characters.',
+            'user_name.unique' => 'User name already exists.',
+            'phone.required' => 'Mobile number is required.',
+            'phone.regex' => 'Mobile must be in valid.',
+            'phone.unique' => 'Mobile number already exists.',
+            'email.required' => 'Email is required.',
+            'email.email' => 'Email must be a valid email address.',
+            'email.unique' => 'Email already exists.',
+            'is_approved.required' => 'Approval status is required.',
+            'is_internal.required' => 'Internal status is required.',
+            'referral_code.size' => 'Referral code must be exactly 8 characters.',
+            'referral_code.regex' => 'Referral code must contain only uppercase letters and numbers.',
+            'referral_code.unique' => 'Referral code already exists.',
+            'registration_date.date_format' => 'Registration date must be in d-m-Y format.',
+            'ref.max' => 'Ref may not be greater than 100 characters.',
+            'notes.max' => 'Notes may not be greater than 1000 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -137,13 +183,15 @@ class PartnersController extends Controller
 
         // Generate referral code if not provided
         if (empty($data['referral_code'])) {
-            $data['referral_code'] = Partner::generateReferralCode();
+            do {
+                $data['referral_code'] = strtoupper(Str::random(8));
+            } while (Partner::where('referral_code', $data['referral_code'])->exists());
         }
 
-        // Set default registration date if not provided
-        if (empty($data['registration_date'])) {
-            $data['registration_date'] = now()->toDateString();
-        }
+        $data['team_type'] = $data['team_type'] ?? 'Partner';
+        $data['registration_date'] = !empty($data['registration_date'])
+            ? Carbon::createFromFormat('d-m-Y', $data['registration_date'])->toDateString()
+            : now()->toDateString();
 
         $partner = Partner::create($data);
 

@@ -237,73 +237,139 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label">Organization:</label>
-                                <select class="form-select" ng-model="apc.form.organization_name">
+                                <select class="form-select" ng-model="apc.form.organization_name" ng-change="apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()" ng-class="{'is-invalid': apc.firstError('organization_name')}">
                                     <option value="">Select Organization</option>
                                     <option ng-repeat="org in apc.uniqueOrganizations" value="@{{ org }}">@{{ org }}</option>
                                     <option value="Ipay">Ipay</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('organization_name')">@{{ apc.firstError('organization_name') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> Partner Name:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.name" required placeholder="Enter partner name">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.name"
+                                       ng-class="{'is-invalid': apc.firstError('name')}"
+                                       ng-change="apc.enforceLettersSpaces('name', 255); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       required
+                                       placeholder="Enter partner name">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('name')">@{{ apc.firstError('name') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> User Name:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.user_name" required placeholder="Enter user name">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.user_name"
+                                       ng-class="{'is-invalid': apc.firstError('user_name')}"
+                                       ng-change="apc.enforceAlphaDash('user_name', 100); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       required
+                                       placeholder="Enter user name">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('user_name')">@{{ apc.firstError('user_name') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> Mobile:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.phone" required placeholder="Enter mobile number">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.phone"
+                                       ng-class="{'is-invalid': apc.firstError('phone')}"
+                                       ng-change="apc.enforceE164Chars('phone', 16); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       required
+                                       placeholder="Enter mobile number">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('phone')">@{{ apc.firstError('phone') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> Email:</label>
-                                <input type="email" class="form-control" ng-model="apc.form.email" required placeholder="Enter email address">
+                                <input type="email"
+                                       class="form-control"
+                                       ng-model="apc.form.email"
+                                       ng-class="{'is-invalid': apc.firstError('email')}"
+                                       ng-change="apc.normalizeEmail(); apc.validatePartnerForm()"
+                                       ng-blur="apc.normalizeEmail(); apc.validatePartnerForm()"
+                                       required
+                                       placeholder="Enter email address">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('email')">@{{ apc.firstError('email') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> Is Approved:</label>
-                                <select class="form-select" ng-model="apc.form.is_approved" required>
-                                    <option value="false">No</option>
-                                    <option value="true">Yes</option>
+                                <select class="form-select" ng-model="apc.form.is_approved" ng-change="apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()" ng-class="{'is-invalid': apc.firstError('is_approved')}" required>
+                                    <option ng-value="false">No</option>
+                                    <option ng-value="true">Yes</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('is_approved')">@{{ apc.firstError('is_approved') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team Name:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.team_name" placeholder="Enter team name">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.team_name"
+                                       ng-class="{'is-invalid': apc.firstError('team_name')}"
+                                       ng-change="apc.enforceMaxLength('team_name', 255); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       placeholder="Enter team name">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('team_name')">@{{ apc.firstError('team_name') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Team Type:</label>
-                                <select class="form-select" ng-model="apc.form.team_type">
+                                <select class="form-select" ng-model="apc.form.team_type" ng-change="apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()">
                                     <option value="partner">Partner</option>
                                     <option value="internal">Internal</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Referral Code:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.referral_code" ng-disabled="apc.isEditing" placeholder="Auto-generated if empty">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.referral_code"
+                                       ng-disabled="apc.isEditing"
+                                       ng-change="apc.enforceUpperAlphaNum('referral_code', 8); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       ng-class="{'is-invalid': apc.firstError('referral_code')}"
+                                       placeholder="Auto-generated if empty">
                                 <small class="text-muted">Auto-generated if left empty</small>
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('referral_code')">@{{ apc.firstError('referral_code') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Ref:</label>
-                                <input type="text" class="form-control" ng-model="apc.form.ref" placeholder="Enter reference">
+                                <input type="text"
+                                       class="form-control"
+                                       ng-model="apc.form.ref"
+                                       ng-class="{'is-invalid': apc.firstError('ref')}"
+                                       ng-change="apc.enforceMaxLength('ref', 100); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       placeholder="Enter reference">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('ref')">@{{ apc.firstError('ref') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">WhiteLabel URL:</label>
-                                <input type="url" class="form-control" ng-model="apc.form.whitelabel_url" placeholder="Enter whitelabel URL">
+                                <input type="url"
+                                       class="form-control"
+                                       ng-model="apc.form.whitelabel_url"
+                                       ng-class="{'is-invalid': apc.firstError('whitelabel_url')}"
+                                       ng-change="apc.enforceMaxLength('whitelabel_url', 500); apc.validatePartnerForm()"
+                                       ng-blur="apc.validatePartnerForm()"
+                                       placeholder="Enter whitelabel URL">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('whitelabel_url')">@{{ apc.firstError('whitelabel_url') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Registration Date:</label>
-                                <input type="date" class="form-control" ng-model="apc.form.registration_date">
+                                <input type="date" class="form-control" ng-model="apc.form.registration_date" ng-change="apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()" ng-class="{'is-invalid': apc.firstError('registration_date')}">
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('registration_date')">@{{ apc.firstError('registration_date') }}</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Is Internal:</label>
-                                <select class="form-select" ng-model="apc.form.is_internal">
-                                    <option value="false">No</option>
-                                    <option value="true">Yes</option>
+                                <select class="form-select" ng-model="apc.form.is_internal" ng-change="apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()" ng-class="{'is-invalid': apc.firstError('is_internal')}">
+                                    <option ng-value="false">No</option>
+                                    <option ng-value="true">Yes</option>
                                 </select>
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('is_internal')">@{{ apc.firstError('is_internal') }}</div>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Notes:</label>
-                                <textarea class="form-control" rows="3" ng-model="apc.form.notes" placeholder="Enter notes"></textarea>
+                                <textarea class="form-control" rows="3" ng-model="apc.form.notes" ng-class="{'is-invalid': apc.firstError('notes')}" ng-change="apc.enforceMaxLength('notes', 1000); apc.validatePartnerForm()" ng-blur="apc.validatePartnerForm()" placeholder="Enter notes"></textarea>
+                                <div class="invalid-feedback d-block" ng-if="apc.firstError('notes')">@{{ apc.firstError('notes') }}</div>
                             </div>
                         </div>
                     </form>
@@ -497,6 +563,81 @@
                 };
 
                 vm.uniqueOrganizations = [];
+                vm.formErrors = {};
+
+                vm.firstError = function(field) {
+                    return vm.formErrors[field] && vm.formErrors[field].length ? vm.formErrors[field][0] : '';
+                };
+
+                vm.enforceLettersSpaces = function(field, max) {
+                    if (!vm.form || !field) return;
+                    var current = vm.form[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^A-Za-z ]+/g, '');
+                    if (max && current.length > max) {
+                        current = current.substring(0, max);
+                    }
+                    vm.form[field] = current;
+                };
+
+                vm.enforceAlphaDash = function(field, max) {
+                    if (!vm.form || !field) return;
+                    var current = vm.form[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^A-Za-z0-9_-]+/g, '');
+                    if (max && current.length > max) current = current.substring(0, max);
+                    vm.form[field] = current;
+                };
+
+                vm.enforceUpperAlphaNum = function(field, max) {
+                    if (!vm.form || !field) return;
+                    var current = vm.form[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.toUpperCase().replace(/[^A-Z0-9]+/g, '');
+                    if (max && current.length > max) current = current.substring(0, max);
+                    vm.form[field] = current;
+                };
+
+                vm.enforceE164Chars = function(field, max) {
+                    if (!vm.form || !field) return;
+                    var current = vm.form[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    current = current.replace(/[^0-9+]+/g, '');
+                    if (current.indexOf('+') > 0) {
+                        current = '+' + current.replace(/\+/g, '');
+                    } else if (current.indexOf('+') === 0) {
+                        current = '+' + current.substring(1).replace(/\+/g, '');
+                    }
+                    if (max && current.length > max) current = current.substring(0, max);
+                    vm.form[field] = current;
+                };
+
+                vm.enforceMaxLength = function(field, max) {
+                    if (!vm.form || !field || !max) return;
+                    var current = vm.form[field];
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    if (current.length > max) current = current.substring(0, max);
+                    vm.form[field] = current;
+                };
+
+                vm.normalizeEmail = function() {
+                    if (!vm.form) return;
+                    var current = vm.form.email;
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    vm.form.email = current.trim().toLowerCase();
+                };
 
                 vm.loadPartners = function () {
                     vm.loading = true;
@@ -591,16 +732,17 @@
 
                 vm.openCreateModal = function () {
                     vm.isEditing = false;
+                    vm.formErrors = {};
                     vm.form = {
                         name: '',
                         user_name: '',
                         email: '',
                         team_name: '',
-                        team_type: 'partner',
+                        team_type: 'Partner',
                         organization_name: 'Ipay',
                         phone: '',
-                        is_approved: 'true',
-                        is_internal: 'false',
+                        is_approved: true,
+                        is_internal: false,
                         referral_code: '',
                         whitelabel_url: '',
                         registration_date: '',
@@ -613,9 +755,10 @@
 
                 vm.editPartner = function (partner) {
                     vm.isEditing = true;
+                    vm.formErrors = {};
                     vm.form = angular.copy(partner);
-                    vm.form.is_approved = vm.form.is_approved ? 'true' : 'false';
-                    vm.form.is_internal = vm.form.is_internal ? 'true' : 'false';
+                    vm.form.is_approved = !!vm.form.is_approved;
+                    vm.form.is_internal = !!vm.form.is_internal;
                     var modal = new bootstrap.Modal(document.getElementById('partnerModal'));
                     modal.show();
                 };
@@ -638,12 +781,73 @@
                     });
                 };
 
+                vm.validatePartnerForm = function () {
+                    var e = {};
+                    function add(field, msg) {
+                        if (!e[field]) e[field] = [];
+                        e[field].push(msg);
+                    }
+
+                    var org = (vm.form.organization_name || '').toString().trim();
+                    var name = (vm.form.name || '').toString().trim();
+                    var user = (vm.form.user_name || '').toString().trim();
+                    var phone = (vm.form.phone || '').toString().trim();
+                    var email = (vm.form.email || '').toString().trim();
+                    var teamName = (vm.form.team_name || '').toString().trim();
+                    var ref = (vm.form.ref || '').toString().trim();
+                    var url = (vm.form.whitelabel_url || '').toString().trim();
+                    var notes = (vm.form.notes || '').toString();
+
+                    if (!org) add('organization_name', 'Organization is required.');
+                    else if (org.length > 255) add('organization_name', 'Organization may not be greater than 255 characters.');
+
+                    if (!name) add('name', 'Partner name is required.');
+                    else {
+                        if (name.length > 255) add('name', 'Partner name may not be greater than 255 characters.');
+                        if (!/^[A-Za-z ]+$/.test(name)) add('name', 'Partner name may contain only letters and spaces.');
+                    }
+
+                    if (!user) add('user_name', 'User name is required.');
+                    else {
+                        if (user.length > 100) add('user_name', 'User name may not be greater than 100 characters.');
+                        if (!/^[A-Za-z0-9_-]+$/.test(user)) add('user_name', 'User name may only contain letters, numbers, dashes and underscores.');
+                    }
+
+                    if (!phone) add('phone', 'Mobile number is required.');
+                    else if (!/^\+[1-9]\d{7,14}$/.test(phone)) add('phone', 'Mobile must be in valid E.164 format (e.g., +14155552671).');
+
+                    if (!email) add('email', 'Email is required.');
+                    else {
+                        if (email.length > 255) add('email', 'Email may not be greater than 255 characters.');
+                        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) add('email', 'Email must be a valid email address.');
+                    }
+
+                    if (vm.form.is_approved === null || vm.form.is_approved === undefined || vm.form.is_approved === '') add('is_approved', 'Approval status is required.');
+                    if (vm.form.is_internal === null || vm.form.is_internal === undefined || vm.form.is_internal === '') add('is_internal', 'Internal status is required.');
+
+                    if (teamName && teamName.length > 255) add('team_name', 'Team name may not be greater than 255 characters.');
+                    if (vm.form.referral_code && vm.form.referral_code.toString().trim() !== '') {
+                        var rc = vm.form.referral_code.toString().trim();
+                        if (!/^[A-Z0-9]{8}$/.test(rc)) add('referral_code', 'Referral code must be exactly 8 uppercase letters or numbers.');
+                    }
+                    if (ref && ref.length > 100) add('ref', 'Ref may not be greater than 100 characters.');
+                    if (notes && notes.length > 1000) add('notes', 'Notes may not be greater than 1000 characters.');
+
+                    if (url) {
+                        var urlRegex = /^(https?:\/\/)[^\s/$.?#].[^\s]*$/i;
+                        if (!urlRegex.test(url)) add('whitelabel_url', 'Whitelabel URL must be a valid URL.');
+                    }
+
+                    vm.formErrors = e;
+                    return Object.keys(e).length === 0;
+                };
+
                 vm.savePartner = function () {
-                    if (!vm.form.name || !vm.form.email || !vm.form.phone) {
+                    if (!vm.validatePartnerForm()) {
                         if (typeof showToast === 'function') {
-                            showToast('Please fill all required fields (Partner Name, Email, Mobile)', 'error');
+                            showToast('Please correct highlighted validation errors.', 'error');
                         } else {
-                            alert('Please fill all required fields (Partner Name, Email, Mobile)');
+                            alert('Please correct highlighted validation errors.');
                         }
                         return;
                     }
@@ -660,8 +864,18 @@
 
                     // Convert boolean strings to actual booleans
                     var formData = angular.copy(vm.form);
-                    formData.is_approved = formData.is_approved === 'true' || formData.is_approved === true;
-                    formData.is_internal = formData.is_internal === 'true' || formData.is_internal === true;
+                    formData.is_approved = !!formData.is_approved;
+                    formData.is_internal = !!formData.is_internal;
+                    formData.organization = formData.organization_name;
+                    formData.partner_name = formData.name;
+                    formData.mobile = formData.phone;
+                    formData.email = (formData.email || '').toString().trim().toLowerCase();
+                    if (formData.registration_date) {
+                        var parts = formData.registration_date.split('-');
+                        if (parts.length === 3) {
+                            formData.registration_date = parts[2] + '-' + parts[1] + '-' + parts[0];
+                        }
+                    }
 
                     $http({
                         method: method,
@@ -696,6 +910,7 @@
                         if (error.data && error.data.message) {
                             msg = error.data.message;
                         } else if (error.data && error.data.errors) {
+                            vm.formErrors = error.data.errors || {};
                             var errors = Object.values(error.data.errors).flat();
                             msg = errors.join(', ');
                         }

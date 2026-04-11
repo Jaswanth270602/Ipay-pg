@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\PaymentLinkCreated;
 use App\Http\Controllers\Controller;
-use App\Models\Merchant;
 use App\Models\PaymentLink;
-use App\Services\AcquirerCredentialValidator;
 use App\Services\PaymentService;
 use App\Services\PaymentLinks\PaymentLinkAttemptService;
 use Illuminate\Http\JsonResponse;
@@ -87,36 +85,9 @@ class PaymentController extends Controller
             // Effective merchant mode from validated API key (middleware already enforced key ↔ merchant mode)
             $merchant->setAttribute('test_mode', $mode === 'test');
 
-            // Live mode: validate acquirer credentials so dummy keys cannot create payment links.
-            if ($mode === 'live') {
-                $acquirerAccount = $merchant->getActiveAcquirerAccount();
-                $credValidator = app(AcquirerCredentialValidator::class);
-                $credResult = $credValidator->validate($acquirerAccount);
+            // Link creation does not validate acquirers; routing uses acquirers when the customer pays.
 
-                if (!$credResult['ok']) {
-                    $payload = [
-                        'status' => 'ERROR',
-                        'error' => 'ACQUIRER_CREDENTIALS_INVALID',
-                        'message' => $credResult['message'] ?? 'Enter valid API keys',
-                    ];
-                    $attemptService->fail($attempt, 'ACQUIRER_CREDENTIALS_INVALID', $payload);
-                    return response()->json($payload, 422);
-                }
-            }
-
-            // Live payment links require an active acquirer (or full live credentials), same as merchant dashboard
-            if ($mode === 'live' && !$merchant->canUseLiveMode()) {
-                $payload = [
-                    'status' => 'ERROR',
-                    'message' => 'Live mode requires an active acquirer (e.g. Razorpay, Cashfree) or full live credentials. Assign an acquirer in Settings before creating live payment links.',
-                    'error_code' => 'LIVE_MODE_NOT_CONFIGURED',
-                ];
-                $attemptService->fail($attempt, 'LIVE_MODE_NOT_CONFIGURED', $payload);
-                return response()->json($payload, 403);
-            }
-
-            // Test mode: simulated payment link record (no external gateway call at link-creation time)
-            // Live mode: real link for checkout against configured acquirer when customer pays
+            // Test / live: platform payment link record (no external gateway call at link-creation time)
             $requestPayload = [
                 'amount' => $data['amount'],
                 'currency' => $data['currency'] ?? $merchant->default_currency ?? 'USD',

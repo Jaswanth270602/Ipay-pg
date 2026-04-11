@@ -79,11 +79,13 @@ class MerchantRegistrationKeysController extends Controller
             'merchant_id' => 'required|exists:merchants,id',
             'key_description' => 'required|string|max:255',
             'status' => 'required|in:Active,Not-Active',
-            'ip_address' => 'nullable|string|max:255',
+            'ip_address' => 'nullable|string|max:255|regex:/^[0-9.]+$/',
             'copy_merchant_params' => 'boolean',
             'copy_velocity_checks' => 'boolean',
             'copy_routing_randomize' => 'boolean',
             'copy_account_whitelisting' => 'boolean',
+        ], [
+            'ip_address.regex' => 'IP Address may contain only numbers and dot (.)',
         ]);
 
         if ($validator->fails()) {
@@ -117,11 +119,13 @@ class MerchantRegistrationKeysController extends Controller
         $validator = Validator::make($request->all(), [
             'key_description' => 'sometimes|string|max:255',
             'status' => 'sometimes|in:Active,Not-Active',
-            'ip_address' => 'nullable|string|max:255',
+            'ip_address' => 'nullable|string|max:255|regex:/^[0-9.]+$/',
             'copy_merchant_params' => 'boolean',
             'copy_velocity_checks' => 'boolean',
             'copy_routing_randomize' => 'boolean',
             'copy_account_whitelisting' => 'boolean',
+        ], [
+            'ip_address.regex' => 'IP Address may contain only numbers and dot (.)',
         ]);
 
         if ($validator->fails()) {

@@ -74,6 +74,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Native UPI (no third-party PG)
+    |--------------------------------------------------------------------------
+    |
+    | Live UPI without Razorpay/Cashfree: standard upi://pay links to your receive VPA.
+    | Set NATIVE_UPI_RECEIVE_VPA (e.g. business@paytm) or merchants.settings.receive_upi_vpa.
+    | Payment stays pending until you reconcile (admin) or you add bank/UPI callbacks later.
+    |
+    */
+    'native_upi' => [
+        'receive_vpa' => env('NATIVE_UPI_RECEIVE_VPA', ''),
+        'payee_name' => env('NATIVE_UPI_PAYEE_NAME', ''),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Bank Provider Configuration
     |--------------------------------------------------------------------------
     |

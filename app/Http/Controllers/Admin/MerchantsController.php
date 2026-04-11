@@ -22,12 +22,17 @@ class MerchantsController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $adminViewMode = strtolower((string) session('admin_view_mode', 'test'));
+            $modeFilter = match ($adminViewMode) {
+                'test' => true,
+                'live' => false,
+                default => null,
+            };
 
             $this->logInfo('Admin merchants data requested', [
                 'user_id' => auth()->id(),
                 'admin_view_mode' => $adminViewMode,
+                'mode_filter' => $modeFilter,
                 'filters' => $request->only(['status', 'search', 'per_page'])
             ]);
 
@@ -37,10 +42,11 @@ class MerchantsController extends Controller
 
             $query = Merchant::with(['acquirerAccount', 'resellers'])->latest();
 
-            // Filter by test_mode based on admin view mode
-            // When in live mode, only show merchants with test_mode = false
-            // When in test mode, only show merchants with test_mode = true
-            $query->where('test_mode', $isTestMode);
+            // Filter by test_mode based on admin view mode.
+            // If mode value is unexpected, do not filter out merchants.
+            if ($modeFilter !== null) {
+                $query->where('test_mode', $modeFilter);
+            }
 
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
@@ -72,6 +78,25 @@ class MerchantsController extends Controller
             }
 
             $merchants = $query->paginate($perPage);
+
+            // Safety fallback: if mode filter yields empty list while merchants exist,
+            // return unfiltered merchants so admin page doesn't look broken.
+            if (
+                $modeFilter !== null
+                && $merchants->total() === 0
+                && Merchant::query()->count() > 0
+                && !$status
+                && !$search
+                && !$request->filled('reseller_id')
+            ) {
+                $this->logWarning('Merchants mode filter produced empty set; returning unfiltered list as fallback', [
+                    'mode_filter' => $modeFilter,
+                    'admin_view_mode' => $adminViewMode,
+                ]);
+
+                $fallbackQuery = Merchant::with(['acquirerAccount', 'resellers'])->latest();
+                $merchants = $fallbackQuery->paginate($perPage);
+            }
 
             $this->logDebug('Admin merchants retrieved', [
                 'count' => $merchants->count(),

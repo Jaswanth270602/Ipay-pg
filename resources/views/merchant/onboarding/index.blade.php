@@ -17,16 +17,16 @@
         <div class="row g-3">
             @foreach($steps as $stepNum => $step)
             <div class="col-md-3">
-                <div class="card border {{ $currentStep >= $stepNum ? 'border-primary' : '' }}">
+                <div class="card border"
+                     ng-class="{
+                        'border-primary': oc.currentStep == {{ $stepNum }},
+                        'border-success': oc.currentStep > {{ $stepNum }}
+                     }">
                     <div class="card-body text-center">
                         <div class="mb-2">
-                            @if($currentStep > $stepNum)
-                                <i class="bi bi-check-circle-fill text-success fs-3"></i>
-                            @elseif($currentStep == $stepNum)
-                                <i class="bi {{ $step['icon'] }} text-primary fs-3"></i>
-                            @else
-                                <i class="bi {{ $step['icon'] }} text-muted fs-3"></i>
-                            @endif
+                            <i class="bi bi-check-circle-fill text-success fs-3" ng-if="oc.currentStep > {{ $stepNum }}"></i>
+                            <i class="bi {{ $step['icon'] }} text-primary fs-3" ng-if="oc.currentStep == {{ $stepNum }}"></i>
+                            <i class="bi {{ $step['icon'] }} text-muted fs-3" ng-if="oc.currentStep < {{ $stepNum }}"></i>
                         </div>
                         <h6 class="mb-1">{{ $step['title'] }}</h6>
                         <small class="text-muted">{{ $step['description'] }}</small>
@@ -46,7 +46,8 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Company Name *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.business.company_name" required>
+                        <input type="text" class="form-control" ng-model="oc.form.business.company_name" ng-change="oc.validateBusinessField('company_name')" ng-blur="oc.validateBusinessField('company_name')" ng-class="{'is-invalid': oc.formErrors.company_name}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.company_name">@{{ oc.formErrors.company_name }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Business Type *</label>
@@ -61,11 +62,13 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Business Phone *</label>
-                        <input type="tel" class="form-control" ng-model="oc.form.business.business_phone" required>
+                        <input type="tel" class="form-control" ng-model="oc.form.business.business_phone" ng-change="oc.validateBusinessField('business_phone')" ng-blur="oc.validateBusinessField('business_phone')" ng-class="{'is-invalid': oc.formErrors.business_phone}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_phone">@{{ oc.formErrors.business_phone }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Business Email</label>
-                        <input type="email" class="form-control" ng-model="oc.form.business.business_email">
+                        <input type="email" class="form-control" ng-model="oc.form.business.business_email" ng-change="oc.validateBusinessField('business_email')" ng-blur="oc.validateBusinessField('business_email')" ng-class="{'is-invalid': oc.formErrors.business_email}">
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_email">@{{ oc.formErrors.business_email }}</div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Business Address *</label>
@@ -73,19 +76,23 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">City *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.business.business_city" required>
+                        <input type="text" class="form-control" ng-model="oc.form.business.business_city" ng-change="oc.validateBusinessField('business_city')" ng-blur="oc.validateBusinessField('business_city')" ng-class="{'is-invalid': oc.formErrors.business_city}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_city">@{{ oc.formErrors.business_city }}</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">State *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.business.business_state" required>
+                        <input type="text" class="form-control" ng-model="oc.form.business.business_state" ng-change="oc.validateBusinessField('business_state')" ng-blur="oc.validateBusinessField('business_state')" ng-class="{'is-invalid': oc.formErrors.business_state}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_state">@{{ oc.formErrors.business_state }}</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Postal Code *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.business.business_postal_code" required>
+                        <input type="text" class="form-control" ng-model="oc.form.business.business_postal_code" ng-change="oc.validateBusinessField('business_postal_code')" ng-blur="oc.validateBusinessField('business_postal_code')" ng-class="{'is-invalid': oc.formErrors.business_postal_code}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_postal_code">@{{ oc.formErrors.business_postal_code }}</div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Website</label>
-                        <input type="url" class="form-control" ng-model="oc.form.business.business_website" placeholder="https://">
+                        <input type="url" class="form-control" ng-model="oc.form.business.business_website" ng-change="oc.validateBusinessField('business_website')" ng-blur="oc.validateBusinessField('business_website')" ng-class="{'is-invalid': oc.formErrors.business_website}" placeholder="https://">
+                        <div class="invalid-feedback" ng-if="oc.formErrors.business_website">@{{ oc.formErrors.business_website }}</div>
                     </div>
                 </div>
                 <div class="mt-4">
@@ -104,23 +111,28 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Account Holder Name *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_account_holder_name" required>
+                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_account_holder_name" ng-change="oc.validateBankField('bank_account_holder_name')" ng-blur="oc.validateBankField('bank_account_holder_name')" ng-class="{'is-invalid': oc.formErrors.bank_account_holder_name}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.bank_account_holder_name">@{{ oc.formErrors.bank_account_holder_name }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Account Number *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_account_number" required>
+                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_account_number" ng-change="oc.validateBankField('bank_account_number')" ng-blur="oc.validateBankField('bank_account_number')" ng-class="{'is-invalid': oc.formErrors.bank_account_number}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.bank_account_number">@{{ oc.formErrors.bank_account_number }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">IFSC Code *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_ifsc_code" required>
+                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_ifsc_code" ng-change="oc.validateBankField('bank_ifsc_code')" ng-blur="oc.validateBankField('bank_ifsc_code')" ng-class="{'is-invalid': oc.formErrors.bank_ifsc_code}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.bank_ifsc_code">@{{ oc.formErrors.bank_ifsc_code }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Bank Name *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_name" required>
+                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_name" ng-change="oc.validateBankField('bank_name')" ng-blur="oc.validateBankField('bank_name')" ng-class="{'is-invalid': oc.formErrors.bank_name}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.bank_name">@{{ oc.formErrors.bank_name }}</div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Branch</label>
-                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_branch">
+                        <input type="text" class="form-control" ng-model="oc.form.bank.bank_branch" ng-change="oc.validateBankField('bank_branch')" ng-blur="oc.validateBankField('bank_branch')" ng-class="{'is-invalid': oc.formErrors.bank_branch}">
+                        <div class="invalid-feedback" ng-if="oc.formErrors.bank_branch">@{{ oc.formErrors.bank_branch }}</div>
                     </div>
                 </div>
                 <div class="mt-4">
@@ -140,7 +152,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Document Type *</label>
-                        <select class="form-select" ng-model="oc.form.kyc.kyc_document_type" required>
+                        <select class="form-select" ng-model="oc.form.kyc.kyc_document_type" ng-change="oc.validateKycField('kyc_document_type')" ng-blur="oc.validateKycField('kyc_document_type')" ng-class="{'is-invalid': oc.formErrors.kyc_document_type}" required>
                             <option value="">Select Document</option>
                             <option value="pan">PAN Card</option>
                             <option value="aadhaar">Aadhaar Card</option>
@@ -148,10 +160,12 @@
                             <option value="driving_license">Driving License</option>
                             <option value="business_license">Business License</option>
                         </select>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.kyc_document_type">@{{ oc.formErrors.kyc_document_type }}</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Document Number *</label>
-                        <input type="text" class="form-control" ng-model="oc.form.kyc.kyc_document_number" required>
+                        <input type="text" class="form-control" ng-model="oc.form.kyc.kyc_document_number" ng-change="oc.validateKycField('kyc_document_number')" ng-blur="oc.validateKycField('kyc_document_number')" ng-class="{'is-invalid': oc.formErrors.kyc_document_number}" required>
+                        <div class="invalid-feedback" ng-if="oc.formErrors.kyc_document_number">@{{ oc.formErrors.kyc_document_number }}</div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Upload Document *</label>

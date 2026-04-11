@@ -16,10 +16,12 @@ use App\Models\PaymentRoutingMonitor;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\PaymentOrchestration\AcquirerRoutingService;
+use App\Services\NativeUpiService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class PaymentCheckoutController extends Controller
 {
@@ -28,16 +30,19 @@ class PaymentCheckoutController extends Controller
     protected PaymentService $paymentService;
     protected PaymentSimulationService $simulationService;
     protected FraudEngine $fraudEngine;
+    protected NativeUpiService $nativeUpiService;
 
     public function __construct(
         PaymentService $paymentService,
         PaymentSimulationService $simulationService,
-        FraudEngine $fraudEngine
+        FraudEngine $fraudEngine,
+        NativeUpiService $nativeUpiService
     )
     {
         $this->paymentService = $paymentService;
         $this->simulationService = $simulationService;
         $this->fraudEngine = $fraudEngine;
+        $this->nativeUpiService = $nativeUpiService;
     }
 
     public function show(string $token)
@@ -81,7 +86,9 @@ class PaymentCheckoutController extends Controller
 
             // Don't use embedded iframe - use our own payment forms with Razorpay Checkout.js
             // This keeps our UI visible and processes payments through Razorpay API
-            return view('checkout.payment', compact('paymentLink'));
+            $checkoutInternalSimulation = ! $this->useAcquirerGatewayForCheckout($paymentLink);
+
+            return view('checkout.payment', compact('paymentLink', 'checkoutInternalSimulation'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             $this->logError('Payment link not found', [
                 'token' => $token
@@ -94,6 +101,213 @@ class PaymentCheckoutController extends Controller
             ]);
             abort(404, 'Payment link not found');
         }
+    }
+
+    /**
+     * True when live acquirer path is used (same rules as process(), excluding explicit simulate flag).
+     */
+    protected function useAcquirerGatewayForCheckout(PaymentLink $paymentLink): bool
+    {
+        $merchant = $paymentLink->merchant;
+        $routing = app(AcquirerRoutingService::class)->resolve($merchant);
+        $hasAcquirerAccount = $routing['account'] !== null;
+        $gatewayModeIsLive = GatewayModeService::isLive();
+        $merchantIsLive = ! $merchant->test_mode;
+        $isTestPaymentLink = (bool) $paymentLink->test_mode;
+
+        return $hasAcquirerAccount
+            && $gatewayModeIsLive
+            && $merchantIsLive
+            && ! $isTestPaymentLink;
+    }
+
+    /**
+     * Store checkout payload in session and redirect to the dedicated test simulation page
+     * (UPI, net banking, wallet — internal simulation only).
+     */
+    public function storeTestSimulate(Request $request, string $token)
+    {
+        $paymentLink = PaymentLink::where('link_token', $token)->firstOrFail();
+
+        if (! $paymentLink->isActive()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment link is no longer available.',
+            ], 410);
+        }
+
+        if ($paymentLink->status === 'paid' || $paymentLink->isFullyPaid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment link has already been fully paid.',
+            ], 400);
+        }
+
+        if ($this->useAcquirerGatewayForCheckout($paymentLink)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The simulation page is only available for internal test checkout (test merchant, test payment link, or gateway test mode).',
+            ], 422);
+        }
+
+        $method = $request->input('payment_method');
+        if (! in_array($method, ['netbanking', 'upi', 'wallet'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment method for simulation.',
+            ], 422);
+        }
+
+        $customerDetails = $request->input('customer_details', []);
+        if (isset($customerDetails['phone'])) {
+            $customerDetails['phone'] = preg_replace('/[^0-9]/', '', (string) $customerDetails['phone']);
+        }
+
+        $baseValidator = Validator::make([
+            'customer_details' => $customerDetails,
+            'amount' => $request->input('amount'),
+        ], [
+            'customer_details' => 'required|array',
+            'customer_details.name' => 'required|string|max:255',
+            'customer_details.email' => 'required|email',
+            'customer_details.phone' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
+            'amount' => 'nullable|numeric|min:0.01',
+        ]);
+
+        if ($baseValidator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $baseValidator->errors()->first() ?: 'Validation failed.',
+                'errors' => $baseValidator->errors(),
+            ], 422);
+        }
+
+        $paymentAmount = $paymentLink->amount;
+
+        if ($paymentLink->allow_partial_payment && $request->has('amount') && (float) $request->amount > 0) {
+            $customAmount = (float) $request->amount;
+            $remainingBalance = $paymentLink->getRemainingBalance();
+
+            if ($customAmount > $remainingBalance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment amount cannot exceed remaining balance of '.number_format($remainingBalance, 2).' '.$paymentLink->currency,
+                ], 422);
+            }
+
+            if ($customAmount < 0.01) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment amount must be at least 0.01',
+                ], 422);
+            }
+
+            $paymentAmount = $customAmount;
+        } elseif (! $paymentLink->allow_partial_payment) {
+            $remainingBalance = $paymentLink->getRemainingBalance();
+            if ($remainingBalance < $paymentLink->amount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This payment link does not allow partial payments. Please pay the full amount.',
+                ], 422);
+            }
+        }
+
+        $sessionKey = 'test_simulate_checkout_'.$token;
+
+        if ($method === 'netbanking') {
+            $bankCode = strtoupper(trim((string) data_get($request->input('payment_details'), 'bank_code', '')));
+            $extra = Validator::make(['bank_code' => $bankCode], [
+                'bank_code' => ['required', 'string', 'regex:/^[A-Z0-9]{2,20}$/'],
+            ]);
+            if ($extra->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $extra->errors()->first() ?: 'Select a valid bank.',
+                    'errors' => $extra->errors(),
+                ], 422);
+            }
+            $bankLabel = trim((string) $request->input('payment_details.bank_label', ''));
+            $payload = [
+                'payment_method' => 'netbanking',
+                'customer_details' => $customerDetails,
+                'payment_details' => [
+                    'bank_code' => $bankCode,
+                    'bank_label' => $bankLabel !== '' ? $bankLabel : $bankCode,
+                ],
+                'amount' => $paymentAmount,
+            ];
+        } elseif ($method === 'upi') {
+            $upiId = strtolower(trim((string) $request->input('payment_details.upi_id', '')));
+            $payload = [
+                'payment_method' => 'upi',
+                'customer_details' => $customerDetails,
+                'payment_details' => [
+                    'upi_id' => $upiId !== '' ? $upiId : null,
+                    'upi_app' => $request->input('payment_details.upi_app') ?: null,
+                ],
+                'amount' => $paymentAmount,
+            ];
+        } else {
+            $wallet = strtolower(trim((string) $request->input('payment_details.wallet_provider', '')));
+            $extra = Validator::make(['wallet_provider' => $wallet], [
+                'wallet_provider' => ['required', 'string', 'regex:/^[a-z0-9_-]{2,40}$/'],
+            ]);
+            if ($extra->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select a wallet.',
+                    'errors' => $extra->errors(),
+                ], 422);
+            }
+            $payload = [
+                'payment_method' => 'wallet',
+                'customer_details' => $customerDetails,
+                'payment_details' => [
+                    'wallet_provider' => $wallet,
+                ],
+                'amount' => $paymentAmount,
+            ];
+        }
+
+        Session::put($sessionKey, $payload);
+
+        return response()->json([
+            'success' => true,
+            'redirect_url' => route('payment.test-simulate', ['token' => $token]),
+        ]);
+    }
+
+    /**
+     * Dedicated test simulation page (success/failure, then POST /pay/{token} with simulate flags).
+     */
+    public function showTestSimulate(Request $request, string $token)
+    {
+        $paymentLink = PaymentLink::where('link_token', $token)->firstOrFail();
+
+        if (! $paymentLink->isActive()) {
+            abort(404, 'This payment link is no longer available.');
+        }
+
+        $sessionKey = 'test_simulate_checkout_'.$token;
+        $payload = Session::get($sessionKey);
+        if (! is_array($payload) && Session::has('test_simulate_nb_'.$token)) {
+            $payload = Session::get('test_simulate_nb_'.$token);
+            Session::put($sessionKey, $payload);
+            Session::forget('test_simulate_nb_'.$token);
+        }
+
+        $allowed = ['netbanking', 'upi', 'wallet'];
+        if (! is_array($payload) || ! in_array($payload['payment_method'] ?? '', $allowed, true)) {
+            return redirect()
+                ->route('payment.checkout', ['token' => $token])
+                ->with('error', 'Session expired or invalid. Please choose a payment method and try again.');
+        }
+
+        return view('checkout.test-simulate', [
+            'paymentLink' => $paymentLink,
+            'payload' => $payload,
+        ]);
     }
 
     public function process(Request $request, string $token)
@@ -453,6 +667,40 @@ class PaymentCheckoutController extends Controller
                 ], 403);
             }
 
+            // Live UPI: native upi://pay only (no Razorpay/Cashfree/other PG SDKs).
+            $liveUpiEligible = $gatewayModeIsLive
+                && $merchantIsLive
+                && ! $isTestPaymentLink
+                && ! $isSimulationRequest;
+
+            if ($paymentMethod === 'upi' && $liveUpiEligible) {
+                if (strtoupper((string) $paymentLink->currency) !== 'INR') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Native UPI checkout is only available for INR payment links.',
+                        'error_code' => 'NATIVE_UPI_INR_ONLY',
+                    ], 422);
+                }
+
+                if (! $this->nativeUpiService->hasReceiveVpa($merchant)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Receive UPI ID (VPA) is not configured. Set NATIVE_UPI_RECEIVE_VPA in .env or merchants.settings.receive_upi_vpa.',
+                        'error_code' => 'NATIVE_UPI_NOT_CONFIGURED',
+                    ], 422);
+                }
+
+                return $this->processNativeUpiCheckout(
+                    $request,
+                    $token,
+                    $paymentLink,
+                    $merchant,
+                    $paymentAmount,
+                    $customerDetails,
+                    $paymentDetails
+                );
+            }
+
             // Process payment through GatewayFactory (clean routing architecture)
             try {
                 if ($useAcquirerGateway) {
@@ -653,8 +901,13 @@ class PaymentCheckoutController extends Controller
                     ]);
 
                     $result = $this->simulationService->processPayment($paymentData);
+
+                    if ($request->boolean('payment_details.simulate')
+                        && in_array($paymentMethod, ['netbanking', 'upi', 'wallet'], true)) {
+                        Session::forget('test_simulate_checkout_'.$token);
+                    }
                 }
-                
+
                 $this->logInfo('Payment processed', [
                     'success' => $result['success'],
                     'order_id' => $result['order_id'] ?? null,
@@ -759,6 +1012,179 @@ class PaymentCheckoutController extends Controller
                 ] : null,
             ], 500);
         }
+    }
+
+    /**
+     * Live UPI without third-party PG: create order + pending txn and return upi://pay for the configured receive VPA.
+     */
+    protected function processNativeUpiCheckout(
+        Request $request,
+        string $token,
+        PaymentLink $paymentLink,
+        $merchant,
+        float $paymentAmount,
+        array $customerDetails,
+        array $paymentDetails
+    ) {
+        $receiveVpa = $this->nativeUpiService->resolveReceiveVpa($merchant);
+        $payeeName = $this->nativeUpiService->resolvePayeeName($merchant);
+
+        $order = $this->paymentService->createOrder($merchant, [
+            'amount' => $paymentAmount,
+            'currency' => $paymentLink->currency,
+            'customer_details' => $customerDetails,
+            'description' => $paymentLink->title,
+            'metadata' => ['payment_link_id' => $paymentLink->id, 'native_upi' => true],
+        ]);
+
+        $order->payment_link_id = $paymentLink->id;
+        $order->save();
+
+        $baseRateService = app(\App\Services\BaseRateService::class);
+        $bank = $merchant->bank ?? null;
+        $feeCalculation = $baseRateService->calculateFee(
+            $merchant,
+            $order->amount,
+            'upi',
+            $bank,
+            \App\Models\BaseRate::SERVICE_TYPE_PAYMENT,
+            \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
+        );
+
+        $txnId = Transaction::generateTxnId();
+        $trRef = $txnId;
+
+        $note = 'Pay '.$paymentLink->title;
+        $intentUrl = $this->nativeUpiService->buildPayIntentUrl(
+            $receiveVpa,
+            $payeeName,
+            (float) $paymentAmount,
+            $trRef,
+            $note
+        );
+
+        $transaction = Transaction::create([
+            'order_id' => $order->id,
+            'merchant_id' => $order->merchant_id,
+            'txn_id' => $txnId,
+            'amount' => $order->amount,
+            'fee_amount' => $feeCalculation['fee_amount'],
+            'gst_amount' => $feeCalculation['gst_amount'] ?? 0,
+            'net_amount' => $order->amount - ($feeCalculation['total_fee'] ?? 0),
+            'currency' => $order->currency,
+            'payment_method' => 'upi',
+            'status' => 'pending',
+            'gateway' => 'native_upi',
+            'gateway_txn_id' => $txnId,
+            'gateway_response' => [
+                'flow' => 'native_upi',
+                'payee_vpa' => $receiveVpa,
+                'tr' => substr(preg_replace('/[^A-Za-z0-9_-]/', '', $trRef), 0, 35),
+                'payment_link_id' => $paymentLink->id,
+            ],
+            'payment_details' => array_filter([
+                'payer_upi_hint' => isset($paymentDetails['upi_id']) ? strtolower(trim((string) $paymentDetails['upi_id'])) : null,
+                'payer_app_hint' => $paymentDetails['upi_app'] ?? null,
+            ]),
+            'test_mode' => $order->test_mode,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        try {
+            $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                merchant: $merchant,
+                paymentMethod: 'upi',
+                amount: (float) $order->amount,
+                feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                baseRateId: $feeCalculation['rate_id'] ?? null
+            );
+            $transaction->update([
+                'admin_rate_snapshot_id' => $snapshot->id,
+                'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+            ]);
+        } catch (\Throwable $e) {
+            $this->logWarning('Could not snapshot rate for native UPI transaction', [
+                'transaction_id' => $transaction->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->logInfo('Native UPI checkout prepared (pending settlement)', [
+            'order_id' => $order->order_id,
+            'txn_id' => $txnId,
+            'merchant_id' => $merchant->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'gateway' => 'native_upi',
+            'order_id' => $order->order_id,
+            'transaction_id' => $transaction->txn_id,
+            'amount' => (float) $paymentAmount,
+            'currency' => $paymentLink->currency,
+            'payee_vpa' => $receiveVpa,
+            'payee_name' => $payeeName,
+            'upi_intent_url' => $intentUrl,
+            'reference' => $transaction->txn_id,
+            'customer_details' => $customerDetails,
+            'message' => 'Open your UPI app to pay. This transaction stays pending until you confirm receipt in your dashboard or reconciliation flow.',
+        ]);
+    }
+
+    /**
+     * Optional: customer submits UTR after paying via native UPI (for ops / reconciliation).
+     */
+    public function submitNativeUpiUtr(Request $request, string $token)
+    {
+        $paymentLink = PaymentLink::where('link_token', $token)->firstOrFail();
+        $merchant = $paymentLink->merchant;
+
+        $validator = Validator::make($request->all(), [
+            'transaction_id' => 'required|string|max:64',
+            'utr' => ['required', 'string', 'regex:/^[0-9]{12}$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first() ?: 'Invalid data.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $transaction = Transaction::query()
+            ->where('txn_id', $request->transaction_id)
+            ->where('merchant_id', $merchant->id)
+            ->where('payment_method', 'upi')
+            ->where('gateway', 'native_upi')
+            ->whereHas('order', function ($q) use ($paymentLink) {
+                $q->where('payment_link_id', $paymentLink->id);
+            })
+            ->first();
+
+        if (! $transaction) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found for this payment.',
+            ], 404);
+        }
+
+        $gr = $transaction->gateway_response ?? [];
+        $gr['customer_submitted_utr'] = $request->utr;
+        $gr['customer_submitted_utr_at'] = now()->toIso8601String();
+
+        $transaction->update([
+            'gateway_response' => $gr,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'UTR recorded. Your payment will be verified shortly.',
+        ]);
     }
 
     public function verifyRazorpay(Request $request, string $token)

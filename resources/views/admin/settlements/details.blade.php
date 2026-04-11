@@ -206,8 +206,6 @@
             </div>
         </div>
     </div>
-</div>
-
 <!-- Create Settlement Detail Modal -->
 <div class="modal fade" id="createSettlementDetailModal" tabindex="-1" aria-labelledby="createSettlementDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -221,82 +219,100 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">* Merchant</label>
-                            <select class="form-select" ng-model="asdc.form.merchant_id" required>
+                            <select class="form-select" ng-model="asdc.form.merchant_id" ng-class="{'is-invalid': asdc.formErrors.merchant_id}" required>
                                 <option value="">Select Merchant</option>
                                 <option ng-repeat="merchant in asdc.merchants" value="@{{ merchant.id }}">@{{ merchant.name }}</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.merchant_id">@{{ asdc.formErrors.merchant_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Order Id</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.order_id">
+                            <input type="text" class="form-control" ng-model="asdc.form.order_id" ng-class="{'is-invalid': asdc.formErrors.order_id}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.order_id">@{{ asdc.formErrors.order_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Transaction Id</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.transaction_id">
+                            <input type="text" class="form-control" ng-model="asdc.form.transaction_id" ng-class="{'is-invalid': asdc.formErrors.transaction_id}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.transaction_id">@{{ asdc.formErrors.transaction_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Tran Seq Id</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.tran_seq_id">
+                            <input type="text" class="form-control" ng-model="asdc.form.tran_seq_id" ng-class="{'is-invalid': asdc.formErrors.tran_seq_id}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.tran_seq_id">@{{ asdc.formErrors.tran_seq_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Transaction Date</label>
-                            <input type="datetime-local" class="form-control" ng-model="asdc.form.transaction_date" required>
+                            <input type="datetime-local" class="form-control" ng-model="asdc.form.transaction_date" ng-class="{'is-invalid': asdc.formErrors.transaction_date}" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.transaction_date">@{{ asdc.formErrors.transaction_date }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Transaction Qualifier</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.transaction_qualifier">
+                            <input type="text" class="form-control" ng-model="asdc.form.transaction_qualifier" ng-class="{'is-invalid': asdc.formErrors.transaction_qualifier}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.transaction_qualifier">@{{ asdc.formErrors.transaction_qualifier }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Settlement Qualifier</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_qualifier">
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_qualifier" ng-class="{'is-invalid': asdc.formErrors.settlement_qualifier}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_qualifier">@{{ asdc.formErrors.settlement_qualifier }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Setl Id</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.setl_id">
+                            <input type="text" class="form-control" ng-model="asdc.form.setl_id" ng-class="{'is-invalid': asdc.formErrors.setl_id}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.setl_id">@{{ asdc.formErrors.setl_id }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Amount Paid by Customer</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.amount_paid_by_customer" required>
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.amount_paid_by_customer" ng-class="{'is-invalid': asdc.formErrors.amount_paid_by_customer}" ng-change="asdc.validateCreateField('amount_paid_by_customer')" ng-blur="asdc.validateCreateField('amount_paid_by_customer')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.amount_paid_by_customer">@{{ asdc.formErrors.amount_paid_by_customer }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Settlement Amount</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.settlement_amount" required>
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.settlement_amount" ng-class="{'is-invalid': asdc.formErrors.settlement_amount}" ng-change="asdc.validateCreateField('settlement_amount')" ng-blur="asdc.validateCreateField('settlement_amount')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_amount">@{{ asdc.formErrors.settlement_amount }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Bank Settlement Date</label>
-                            <input type="date" class="form-control" ng-model="asdc.form.bank_settlement_date">
+                            <input type="date" class="form-control" ng-model="asdc.form.bank_settlement_date" ng-class="{'is-invalid': asdc.formErrors.bank_settlement_date}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.bank_settlement_date">@{{ asdc.formErrors.bank_settlement_date }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Bank Settlement Amount</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.bank_settlement_amount">
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.bank_settlement_amount" ng-class="{'is-invalid': asdc.formErrors.bank_settlement_amount}" ng-change="asdc.validateCreateField('bank_settlement_amount')" ng-blur="asdc.validateCreateField('bank_settlement_amount')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.bank_settlement_amount">@{{ asdc.formErrors.bank_settlement_amount }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Bank Reference</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.bank_reference">
+                            <input type="text" class="form-control" ng-model="asdc.form.bank_reference" ng-class="{'is-invalid': asdc.formErrors.bank_reference}">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.bank_reference">@{{ asdc.formErrors.bank_reference }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Settlement Account Name</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_account_name" required>
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_account_name" ng-class="{'is-invalid': asdc.formErrors.settlement_account_name}" ng-change="asdc.validateCreateField('settlement_account_name')" ng-blur="asdc.validateCreateField('settlement_account_name')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_account_name">@{{ asdc.formErrors.settlement_account_name }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Settlement Account Number</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_account_number" required>
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_account_number" ng-class="{'is-invalid': asdc.formErrors.settlement_account_number}" ng-change="asdc.validateCreateField('settlement_account_number')" ng-blur="asdc.validateCreateField('settlement_account_number')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_account_number">@{{ asdc.formErrors.settlement_account_number }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Settlement IFSC Code</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_ifsc_code" required>
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_ifsc_code" ng-class="{'is-invalid': asdc.formErrors.settlement_ifsc_code}" ng-change="asdc.validateCreateField('settlement_ifsc_code')" ng-blur="asdc.validateCreateField('settlement_ifsc_code')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_ifsc_code">@{{ asdc.formErrors.settlement_ifsc_code }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">* Settlement Bank Name</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_bank_name" required>
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_bank_name" ng-class="{'is-invalid': asdc.formErrors.settlement_bank_name}" ng-change="asdc.validateCreateField('settlement_bank_name')" ng-blur="asdc.validateCreateField('settlement_bank_name')" required>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_bank_name">@{{ asdc.formErrors.settlement_bank_name }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Settlement Bank Branch</label>
-                            <input type="text" class="form-control" ng-model="asdc.form.settlement_bank_branch">
+                            <input type="text" class="form-control" ng-model="asdc.form.settlement_bank_branch" ng-class="{'is-invalid': asdc.formErrors.settlement_bank_branch}" ng-change="asdc.validateCreateField('settlement_bank_branch')" ng-blur="asdc.validateCreateField('settlement_bank_branch')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.settlement_bank_branch">@{{ asdc.formErrors.settlement_bank_branch }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Payment Source</label>
-                            <select class="form-select" ng-model="asdc.form.payment_mode">
+                            <select class="form-select" ng-model="asdc.form.payment_mode" ng-class="{'is-invalid': asdc.formErrors.payment_mode}">
                                 <option value="">Select Payment Source</option>
                                 <option value="card">Card</option>
                                 <option value="netbanking">Netbanking</option>
@@ -308,32 +324,38 @@
                                 <option value="bbps">BBPS</option>
                                 <option value="bharat_qr">Bharat QR</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.payment_mode">@{{ asdc.formErrors.payment_mode }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Payment Channel</label>
-                            <select class="form-select" ng-model="asdc.form.payment_channel">
+                            <select class="form-select" ng-model="asdc.form.payment_channel" ng-class="{'is-invalid': asdc.formErrors.payment_channel}">
                                 <option value="">Select Payment Channel</option>
                                 <option value="web">Web</option>
                                 <option value="mobile">Mobile</option>
                                 <option value="pos">POS</option>
                                 <option value="api">API</option>
                             </select>
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.payment_channel">@{{ asdc.formErrors.payment_channel }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">TDR Percentage</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_percentage">
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_percentage" ng-class="{'is-invalid': asdc.formErrors.tdr_percentage}" ng-change="asdc.validateCreateField('tdr_percentage')" ng-blur="asdc.validateCreateField('tdr_percentage')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.tdr_percentage">@{{ asdc.formErrors.tdr_percentage }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">TDR Fixed Fee</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_fixed_fee">
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_fixed_fee" ng-class="{'is-invalid': asdc.formErrors.tdr_fixed_fee}" ng-change="asdc.validateCreateField('tdr_fixed_fee')" ng-blur="asdc.validateCreateField('tdr_fixed_fee')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.tdr_fixed_fee">@{{ asdc.formErrors.tdr_fixed_fee }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">TDR Amount</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_amount">
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tdr_amount" ng-class="{'is-invalid': asdc.formErrors.tdr_amount}" ng-change="asdc.validateCreateField('tdr_amount')" ng-blur="asdc.validateCreateField('tdr_amount')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.tdr_amount">@{{ asdc.formErrors.tdr_amount }}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Tax Amount</label>
-                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tax_amount">
+                            <input type="number" step="0.01" class="form-control" ng-model="asdc.form.tax_amount" ng-class="{'is-invalid': asdc.formErrors.tax_amount}" ng-change="asdc.validateCreateField('tax_amount')" ng-blur="asdc.validateCreateField('tax_amount')">
+                            <div class="invalid-feedback" ng-if="asdc.formErrors.tax_amount">@{{ asdc.formErrors.tax_amount }}</div>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -344,6 +366,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 
@@ -368,6 +391,7 @@
                 vm.dateRange = '';
                 vm.mode = 'all';
                 vm.form = {};
+                vm.formErrors = {};
                 vm.selectedDetail = null;
                 
                 vm.visibleColumns = {
@@ -454,13 +478,233 @@
                 };
 
                 vm.openCreateModal = function() {
-                    vm.form = {};
+                    vm.formErrors = {};
+                    vm.form = {
+                        payment_mode: '',
+                        payment_channel: ''
+                    };
                     vm.loadMerchants();
                     var modal = new bootstrap.Modal(document.getElementById('createSettlementDetailModal'));
                     modal.show();
                 };
 
+                vm.validateCreateSettlementForm = function () {
+                    vm.formErrors = {};
+                    var f = vm.form || {};
+                    function add(field, msg) {
+                        vm.formErrors[field] = msg;
+                    }
+
+                    var merchantId = Number(f.merchant_id);
+                    if (!f.merchant_id || Number.isNaN(merchantId) || merchantId <= 0) {
+                        add('merchant_id', 'Merchant is required.');
+                    }
+                    if (f.transaction_id !== '' && f.transaction_id !== null && f.transaction_id !== undefined) {
+                        var txnId = Number(f.transaction_id);
+                        if (!Number.isInteger(txnId) || txnId <= 0) {
+                            add('transaction_id', 'Transaction Id must be a valid numeric transaction record id.');
+                        }
+                    }
+                    if (f.settlement_id !== '' && f.settlement_id !== null && f.settlement_id !== undefined) {
+                        var settlementId = Number(f.settlement_id);
+                        if (!Number.isInteger(settlementId) || settlementId <= 0) {
+                            add('settlement_id', 'Settlement Id must be a valid numeric settlement record id.');
+                        }
+                    }
+                    ['order_id', 'tran_seq_id', 'setl_id', 'setd_id', 'account_id', 'acq_payment_id'].forEach(function (field) {
+                        var value = String(f[field] || '').trim();
+                        if (value && !/^[A-Za-z0-9_\-\/]+$/.test(value)) {
+                            add(field, 'This field may contain only letters, numbers, -, _, and /.');
+                        }
+                    });
+                    ['transaction_qualifier', 'settlement_qualifier'].forEach(function (field) {
+                        var value = String(f[field] || '').trim();
+                        if (value && !/^[A-Za-z0-9 _\-\/]+$/.test(value)) {
+                            add(field, 'This field may contain only letters, numbers, spaces, -, _, and /.');
+                        }
+                    });
+                    var bankReference = String(f.bank_reference || '').trim();
+                    if (bankReference && !/^[A-Za-z0-9 _\-\/]+$/.test(bankReference)) {
+                        add('bank_reference', 'Bank reference may contain only letters, numbers, spaces, -, _, and /.');
+                    }
+                    var provider = String(f.provider || '').trim();
+                    if (provider && !/^[A-Za-z0-9 _\-\.]+$/.test(provider)) {
+                        add('provider', 'Provider may contain only letters, numbers, spaces, -, _, and .');
+                    }
+                    if (!f.transaction_date) {
+                        add('transaction_date', 'Transaction date is required.');
+                    }
+                    if (f.bank_settlement_date && f.transaction_date) {
+                        var txnDate = new Date(f.transaction_date);
+                        var bankDate = new Date(f.bank_settlement_date);
+                        if (!Number.isNaN(txnDate.getTime()) && !Number.isNaN(bankDate.getTime()) && bankDate < txnDate) {
+                            add('bank_settlement_date', 'Bank settlement date cannot be before transaction date.');
+                        }
+                    }
+
+                    if (f.amount_paid_by_customer === '' || f.amount_paid_by_customer === null || f.amount_paid_by_customer === undefined || Number(f.amount_paid_by_customer) < 0) {
+                        add('amount_paid_by_customer', 'Amount paid by customer must be 0 or greater.');
+                    }
+                    if (f.settlement_amount === '' || f.settlement_amount === null || f.settlement_amount === undefined || Number(f.settlement_amount) < 0) {
+                        add('settlement_amount', 'Settlement amount must be 0 or greater.');
+                    }
+                    if (f.bank_settlement_amount !== '' && f.bank_settlement_amount !== null && f.bank_settlement_amount !== undefined && Number(f.bank_settlement_amount) < 0) {
+                        add('bank_settlement_amount', 'Bank settlement amount must be 0 or greater.');
+                    }
+
+                    var accountName = String(f.settlement_account_name || '').trim();
+                    if (!accountName) {
+                        add('settlement_account_name', 'Settlement account name is required.');
+                    } else if (!/^[A-Za-z0-9 ]+$/.test(accountName)) {
+                        add('settlement_account_name', 'Settlement account name may contain only letters, numbers, and spaces.');
+                    }
+
+                    var accountNo = String(f.settlement_account_number || '').trim();
+                    if (!accountNo) {
+                        add('settlement_account_number', 'Settlement account number is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(accountNo)) {
+                        add('settlement_account_number', 'Settlement account number may contain only letters and numbers.');
+                    } else if (accountNo.length < 6 || accountNo.length > 34) {
+                        add('settlement_account_number', 'Settlement account number must be between 6 and 34 characters.');
+                    }
+
+                    var ifsc = String(f.settlement_ifsc_code || '').trim().toUpperCase();
+                    if (ifsc) {
+                        vm.form.settlement_ifsc_code = ifsc;
+                    }
+                    if (!ifsc) {
+                        add('settlement_ifsc_code', 'Settlement IFSC code is required.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(ifsc)) {
+                        add('settlement_ifsc_code', 'Settlement IFSC code may contain only letters and numbers.');
+                    }
+
+                    var bankName = String(f.settlement_bank_name || '').trim();
+                    if (!bankName) {
+                        add('settlement_bank_name', 'Settlement bank name is required.');
+                    } else if (!/^[A-Za-z ]+$/.test(bankName)) {
+                        add('settlement_bank_name', 'Settlement bank name may contain only letters and spaces.');
+                    }
+
+                    var branch = String(f.settlement_bank_branch || '').trim();
+                    if (branch && !/^[A-Za-z0-9 ]+$/.test(branch)) {
+                        add('settlement_bank_branch', 'Settlement bank branch may contain only letters, numbers, and spaces.');
+                    }
+                    if (f.payment_mode && ['card', 'netbanking', 'upi', 'wallet', 'emi', 'cash', 'bank_transfer', 'bbps', 'bharat_qr'].indexOf(String(f.payment_mode)) === -1) {
+                        add('payment_mode', 'Payment source is invalid.');
+                    }
+                    if (f.payment_channel && ['web', 'mobile', 'pos', 'api'].indexOf(String(f.payment_channel)) === -1) {
+                        add('payment_channel', 'Payment channel is invalid.');
+                    }
+
+                    if (f.tdr_percentage !== '' && f.tdr_percentage !== null && f.tdr_percentage !== undefined) {
+                        var tdrPct = Number(f.tdr_percentage);
+                        if (Number.isNaN(tdrPct) || tdrPct < 0 || tdrPct > 100) {
+                            add('tdr_percentage', 'TDR percentage must be between 0 and 100.');
+                        }
+                    }
+                    ['tdr_fixed_fee', 'tdr_amount', 'tax_amount'].forEach(function (field) {
+                        if (f[field] === '' || f[field] === null || f[field] === undefined) return;
+                        var value = Number(f[field]);
+                        if (Number.isNaN(value) || value < 0) {
+                            add(field, 'This value must be 0 or greater.');
+                        }
+                    });
+
+                    return Object.keys(vm.formErrors).length === 0;
+                };
+
+                vm.validateCreateField = function (field) {
+                    var f = vm.form || {};
+                    if (!vm.formErrors) vm.formErrors = {};
+                    delete vm.formErrors[field];
+
+                    function set(msg) {
+                        vm.formErrors[field] = msg;
+                    }
+
+                    var value;
+                    switch (field) {
+                    case 'amount_paid_by_customer':
+                    case 'settlement_amount':
+                    case 'bank_settlement_amount':
+                    case 'tdr_percentage':
+                    case 'tdr_fixed_fee':
+                    case 'tdr_amount':
+                    case 'tax_amount':
+                        value = f[field];
+                        if (value === '' || value === null || value === undefined) {
+                            if (field === 'amount_paid_by_customer' || field === 'settlement_amount') {
+                                set(field === 'amount_paid_by_customer' ? 'Amount paid by customer is required.' : 'Settlement amount is required.');
+                            }
+                            return;
+                        }
+                        if (Number.isNaN(Number(value)) || !/^\d+(\.\d+)?$/.test(String(value).trim())) {
+                            set('Only numbers and decimal are allowed.');
+                            return;
+                        }
+                        if (Number(value) < 0) {
+                            set('This value must be 0 or greater.');
+                            return;
+                        }
+                        if (field === 'tdr_percentage' && Number(value) > 100) {
+                            set('TDR percentage must be between 0 and 100.');
+                        }
+                        return;
+                    case 'settlement_account_name':
+                        value = String(f.settlement_account_name || '').trim();
+                        if (!value) {
+                            set('Settlement account name is required.');
+                        } else if (!/^[A-Za-z0-9 ]+$/.test(value)) {
+                            set('Settlement account name may contain only letters, numbers, and spaces.');
+                        }
+                        return;
+                    case 'settlement_account_number':
+                        value = String(f.settlement_account_number || '').trim();
+                        if (!value) {
+                            set('Settlement account number is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                            set('Settlement account number may contain only letters and numbers.');
+                        } else if (value.length < 6 || value.length > 34) {
+                            set('Settlement account number must be between 6 and 34 characters.');
+                        }
+                        return;
+                    case 'settlement_ifsc_code':
+                        value = String(f.settlement_ifsc_code || '').trim().toUpperCase();
+                        if (value) vm.form.settlement_ifsc_code = value;
+                        if (!value) {
+                            set('Settlement IFSC code is required.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                            set('Settlement IFSC code may contain only letters and numbers.');
+                        }
+                        return;
+                    case 'settlement_bank_name':
+                        value = String(f.settlement_bank_name || '').trim();
+                        if (!value) {
+                            set('Settlement bank name is required.');
+                        } else if (!/^[A-Za-z ]+$/.test(value)) {
+                            set('Settlement bank name may contain only letters and spaces.');
+                        }
+                        return;
+                    case 'settlement_bank_branch':
+                        value = String(f.settlement_bank_branch || '').trim();
+                        if (value && !/^[A-Za-z0-9 ]+$/.test(value)) {
+                            set('Settlement bank branch may contain only letters, numbers, and spaces.');
+                        }
+                        return;
+                    default:
+                        return;
+                    }
+                };
+
                 vm.submitSettlementDetail = function() {
+                    if (!vm.validateCreateSettlementForm()) {
+                        if (typeof showToast === 'function') {
+                            showToast('Please correct the highlighted errors.', 'error');
+                        } else {
+                            alert('Please correct the highlighted errors.');
+                        }
+                        return;
+                    }
                     $http.post('/admin/settlements/details', vm.form).then(function(response) {
                         if (response.data.success) {
                             if (typeof showToast === 'function') {
@@ -480,7 +724,13 @@
                             }
                         }
                     }, function(error) {
-                        var errorMsg = 'Error creating settlement detail: ' + (error.data?.message || 'Unknown error');
+                        var errorMsg = 'Error creating settlement detail: ' + ((error.data && error.data.message) ? error.data.message : 'Unknown error');
+                        if (error.data && error.data.errors) {
+                            vm.formErrors = Object.keys(error.data.errors).reduce(function (acc, key) {
+                                acc[key] = (error.data.errors[key] || [])[0] || 'Invalid value';
+                                return acc;
+                            }, {});
+                        }
                         if (typeof showToast === 'function') {
                             showToast(errorMsg, 'error');
                         } else {

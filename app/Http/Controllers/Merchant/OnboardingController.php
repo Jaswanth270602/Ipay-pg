@@ -33,6 +33,7 @@ class OnboardingController extends Controller
                         'company_name' => $validated['company_name'],
                         'business_type' => $validated['business_type'],
                         'business_phone' => $validated['business_phone'],
+                        'business_email' => $validated['business_email'] ?? null,
                         'business_address' => $validated['business_address'],
                         'business_city' => $validated['business_city'],
                         'business_state' => $validated['business_state'],
@@ -151,30 +152,31 @@ class OnboardingController extends Controller
         switch ($step) {
             case 1:
                 return [
-                    'company_name' => 'required|string|max:255',
+                    'company_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
                     'business_type' => 'required|string|max:100',
-                    'business_phone' => 'required|string|max:20',
+                    'business_phone' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
+                    'business_email' => 'nullable|email|max:255',
                     'business_address' => 'required|string|max:500',
-                    'business_city' => 'required|string|max:100',
-                    'business_state' => 'required|string|max:100',
+                    'business_city' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z ]+$/'],
+                    'business_state' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z ]+$/'],
                     'business_country' => 'nullable|string|max:2',
-                    'business_postal_code' => 'required|string|max:20',
+                    'business_postal_code' => ['required', 'string', 'max:20', 'regex:/^[0-9]+$/'],
                     'business_website' => 'nullable|url|max:255',
                 ];
 
             case 2:
                 return [
-                    'bank_account_holder_name' => 'required|string|max:255',
-                    'bank_account_number' => 'required|string|max:50',
-                    'bank_ifsc_code' => 'required|string|max:20',
-                    'bank_name' => 'required|string|max:255',
-                    'bank_branch' => 'nullable|string|max:255',
+                    'bank_account_holder_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+                    'bank_account_number' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9]+$/'],
+                    'bank_ifsc_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
+                    'bank_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
+                    'bank_branch' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]*$/'],
                 ];
 
             case 3:
                 return [
                     'kyc_document_type' => 'required|in:pan,aadhaar,passport,driving_license,business_license',
-                    'kyc_document_number' => 'required|string|max:50',
+                    'kyc_document_number' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9]+$/'],
                     'kyc_document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB
                 ];
 

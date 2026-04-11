@@ -827,6 +827,13 @@
                     </div>
                 </div>
 
+                @if(session('error'))
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>{{ session('error') }}</div>
+                </div>
+                @endif
+
                 @php
                     // Check allow_partial_payment - the model casts it to boolean, so just check if truthy
                     $isPartialEnabled = (bool)($paymentLink->allow_partial_payment ?? false);
@@ -1067,9 +1074,10 @@
 
                 <!-- UPI FORM -->
                 <div class="payment-form" id="upiForm">
+                    @if(empty($checkoutInternalSimulation))
                     <div class="mb-3">
-                        <label class="form-label" for="upiId">UPI ID</label>
-                        <input type="text" class="form-control" id="upiId">
+                        <label class="form-label" for="upiId">UPI ID (VPA)</label>
+                        <input type="text" class="form-control" id="upiId" placeholder="yourname@paytm or name@ybl" autocomplete="off" autocapitalize="none">
                         <div style="text-align: center; margin: 20px 0; color: #94a3b8; font-weight: 600;">OR</div>
                         <label class="form-label">Choose UPI App</label>
                         <select class="form-select" id="upiApp">
@@ -1079,12 +1087,19 @@
                             <option value="paytm">Paytm</option>
                             <option value="amazonpay">Amazon Pay</option>
                         </select>
+                        <p class="small text-muted mt-2 mb-0">You will complete UPI in the secure payment window.</p>
                     </div>
+                    @endif
                 </div>
 
                 <!-- NET BANKING FORM -->
                 <div class="payment-form" id="netbankingForm">
                     <div class="mb-3">
+                        @if(!empty($checkoutInternalSimulation))
+                        <div class="alert alert-info py-2 small mb-3" role="status">
+                            <strong>Test mode.</strong> Select your bank, then <strong>Pay</strong> opens the <strong>simulation page</strong>.
+                        </div>
+                        @endif
                         <label class="form-label">Select Your Bank <span class="text-danger">*</span></label>
                         <select class="form-select" id="bankCode">
                             <option value="">Choose your bank</option>
@@ -1104,6 +1119,11 @@
                 <!-- WALLET FORM -->
                 <div class="payment-form" id="walletForm">
                     <div class="mb-3">
+                        @if(!empty($checkoutInternalSimulation))
+                        <div class="alert alert-info py-2 small mb-3" role="status">
+                            <strong>Test mode.</strong> Choose a wallet, then <strong>Pay</strong> opens the <strong>simulation page</strong> to confirm success or failure.
+                        </div>
+                        @endif
                         <label class="form-label">Select Wallet <span class="text-danger">*</span></label>
                         <select class="form-select" id="walletProvider">
                             <option value="">Choose wallet</option>
@@ -1132,6 +1152,7 @@
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
     <script>
         const paymentLink = @json($paymentLink);
+        const checkoutInternalSimulation = @json($checkoutInternalSimulation ?? false);
         let selectedMethod = 'card';
         
         const payButton = document.getElementById('payButton');
@@ -1838,9 +1859,13 @@
                         console.log('Card validation result:', { methodValid });
                     }
                 } else if (selectedMethod === 'upi') {
-                    const upiId = document.getElementById('upiId')?.value.trim();
+                    const upiIdRaw = (document.getElementById('upiId')?.value || '').trim().toLowerCase();
                     const upiApp = document.getElementById('upiApp')?.value;
-                    methodValid = !!(upiId || upiApp);
+                    if (checkoutInternalSimulation) {
+                        methodValid = true;
+                    } else {
+                        methodValid = !!(upiIdRaw || upiApp);
+                    }
                 } else if (selectedMethod === 'netbanking') {
                     methodValid = !!document.getElementById('bankCode')?.value;
                 } else if (selectedMethod === 'wallet') {
@@ -1962,9 +1987,12 @@
                     };
                 }
             } else if (selectedMethod === 'upi') {
+                const upiEl = document.getElementById('upiId');
+                const upiVal = ((upiEl && upiEl.value) || '').trim().toLowerCase();
+                const appEl = document.getElementById('upiApp');
                 paymentData.payment_details = {
-                    upi_id: document.getElementById('upiId').value.trim() || null,
-                    upi_app: document.getElementById('upiApp').value || null,
+                    upi_id: upiVal || null,
+                    upi_app: appEl ? (appEl.value || null) : null,
                 };
             } else if (selectedMethod === 'netbanking') {
                 paymentData.payment_details = {
@@ -2014,6 +2042,105 @@
             }
             @endif
 
+            @if(!empty($checkoutInternalSimulation))
+            if (selectedMethod === 'netbanking' || selectedMethod === 'upi' || selectedMethod === 'wallet') {
+                if (selectedMethod === 'netbanking') {
+                    const bankSelectNb = document.getElementById('bankCode');
+                    const bankCodeRaw = bankSelectNb ? String(bankSelectNb.value || '').trim() : '';
+                    if (!bankCodeRaw) {
+                        errorMessage.textContent = 'Please select a bank.';
+                        errorAlert.style.display = 'flex';
+                        payButton.disabled = false;
+                        payButton.dataset.processing = '';
+                        @if($paymentLink->allow_partial_payment)
+                        const remainingBalanceNb = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                        payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalanceNb.toFixed(2)}`;
+                        @else
+                        payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                        @endif
+                        validateForm(false);
+                        return;
+                    }
+                }
+                if (selectedMethod === 'wallet') {
+                    const w = document.getElementById('walletProvider')?.value;
+                    if (!w) {
+                        errorMessage.textContent = 'Please select a wallet.';
+                        errorAlert.style.display = 'flex';
+                        payButton.disabled = false;
+                        payButton.dataset.processing = '';
+                        @if($paymentLink->allow_partial_payment)
+                        const remainingBalanceW = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                        payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalanceW.toFixed(2)}`;
+                        @else
+                        payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                        @endif
+                        validateForm(false);
+                        return;
+                    }
+                }
+                const bankSelectNb = document.getElementById('bankCode');
+                const bankCodeRaw = bankSelectNb ? String(bankSelectNb.value || '').trim() : '';
+                const bankLabelNb = bankSelectNb && bankSelectNb.options[bankSelectNb.selectedIndex]
+                    ? bankSelectNb.options[bankSelectNb.selectedIndex].text.trim()
+                    : '';
+                let storeBodySim = {
+                    payment_method: selectedMethod,
+                    customer_details: paymentData.customer_details,
+                    payment_details: {},
+                };
+                if (selectedMethod === 'netbanking') {
+                    storeBodySim.payment_details = { bank_code: bankCodeRaw, bank_label: bankLabelNb };
+                } else if (selectedMethod === 'upi') {
+                    storeBodySim.payment_details = {};
+                } else if (selectedMethod === 'wallet') {
+                    storeBodySim.payment_details = { wallet_provider: document.getElementById('walletProvider').value };
+                }
+                @if($paymentLink->allow_partial_payment)
+                if (paymentData.amount != null && paymentData.amount !== '') {
+                    storeBodySim.amount = paymentData.amount;
+                }
+                @endif
+                try {
+                    const storeResSim = await fetch(`/pay/${paymentLink.link_token}/test-simulate/store`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify(storeBodySim),
+                    });
+                    const storeJsonSim = await storeResSim.json().catch(() => ({}));
+                    if (storeResSim.ok && storeJsonSim.success && storeJsonSim.redirect_url) {
+                        window.location.href = storeJsonSim.redirect_url;
+                        return;
+                    }
+                    errorMessage.textContent = storeJsonSim.message || 'Could not open the simulation page.';
+                    errorAlert.style.display = 'flex';
+                    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } catch (errSim) {
+                    console.error(errSim);
+                    errorMessage.textContent = 'Could not open the simulation page.';
+                    errorAlert.style.display = 'flex';
+                    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } finally {
+                    payButton.dataset.processing = '';
+                    payButton.disabled = false;
+                    @if($paymentLink->allow_partial_payment)
+                    const remainingBalanceSim2 = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                    payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalanceSim2.toFixed(2)}`;
+                    @else
+                    payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                    @endif
+                    validateForm(false);
+                }
+                return;
+            }
+            @endif
+
             try {
                 const response = await fetch(`/pay/${paymentLink.link_token}`, {
                     method: 'POST',
@@ -2045,8 +2172,8 @@
                 console.log('result.success:', result.success);
                 console.log('result.gateway:', result.gateway);
                 
-                // Remove Razorpay-specific console logs when gateway is cashfree
-                if (result.gateway !== 'cashfree') {
+                // Remove Razorpay-specific console logs when gateway is cashfree / native UPI
+                if (result.gateway !== 'cashfree' && result.gateway !== 'native_upi') {
                     console.log('result.use_razorpay_checkout:', result.use_razorpay_checkout);
                     console.log('result.razorpay_key:', result.razorpay_key);
                     console.log('result.razorpay_order_id:', result.razorpay_order_id);
@@ -2092,6 +2219,94 @@
                         }
                         return; // Exit early - don't process Razorpay logic
                     }
+
+                    // NATIVE UPI (no Razorpay/Cashfree — upi://pay to configured receive VPA)
+                    if (result.gateway === 'native_upi' && result.upi_intent_url) {
+                        payButton.dataset.processing = '';
+                        payButton.disabled = true;
+                        payButtonText.textContent = 'Pending payment';
+                        errorAlert.style.display = 'none';
+
+                        successMessage.innerHTML = 'Pay with your UPI app using the button below. Your reference is <strong>' + String(result.transaction_id || '') + '</strong>.';
+                        successAlert.style.display = 'flex';
+                        successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        let panel = document.getElementById('nativeUpiLivePanel');
+                        if (!panel) {
+                            panel = document.createElement('div');
+                            panel.id = 'nativeUpiLivePanel';
+                            panel.className = 'mt-3 p-4 rounded';
+                            panel.style.background = '#f8fafc';
+                            panel.style.border = '1px solid #cbd5e1';
+                            const paySection = document.querySelector('.pay-button')?.parentElement || payButton.parentNode;
+                            paySection.insertBefore(panel, payButton.nextSibling);
+                        }
+                        panel.style.display = 'block';
+                        const amt = typeof result.amount === 'number' ? result.amount.toFixed(2) : String(result.amount);
+                        const vpa = String(result.payee_vpa || '').replace(/</g, '');
+                        const txnRef = String(result.transaction_id || '').replace(/</g, '');
+                        panel.innerHTML =
+                            '<p class="mb-2"><strong>Amount</strong>: INR ' + amt + '</p>' +
+                            '<p class="mb-2"><strong>Reference</strong>: <code>' + txnRef + '</code></p>' +
+                            '<p class="mb-3 small text-muted">Payee VPA: ' + vpa + '</p>' +
+                            '<button type="button" class="btn btn-primary w-100 mb-2" id="nativeUpiOpenBtn">Pay with UPI app</button>' +
+                            '<button type="button" class="btn btn-outline-secondary w-100 mb-3" id="nativeUpiCopyBtn">Copy UPI payment link</button>' +
+                            '<label class="form-label small" for="nativeUpiUtrInput">UTR after payment (12 digits)</label>' +
+                            '<div class="input-group mb-2">' +
+                            '<input type="text" class="form-control" id="nativeUpiUtrInput" maxlength="12" placeholder="123456789012" inputmode="numeric" autocomplete="one-time-code">' +
+                            '<button class="btn btn-outline-primary" type="button" id="nativeUpiUtrBtn">Submit UTR</button>' +
+                            '</div>' +
+                            '<p class="small text-muted mb-0">Status stays pending until your business confirms the credit (bank statement / UTR).</p>';
+
+                        const intentUrl = result.upi_intent_url;
+                        panel.querySelector('#nativeUpiOpenBtn').addEventListener('click', function () {
+                            window.location.href = intentUrl;
+                        });
+                        panel.querySelector('#nativeUpiCopyBtn').addEventListener('click', async function () {
+                            try {
+                                await navigator.clipboard.writeText(intentUrl);
+                                const t = panel.querySelector('#nativeUpiCopyBtn');
+                                const prev = t.textContent;
+                                t.textContent = 'Copied';
+                                setTimeout(function () { t.textContent = prev; }, 2000);
+                            } catch (e) {
+                                prompt('Copy this link:', intentUrl);
+                            }
+                        });
+                        panel.querySelector('#nativeUpiUtrBtn').addEventListener('click', async function () {
+                            const utr = (panel.querySelector('#nativeUpiUtrInput').value || '').trim();
+                            if (!/^[0-9]{12}$/.test(utr)) {
+                                alert('Enter the 12-digit UTR from your UPI app or bank SMS.');
+                                return;
+                            }
+                            try {
+                                const utrRes = await fetch('/pay/' + paymentLink.link_token + '/native-upi/utr', {
+                                    method: 'POST',
+                                    credentials: 'same-origin',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                    },
+                                    body: JSON.stringify({ transaction_id: result.transaction_id, utr: utr }),
+                                });
+                                const utrJson = await utrRes.json().catch(function () { return {}; });
+                                if (utrRes.ok && utrJson.success) {
+                                    successMessage.textContent = utrJson.message || 'UTR saved.';
+                                    panel.querySelector('#nativeUpiUtrInput').disabled = true;
+                                    panel.querySelector('#nativeUpiUtrBtn').disabled = true;
+                                } else {
+                                    alert(utrJson.message || 'Could not save UTR.');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                alert('Could not save UTR. Try again.');
+                            }
+                        });
+
+                        return;
+                    }
                     
                     // RAZORPAY PAYMENT FLOW (only if gateway is razorpay)
                     // IMPORTANT: Only use Razorpay Checkout.js if gateway is explicitly 'razorpay'
@@ -2121,6 +2336,29 @@
                         // Store order_id and link_token for handler
                         const orderIdForVerification = result.order_id;
                         const linkTokenForVerification = paymentLink.link_token;
+
+                        const liveUpiVpa = (document.getElementById('upiId')?.value || '').trim();
+                        const razorpayPrefill = {
+                            name: result.customer_details.name,
+                            email: result.customer_details.email,
+                            contact: result.customer_details.phone,
+                        };
+                        if (selectedMethod === 'upi' && liveUpiVpa) {
+                            razorpayPrefill.vpa = liveUpiVpa;
+                        }
+
+                        let razorpayMethod = { card: false, upi: false, netbanking: false, wallet: false, emi: false };
+                        if (selectedMethod === 'card') {
+                            razorpayMethod = { card: true, upi: false, netbanking: false, wallet: false, emi: false };
+                        } else if (selectedMethod === 'upi') {
+                            razorpayMethod = { card: false, upi: true, netbanking: false, wallet: false, emi: false };
+                        } else if (selectedMethod === 'netbanking') {
+                            razorpayMethod = { card: false, upi: false, netbanking: true, wallet: false, emi: false };
+                        } else if (selectedMethod === 'wallet') {
+                            razorpayMethod = { card: false, upi: false, netbanking: false, wallet: true, emi: false };
+                        } else {
+                            razorpayMethod = { card: true, upi: false, netbanking: false, wallet: false, emi: false };
+                        }
                         
                         const options = {
                             key: result.razorpay_key,
@@ -2129,19 +2367,8 @@
                             name: '{{ $paymentLink->merchant->name }}',
                             description: '{{ $paymentLink->title }}',
                             order_id: result.razorpay_order_id,
-                            prefill: {
-                                name: result.customer_details.name,
-                                email: result.customer_details.email,
-                                contact: result.customer_details.phone,
-                            },
-                            // Force card payment method only - explicitly disable other methods
-                            method: {
-                                card: {},      // Enable only card payments
-                                netbanking: false,
-                                wallet: false,
-                                upi: false,
-                                emi: false
-                            },
+                            prefill: razorpayPrefill,
+                            method: razorpayMethod,
                             // CRITICAL: DO NOT set callback_url - it causes Razorpay to redirect
                             // We handle everything in the handler function
                             // callback_url: undefined, // Explicitly undefined

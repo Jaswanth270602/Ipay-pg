@@ -318,10 +318,11 @@ class PaymentSimulationService
         }
 
         if ($paymentMethod === 'upi') {
-            $upiId = $paymentDetails['upi_id'] ?? '';
+            $upiId = strtolower(trim((string) ($paymentDetails['upi_id'] ?? '')));
 
-            // Test UPI IDs
-            if ($upiId === 'success@upi') {
+            // Strict test UPI behavior:
+            // only these two IDs are accepted for deterministic QA.
+            if ($upiId === 'testsuccess@gocash') {
                 return [
                     'success' => true,
                     'gateway_txn_id' => 'UPI_' . strtoupper(uniqid()),
@@ -331,7 +332,7 @@ class PaymentSimulationService
                 ];
             }
 
-            if ($upiId === 'failure@upi') {
+            if ($upiId === 'testfailure@gocash') {
                 return [
                     'success' => false,
                     'message' => 'UPI payment failed',
@@ -339,12 +340,11 @@ class PaymentSimulationService
                 ];
             }
 
-            // Default to success
+            // Any other UPI ID is invalid for test-mode simulation
             return [
-                'success' => true,
-                'gateway_txn_id' => 'UPI_' . strtoupper(uniqid()),
-                'message' => 'Payment successful',
-                'payment_method' => 'upi',
+                'success' => false,
+                'message' => 'Invalid test UPI ID. Use testsuccess@gocash or testfailure@gocash.',
+                'error_code' => 'UPI_TEST_ID_INVALID',
             ];
         }
 

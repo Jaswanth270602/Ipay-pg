@@ -549,6 +549,18 @@
             });
         });
 
+        // Customer full name: allow only letters and spaces while typing
+        const customerNameInput = document.getElementById('customerName');
+        if (customerNameInput) {
+            customerNameInput.addEventListener('input', (e) => {
+                const clean = (e.target.value || '').replace(/[^A-Za-z ]+/g, '');
+                if (clean !== e.target.value) {
+                    e.target.value = clean;
+                }
+                validateForm();
+            });
+        }
+
         function validateCardDetails() {
             const numberEl = document.getElementById('cardNumber');
             const holderEl = document.getElementById('cardHolder');
@@ -629,6 +641,12 @@
                 if (fieldTouched.customerName && nameErrorEl) {
                     nameErrorEl.style.display = 'block';
                     nameErrorEl.textContent = 'Full name is required.';
+                }
+                hasError = true;
+            } else if (!/^[A-Za-z ]+$/.test(name)) {
+                if (fieldTouched.customerName && nameErrorEl) {
+                    nameErrorEl.style.display = 'block';
+                    nameErrorEl.textContent = 'Full name may contain only letters and spaces.';
                 }
                 hasError = true;
             } else if (name.length > 50) {

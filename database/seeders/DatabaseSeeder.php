@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -11,7 +12,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
+        $seeders = [
             RolesTableSeeder::class,
             BanksTableSeeder::class,
             MerchantsTableSeeder::class,
@@ -21,8 +22,14 @@ class DatabaseSeeder extends Seeder
             PaymentLinksSeeder::class,
             DisputesSeeder::class,
             WebhookEventTypesSeeder::class,
-            DemoMerchantsWithVendorsSeeder::class,
-        ]);
+        ];
+
+        // Vendor module was removed from schema; only seed demo vendors when table exists.
+        if (Schema::hasTable('merchant_vendors')) {
+            $seeders[] = DemoMerchantsWithVendorsSeeder::class;
+        }
+
+        $this->call($seeders);
     }
 }
 
