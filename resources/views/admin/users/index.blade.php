@@ -391,8 +391,8 @@
                         <div class="col-md-6">
                             <label class="form-label">Currency Code <span class="text-danger">*</span></label>
                             <select class="form-select" ng-model="auc.editForm.currency_code" required>
-                                <option value="INR">INR</option>
                                 <option value="USD">USD</option>
+                                <option value="INR">INR</option>
                                 <option value="EUR">EUR</option>
                                 <option value="GBP">GBP</option>
                                 <option value="AED">AED</option>
@@ -648,7 +648,7 @@
                                 active: Boolean(userData.active === true || userData.active === 1 || userData.active === 'true'),
                                 email_verified: Boolean(userData.email_verified === true || userData.email_verified === 1 || userData.email_verified === 'true'),
                                 timezone: userData.timezone || 'Asia/Kolkata',
-                                currency_code: userData.currency_code || 'INR',
+                                currency_code: userData.currency_code || 'USD',
                                 team_name: userData.team_name || '',
                                 merchant_id: userData.merchant_id,
                                 merchant_name: userData.merchant_name || '',
@@ -722,7 +722,7 @@
                         active: activeValue,
                         email_verified: emailVerifiedValue, // Always send boolean value
                         timezone: vm.editForm.timezone || 'Asia/Kolkata',
-                        currency_code: vm.editForm.currency_code || 'INR',
+                        currency_code: vm.editForm.currency_code || 'USD',
                         team_name: vm.editForm.team_name || '',
                     };
                     

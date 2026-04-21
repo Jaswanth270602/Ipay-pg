@@ -28,6 +28,9 @@ class Settlement extends Model
         'bank_details',
         'utr_number',
         'notes',
+        'fee_breakdown',
+        'reserve_held_amount',
+        'reserve_released_amount',
         'processed_at',
         // Extended fields
         'partner_id',
@@ -49,11 +52,14 @@ class Settlement extends Model
 
     protected $casts = [
         'bank_details' => 'array',
+        'fee_breakdown' => 'array',
         'amount' => 'decimal:2',
         'fee_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'net_amount' => 'decimal:2',
         'payout_amount' => 'decimal:2',
+        'reserve_held_amount' => 'decimal:2',
+        'reserve_released_amount' => 'decimal:2',
         'period_start' => 'datetime',
         'period_end' => 'datetime',
         'processed_at' => 'datetime',

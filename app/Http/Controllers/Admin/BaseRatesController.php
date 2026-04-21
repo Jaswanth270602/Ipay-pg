@@ -8,6 +8,9 @@ use App\Models\Merchant;
 use App\Models\Bank;
 use App\Models\Reseller;
 use App\Models\MerchantResellerSplit;
+use App\Models\BillingFeeDefinition;
+use App\Models\BillingFeeRule;
+use App\Models\Partner;
 use App\Services\BaseRateService;
 use App\Http\Requests\Admin\BaseRates\StoreBaseRateRequest;
 use App\Http\Requests\Admin\BaseRates\UpdateBaseRateRequest;
@@ -350,5 +353,190 @@ class BaseRatesController extends Controller
                 'is_active' => (bool) ($splitData['is_active'] ?? true),
             ]
         );
+    }
+
+    public function getBillingFeeData(Request $request): JsonResponse
+    {
+        try {
+            $perPage = min((int) $request->get('per_page', 10), 100);
+            $query = BillingFeeRule::query()->with(['definition', 'merchant', 'partner']);
+
+            if ($request->filled('event_type') && $request->get('event_type') !== 'all') {
+                $query->where('event_type', $request->get('event_type'));
+            }
+            if ($request->filled('applies_to_status') && $request->get('applies_to_status') !== 'all') {
+                $query->where('applies_to_status', $request->get('applies_to_status'));
+            }
+            if ($request->filled('payment_method') && $request->get('payment_method') !== 'all') {
+                $query->where('payment_method', $request->get('payment_method'));
+            }
+            if ($request->filled('merchant_id')) {
+                $query->where('merchant_id', (int) $request->get('merchant_id'));
+            }
+            if ($request->filled('search')) {
+                $s = $request->get('search');
+                $query->where(function ($q) use ($s) {
+                    $q->whereHas('definition', function ($d) use ($s) {
+                        $d->where('name', 'like', "%{$s}%")
+                            ->orWhere('code', 'like', "%{$s}%");
+                    })->orWhere('currency', 'like', "%{$s}%");
+                });
+            }
+
+            $rules = $query->orderByDesc('id')->paginate($perPage);
+
+            $data = collect($rules->items())->map(function (BillingFeeRule $rule) {
+                return [
+                    'id' => $rule->id,
+                    'fee_definition_id' => $rule->fee_definition_id,
+                    'fee_name' => $rule->definition?->name,
+                    'fee_code' => $rule->definition?->code,
+                    'merchant_id' => $rule->merchant_id,
+                    'merchant_name' => $rule->merchant?->name,
+                    'partner_id' => $rule->partner_id,
+                    'partner_name' => $rule->partner?->name,
+                    'event_type' => $rule->event_type,
+                    'applies_to_status' => $rule->applies_to_status,
+                    'payment_method' => $rule->payment_method,
+                    'currency' => $rule->currency,
+                    'pricing_model' => $rule->pricing_model,
+                    'percentage_rate' => $rule->percentage_rate,
+                    'fixed_amount' => $rule->fixed_amount,
+                    'minimum_amount' => $rule->minimum_amount,
+                    'maximum_amount' => $rule->maximum_amount,
+                    'hold_days' => $rule->hold_days,
+                    'rolling_reserve_cap' => $rule->rolling_reserve_cap,
+                    'bill_to' => $rule->bill_to,
+                    'referral_commission_percentage' => $rule->referral_commission_percentage,
+                    'referral_commission_fixed' => $rule->referral_commission_fixed,
+                    'effective_from' => optional($rule->effective_from)->format('Y-m-d\TH:i'),
+                    'effective_to' => optional($rule->effective_to)->format('Y-m-d\TH:i'),
+                    'priority' => $rule->priority,
+                    'is_active' => $rule->is_active,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $rules->currentPage(),
+                    'per_page' => $rules->perPage(),
+                    'total' => $rules->total(),
+                    'last_page' => $rules->lastPage(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch billing fee rules: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getBillingFeeMeta(): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'definitions' => BillingFeeDefinition::query()
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'category']),
+                'merchants' => Merchant::query()->where('status', 'active')->orderBy('name')->get(['id', 'name', 'email']),
+                'partners' => Partner::query()->orderBy('name')->get(['id', 'name']),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch billing fee meta: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function storeBillingFeeRule(Request $request): JsonResponse
+    {
+        return $this->saveBillingFeeRule($request);
+    }
+
+    public function storeBillingFeeDefinition(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:64|unique:billing_fee_definitions,code',
+            'name' => 'required|string|max:128',
+            'category' => 'required|string|max:32',
+            'description' => 'nullable|string',
+            'is_active' => 'required|boolean',
+        ]);
+
+        try {
+            $definition = BillingFeeDefinition::create($validated);
+            return response()->json([
+                'success' => true,
+                'message' => 'Fee definition created successfully',
+                'data' => $definition,
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create fee definition: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateBillingFeeRule(Request $request, int $id): JsonResponse
+    {
+        return $this->saveBillingFeeRule($request, $id);
+    }
+
+    public function destroyBillingFeeRule(int $id): JsonResponse
+    {
+        try {
+            $rule = BillingFeeRule::findOrFail($id);
+            $rule->delete();
+            return response()->json(['success' => true, 'message' => 'Billing fee rule deleted successfully']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to delete billing fee rule: ' . $e->getMessage()], 500);
+        }
+    }
+
+    protected function saveBillingFeeRule(Request $request, ?int $id = null): JsonResponse
+    {
+        $validated = $request->validate([
+            'fee_definition_id' => 'required|exists:billing_fee_definitions,id',
+            'merchant_id' => 'nullable|exists:merchants,id',
+            'partner_id' => 'nullable|exists:partners,id',
+            'event_type' => 'required|string|max:32',
+            'applies_to_status' => 'required|in:all,success,failed',
+            'payment_method' => 'nullable|string|max:32',
+            'currency' => 'nullable|string|max:8',
+            'pricing_model' => 'required|in:percentage,fixed,percentage_plus_fixed',
+            'percentage_rate' => 'nullable|numeric|min:0|max:100',
+            'fixed_amount' => 'nullable|numeric|min:0',
+            'minimum_amount' => 'nullable|numeric|min:0',
+            'maximum_amount' => 'nullable|numeric|min:0',
+            'hold_days' => 'nullable|integer|min:0',
+            'rolling_reserve_cap' => 'nullable|numeric|min:0',
+            'bill_to' => 'required|in:merchant,partner',
+            'referral_commission_percentage' => 'nullable|numeric|min:0|max:100',
+            'referral_commission_fixed' => 'nullable|numeric|min:0',
+            'effective_from' => 'nullable|date',
+            'effective_to' => 'nullable|date|after_or_equal:effective_from',
+            'priority' => 'nullable|integer|min:1|max:1000',
+            'is_active' => 'required|boolean',
+        ]);
+
+        try {
+            if ($id) {
+                $rule = BillingFeeRule::findOrFail($id);
+                $rule->update($validated);
+                return response()->json(['success' => true, 'message' => 'Billing fee rule updated successfully', 'data' => $rule->fresh()]);
+            }
+
+            $rule = BillingFeeRule::create($validated);
+            return response()->json(['success' => true, 'message' => 'Billing fee rule created successfully', 'data' => $rule], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to save billing fee rule: ' . $e->getMessage()], 500);
+        }
     }
 }

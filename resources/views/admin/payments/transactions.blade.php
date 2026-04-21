@@ -157,6 +157,16 @@
                                        ng-model="atc.filters.filter_transaction_id"
                                        ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
+                            <th ng-show="atc.visibleColumns.admin_rate_snapshot_id.visible">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Admin Rate Snapshot ID</span>
+                                </div>
+                                <input type="number"
+                                       class="form-control form-control-sm mt-1"
+                                       placeholder="Snapshot ID..."
+                                       ng-model="atc.filters.filter_admin_rate_snapshot_id"
+                                       ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
+                            </th>
                             <th ng-show="atc.visibleColumns.amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Amount Paid By Customer</span>
@@ -256,7 +266,7 @@
                             </th>
                             <th ng-show="atc.visibleColumns.gst_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Amount</span>
+                                    <span>VAT Amount</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_amount">
                             </th>
@@ -284,13 +294,13 @@
                             </th>
                             <th ng-show="atc.visibleColumns.gst_paid_by_merchant.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Paid By Merchant</span>
+                                    <span>VAT Paid By Merchant</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_merchant">
                             </th>
                             <th ng-show="atc.visibleColumns.gst_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Paid By Customer</span>
+                                    <span>VAT Paid By Customer</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_gst_paid_by_customer">
                             </th>
@@ -372,6 +382,15 @@
                             <td ng-show="atc.visibleColumns.transaction_order_id.visible">@{{ transaction.transaction_order_id }}</td>
                             <td ng-show="atc.visibleColumns.transaction_datetime.visible">@{{ transaction.transaction_datetime }}</td>
                             <td ng-show="atc.visibleColumns.transaction_id.visible">@{{ transaction.transaction_id }}</td>
+                            <td ng-show="atc.visibleColumns.admin_rate_snapshot_id.visible">
+                                <button ng-if="transaction.admin_rate_snapshot_id !== '-'"
+                                        class="btn btn-sm btn-link p-0 text-decoration-none"
+                                        ng-click="atc.viewSnapshot(transaction)"
+                                        title="View rate snapshot details">
+                                    @{{ transaction.admin_rate_snapshot_id }}
+                                </button>
+                                <span ng-if="transaction.admin_rate_snapshot_id === '-'">-</span>
+                            </td>
                             <td ng-show="atc.visibleColumns.amount_paid_by_customer.visible">@{{ transaction.amount_paid_by_customer }}</td>
                             <td ng-show="atc.visibleColumns.payment_status.visible">
                                 <span class="badge" ng-class="{
@@ -507,6 +526,47 @@
             </div>
         </div>
     </div>
+
+    <!-- Snapshot Details Modal -->
+    <div class="modal fade" id="snapshotDetailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" ng-if="atc.selectedSnapshot">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-clipboard-data"></i> Rate Snapshot Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6"><strong>Snapshot ID:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.id || '-' }}</div>
+                        <div class="col-6"><strong>Merchant ID:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.merchant_id || '-' }}</div>
+                        <div class="col-6"><strong>Base Rate ID:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.base_rate_id || '-' }}</div>
+                        <div class="col-6"><strong>Payment Method:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.payment_method || '-' }}</div>
+                        <div class="col-6"><strong>Service Type:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.service_type || '-' }}</div>
+                        <div class="col-6"><strong>Transaction Type:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.transaction_type || '-' }}</div>
+                        <div class="col-6"><strong>Percentage Fee:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.percentage_fee || '-' }}</div>
+                        <div class="col-6"><strong>Flat Fee:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.flat_fee || '-' }}</div>
+                        <div class="col-6"><strong>VAT %:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.gst_percentage || '-' }}</div>
+                        <div class="col-6"><strong>Effective Fee %:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.effective_fee_percentage || '-' }}</div>
+                        <div class="col-6"><strong>Snapshot Time:</strong></div>
+                        <div class="col-6">@{{ atc.selectedSnapshot.created_at || '-' }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -538,6 +598,7 @@
                     transaction_order_id: { visible: true, label: 'Transaction Order Id' },
                     transaction_datetime: { visible: true, label: 'Transaction DateTime' },
                     transaction_id: { visible: true, label: 'Transaction Id' },
+                    admin_rate_snapshot_id: { visible: true, label: 'Admin Rate Snapshot ID' },
                     amount_paid_by_customer: { visible: true, label: 'Amount Paid By Customer' },
                     payment_status: { visible: true, label: 'Payment Status' },
                     payment_mode: { visible: true, label: 'Payment Mode' },
@@ -550,12 +611,12 @@
                     provider_name: { visible: true, label: 'Provider Name' },
                     account_id: { visible: true, label: 'Account ID' },
                     tdr_amount: { visible: true, label: 'TDR Amount' },
-                    gst_amount: { visible: true, label: 'GST Amount' },
+                    gst_amount: { visible: true, label: 'VAT Amount' },
                     is_updated_by_recon: { visible: true, label: 'Is Updated By Recon' },
                     tdr_amount_paid_by_merchant: { visible: true, label: 'TDR Amount Paid by Merchant' },
                     tdr_amount_paid_by_customer: { visible: true, label: 'TDR Amount Paid by Customer' },
-                    gst_paid_by_merchant: { visible: true, label: 'GST Paid By Merchant' },
-                    gst_paid_by_customer: { visible: true, label: 'GST Paid By Customer' },
+                    gst_paid_by_merchant: { visible: true, label: 'VAT Paid By Merchant' },
+                    gst_paid_by_customer: { visible: true, label: 'VAT Paid By Customer' },
                     net_settlements_amount: { visible: true, label: 'Net Settlements Amount' },
                     admin_merchant_rate_pct: { visible: true, label: 'Admin→Merchant Fee %' },
                     card_holder_name: { visible: true, label: 'Card Holder Name' },
@@ -677,10 +738,17 @@
                 };
 
                 vm.selectedTransaction = null;
+                vm.selectedSnapshot = null;
                 
                 vm.viewTransaction = function(transaction) {
                     vm.selectedTransaction = transaction;
                     var modal = new bootstrap.Modal(document.getElementById('transactionDetailsModal'));
+                    modal.show();
+                };
+
+                vm.viewSnapshot = function(transaction) {
+                    vm.selectedSnapshot = transaction.admin_rate_snapshot || null;
+                    var modal = new bootstrap.Modal(document.getElementById('snapshotDetailsModal'));
                     modal.show();
                 };
 

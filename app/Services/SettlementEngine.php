@@ -13,7 +13,8 @@ use Carbon\Carbon;
 class SettlementEngine
 {
     public function __construct(
-        protected SettlementDetailSyncService $settlementDetailSync
+        protected SettlementDetailSyncService $settlementDetailSync,
+        protected BillingFeeEngineService $billingFeeEngine
     ) {}
 
     /**
@@ -76,6 +77,8 @@ class SettlementEngine
         bool $dryRun = false
     ): array
     {
+        $this->billingFeeEngine->releaseDueReservesForMerchant($merchant->id, $date);
+
         // Get merchant's settlement cycles
         $domesticCycle = $merchant->settlement_cycle_domestic ?? 1;
         $internationalCycle = $merchant->settlement_cycle_international ?? 7;
@@ -216,13 +219,26 @@ class SettlementEngine
             ->where('status', 'completed')
             ->sum('amount');
 
+        $refundFeeAmount = DB::table('refunds')
+            ->whereIn('transaction_id', $transactionIds)
+            ->where('status', 'completed')
+            ->sum('fee_amount');
+
         $refundCount = DB::table('refunds')
             ->whereIn('transaction_id', $transactionIds)
             ->where('status', 'completed')
             ->count();
 
-        // Net amount = Gross - Fees - GST - Other Fees - Refunds
-        $netAmount = $grossAmount - $feeAmount - $gstAmount - $otherFees - $refundAmount;
+        $feeBreakdown = $this->billingFeeEngine->buildSettlementFeeBreakdown($transactionIds);
+        $reserveHeldAmount = (float) collect($feeBreakdown)
+            ->where('fee_code', 'rolling_reserve_hold')
+            ->sum('amount');
+        $reserveReleasedAmount = (float) collect($feeBreakdown)
+            ->where('fee_code', 'rolling_reserve_release')
+            ->sum('amount');
+
+        // Net amount = Gross - Fees - GST - Other Fees - Refunds - Refund Fees + Reserve Releases
+        $netAmount = $grossAmount - $feeAmount - $gstAmount - $otherFees - $refundAmount - $refundFeeAmount + $reserveReleasedAmount;
 
         return [
             'gross_amount' => $grossAmount,
@@ -230,9 +246,13 @@ class SettlementEngine
             'gst_amount' => $gstAmount,
             'other_fees' => $otherFees,
             'refund_amount' => $refundAmount,
+            'refund_fee_amount' => $refundFeeAmount,
             'refund_count' => $refundCount,
             'net_amount' => $netAmount,
             'transaction_count' => $transactions->count(),
+            'fee_breakdown' => $feeBreakdown,
+            'reserve_held_amount' => $reserveHeldAmount,
+            'reserve_released_amount' => $reserveReleasedAmount,
         ];
     }
 
@@ -257,10 +277,13 @@ class SettlementEngine
             'test_mode' => (bool) ($firstTransaction->test_mode ?? false),
             'settlement_id' => $this->generateSettlementId($merchant, $settlementDate),
             'amount' => $calculation['gross_amount'],
-            'fee_amount' => $calculation['fee_amount'] + $calculation['gst_amount'] + $calculation['other_fees'],
+            'fee_amount' => $calculation['fee_amount'] + $calculation['gst_amount'] + $calculation['other_fees'] + ($calculation['refund_fee_amount'] ?? 0),
             'refund_amount' => $calculation['refund_amount'],
             'net_amount' => $calculation['net_amount'],
             'payout_amount' => $calculation['net_amount'],
+            'fee_breakdown' => $calculation['fee_breakdown'] ?? [],
+            'reserve_held_amount' => $calculation['reserve_held_amount'] ?? 0,
+            'reserve_released_amount' => $calculation['reserve_released_amount'] ?? 0,
             'currency' => $firstTransaction->currency ?? 'INR',
             'transaction_count' => $calculation['transaction_count'],
             'refund_count' => $calculation['refund_count'],

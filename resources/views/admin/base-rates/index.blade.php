@@ -297,10 +297,11 @@
                                     <option value="merchant">Merchant</option>
                                     <option value="receiver">Receiver</option>
                                     <option value="pricer">Pricer</option>
+                                    <option value="billing_rule">Billing Fee Rule</option>
                                 </select>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('rate_type')">@{{ brc.firstError('rate_type') }}</div>
                             </div>
-                            <div class="col-md-6" ng-if="brc.rateForm.rate_type">
+                            <div class="col-md-6" ng-if="brc.rateForm.rate_type && brc.rateForm.rate_type !== 'billing_rule'">
                                 <label class="form-label">Entity <span class="text-danger">*</span></label>
                                 <select class="form-select" ng-class="{'is-invalid': brc.hasError('entity_id')}" ng-model="brc.rateForm.entity_id" ng-disabled="!brc.entities.length" ng-change="brc.validate('entity_id')" ng-blur="brc.validate('entity_id')" required>
                                     <option value="">Select @{{ brc.rateForm.rate_type }}</option>
@@ -308,6 +309,149 @@
                                 </select>
                                 <small class="text-muted" ng-if="!brc.entities.length">Loading entities...</small>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('entity_id')">@{{ brc.firstError('entity_id') }}</div>
+                            </div>
+                            <div ng-if="brc.rateForm.rate_type === 'billing_rule'" class="col-12">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Fee Definition <span class="text-danger">*</span></label>
+                                        <select class="form-select" ng-model="brc.rateForm.fee_definition_id" ng-change="brc.validate('fee_definition_id')" ng-blur="brc.validate('fee_definition_id')">
+                                            <option value="">Select</option>
+                                            <option ng-repeat="d in brc.billingFeeMeta.definitions" value="@{{ d.id }}">@{{ d.name }} (@{{ d.code }})</option>
+                                        </select>
+                                        <div class="invalid-feedback d-block" ng-if="brc.firstError('fee_definition_id')">@{{ brc.firstError('fee_definition_id') }}</div>
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-end">
+                                        <button type="button" class="btn btn-outline-primary" ng-click="brc.toggleInlineFeeDefinitionForm()">
+                                            <i class="bi bi-plus-lg"></i> New Fee Definition
+                                        </button>
+                                    </div>
+                                    <div class="col-12" ng-if="brc.showInlineFeeDefinitionForm">
+                                        <div class="border rounded p-3 bg-light">
+                                            <div class="row g-2">
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Code</label>
+                                                    <input type="text" class="form-control" ng-model="brc.newFeeDefinition.code" placeholder="tx_success_fee">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Name</label>
+                                                    <input type="text" class="form-control" ng-model="brc.newFeeDefinition.name" placeholder="Transaction Success Fee">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Category</label>
+                                                    <select class="form-select" ng-model="brc.newFeeDefinition.category">
+                                                        <option value="transaction">transaction</option>
+                                                        <option value="refund">refund</option>
+                                                        <option value="chargeback">chargeback</option>
+                                                        <option value="rolling_reserve">rolling_reserve</option>
+                                                        <option value="recurrent">recurrent</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Description</label>
+                                                    <input type="text" class="form-control" ng-model="brc.newFeeDefinition.description" placeholder="Optional">
+                                                </div>
+                                                <div class="col-12 d-flex gap-2">
+                                                    <button type="button" class="btn btn-sm btn-primary" ng-click="brc.createInlineFeeDefinition()" ng-disabled="brc.creatingFeeDefinition">
+                                                        <span ng-if="brc.creatingFeeDefinition" class="spinner-border spinner-border-sm me-1"></span>
+                                                        Create Definition
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" ng-click="brc.toggleInlineFeeDefinitionForm(false)">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Merchant</label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_merchant_id">
+                                            <option value="">Global</option>
+                                            <option ng-repeat="m in brc.billingFeeMeta.merchants" value="@{{ m.id }}">@{{ m.name }} (@{{ m.email }})</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Event Type <span class="text-danger">*</span></label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_event_type">
+                                            <option value="transaction">transaction</option>
+                                            <option value="refund">refund</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Applies To Status <span class="text-danger">*</span></label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_applies_to_status">
+                                            <option value="all">all</option>
+                                            <option value="success">success</option>
+                                            <option value="failed">failed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Payment Method</label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_payment_method">
+                                            <option value="">All</option>
+                                            <option value="card">card</option>
+                                            <option value="upi">upi</option>
+                                            <option value="netbanking">netbanking</option>
+                                            <option value="wallet">wallet</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Pricing Model <span class="text-danger">*</span></label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_pricing_model">
+                                            <option value="percentage">percentage</option>
+                                            <option value="fixed">fixed</option>
+                                            <option value="percentage_plus_fixed">percentage_plus_fixed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Percentage Rate</label>
+                                        <input type="number" class="form-control" step="0.0001" min="0" ng-model="brc.rateForm.billing_percentage_rate">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Fixed Amount</label>
+                                        <input type="number" class="form-control" step="0.0001" min="0" ng-model="brc.rateForm.billing_fixed_amount">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Hold Days</label>
+                                        <input type="number" class="form-control" min="0" ng-model="brc.rateForm.billing_hold_days">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Reserve Cap</label>
+                                        <input type="number" class="form-control" step="0.0001" min="0" ng-model="brc.rateForm.billing_rolling_reserve_cap">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Bill To</label>
+                                        <select class="form-select" ng-model="brc.rateForm.billing_bill_to">
+                                            <option value="merchant">merchant</option>
+                                            <option value="partner">partner</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ref Comm %</label>
+                                        <input type="number" class="form-control" step="0.0001" min="0" ng-model="brc.rateForm.billing_referral_commission_percentage">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ref Comm Fixed</label>
+                                        <input type="number" class="form-control" step="0.0001" min="0" ng-model="brc.rateForm.billing_referral_commission_fixed">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Effective From</label>
+                                        <input type="datetime-local" class="form-control" ng-model="brc.rateForm.billing_effective_from">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Effective To</label>
+                                        <input type="datetime-local" class="form-control" ng-model="brc.rateForm.billing_effective_to">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Priority</label>
+                                        <input type="number" class="form-control" min="1" ng-model="brc.rateForm.billing_priority">
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="billingRuleActiveInBaseForm" ng-model="brc.rateForm.billing_is_active">
+                                            <label class="form-check-label" for="billingRuleActiveInBaseForm">Active</label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12" ng-if="brc.rateForm.rate_type === 'merchant'">
                                 <p class="small text-muted mb-0">Merchant list matches your admin session mode (Test vs Live). Switch mode from the admin toolbar if needed.</p>
@@ -489,7 +633,7 @@
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('percentage_fee')">@{{ brc.firstError('percentage_fee') }}</div>
                             </div>
                             <div class="col-md-6" ng-show="brc.showFlatFee()">
-                                <label class="form-label">Flat Fee <span class="text-muted">(@{{ brc.rateForm.currency || 'INR' }})</span> <span class="text-danger" ng-show="brc.rateForm.calculation_type === 'fixed_only' || brc.rateForm.calculation_type === 'percentage_fixed'">*</span></label>
+                                <label class="form-label">Flat Fee <span class="text-muted">(@{{ brc.rateForm.currency || 'USD' }})</span> <span class="text-danger" ng-show="brc.rateForm.calculation_type === 'fixed_only' || brc.rateForm.calculation_type === 'percentage_fixed'">*</span></label>
                                 <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('flat_fee')}" ng-model="brc.rateForm.flat_fee" ng-change="brc.validate('flat_fee')" ng-blur="brc.validate('flat_fee')" step="0.01" min="0">
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('flat_fee')">@{{ brc.firstError('flat_fee') }}</div>
                             </div>
@@ -557,7 +701,7 @@
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('merchant_share_pct')">@{{ brc.firstError('merchant_share_pct') }}</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">GST Percentage (%) <span class="text-danger">*</span></label>
+                                <label class="form-label">VAT Percentage (%) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('gst_percentage')}" ng-model="brc.rateForm.gst_percentage" ng-change="brc.validate('gst_percentage')" ng-blur="brc.validate('gst_percentage')" step="0.01" min="0" max="100">
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('gst_percentage')">@{{ brc.firstError('gst_percentage') }}</div>
                             </div>
@@ -597,6 +741,7 @@
             </div>
         </div>
     </div>
+
 </div>
 @endsection
 
@@ -618,11 +763,22 @@
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
                 vm.loading = false;
                 vm.saving = false;
+                vm.savingBillingFee = false;
+                vm.creatingFeeDefinition = false;
                 vm.isEditing = false;
                 vm.entities = [];
                 vm.resellers = [];
+                vm.billingFeeMeta = { definitions: [], merchants: [], partners: [] };
+                vm.showInlineFeeDefinitionForm = false;
                 vm.validationErrors = {};
                 vm.touched = {};
+                vm.newFeeDefinition = {
+                    code: '',
+                    name: '',
+                    category: 'transaction',
+                    description: '',
+                    is_active: true
+                };
                 vm.filters = {
                     team_id: '',
                     team_name: '',
@@ -676,7 +832,25 @@
                     is_active: true,
                     effective_from: null,
                     effective_to: null,
-                    notes: ''
+                    notes: '',
+                    fee_definition_id: '',
+                    billing_merchant_id: '',
+                    billing_event_type: 'transaction',
+                    billing_applies_to_status: 'all',
+                    billing_payment_method: '',
+                    billing_currency: 'USD',
+                    billing_pricing_model: 'percentage',
+                    billing_percentage_rate: null,
+                    billing_fixed_amount: null,
+                    billing_hold_days: null,
+                    billing_rolling_reserve_cap: null,
+                    billing_bill_to: 'merchant',
+                    billing_referral_commission_percentage: null,
+                    billing_referral_commission_fixed: null,
+                    billing_effective_from: null,
+                    billing_effective_to: null,
+                    billing_priority: 100,
+                    billing_is_active: true
                 };
 
                 vm.calcTypeLabel = function(rate) {
@@ -744,6 +918,33 @@
                     // hard=true used before submit; soft validation otherwise.
                     var e = {};
 
+                    if (vm.rateForm.rate_type === 'billing_rule') {
+                        if (hard) {
+                            vm.setTouched('fee_definition_id');
+                            vm.setTouched('billing_event_type');
+                            vm.setTouched('billing_applies_to_status');
+                            vm.setTouched('billing_pricing_model');
+                            vm.setTouched('billing_bill_to');
+                        }
+                        if (!vm.rateForm.fee_definition_id) {
+                            e.fee_definition_id = ['Fee Definition is required.'];
+                        }
+                        if (!vm.rateForm.billing_event_type) {
+                            e.billing_event_type = ['Event type is required.'];
+                        }
+                        if (!vm.rateForm.billing_applies_to_status) {
+                            e.billing_applies_to_status = ['Applies To Status is required.'];
+                        }
+                        if (!vm.rateForm.billing_pricing_model) {
+                            e.billing_pricing_model = ['Pricing model is required.'];
+                        }
+                        if (!vm.rateForm.billing_bill_to) {
+                            e.billing_bill_to = ['Bill To is required.'];
+                        }
+                        vm.validationErrors = e;
+                        return Object.keys(e).length === 0;
+                    }
+
                     function req(field, msg) {
                         if (hard) vm.setTouched(field);
                         if (!vm.touched[field] && !hard) return;
@@ -782,7 +983,7 @@
                     req('max_amount', 'Max Amount is required.');
                     req('min_share', 'Min Share (%) is required.');
                     req('max_share', 'Max Share (%) is required.');
-                    req('gst_percentage', 'GST Percentage is required.');
+                    req('gst_percentage', 'VAT Percentage is required.');
                     req('is_active', 'Status is required.');
                     req('effective_from', 'Effective From is required.');
 
@@ -874,7 +1075,7 @@
                             }
                         }
                     }
-                    num('gst_percentage', 0, 100, 'GST Percentage must be between 0–100.');
+                    num('gst_percentage', 0, 100, 'VAT Percentage must be between 0–100.');
                     num('min_amount', 0, null, 'Min Amount must be numeric.');
                     num('max_amount', 0, null, 'Max Amount must be numeric.');
                     num('min_share', 0, 100, 'Min Share must be between 0–100.');
@@ -1028,6 +1229,13 @@
                 };
 
                 vm.onRateTypeChange = function() {
+                    if (vm.rateForm.rate_type === 'billing_rule') {
+                        vm.entities = [];
+                        vm.rateForm.entity_type = '';
+                        vm.rateForm.entity_id = null;
+                        vm.loadBillingFeeMeta();
+                        return;
+                    }
                     if (vm.rateForm.rate_type && (vm.rateForm.rate_type === 'merchant' || vm.rateForm.rate_type === 'bank')) {
                         vm.rateForm.entity_type = vm.rateForm.rate_type;
                         $http.get('/admin/base-rates/entities', { params: { type: vm.rateForm.rate_type } }).then(function(response) {
@@ -1083,7 +1291,25 @@
                         is_active: true,
                         effective_from: null,
                         effective_to: null,
-                        notes: ''
+                        notes: '',
+                        fee_definition_id: '',
+                        billing_merchant_id: '',
+                        billing_event_type: 'transaction',
+                        billing_applies_to_status: 'all',
+                        billing_payment_method: '',
+                        billing_currency: 'USD',
+                        billing_pricing_model: 'percentage',
+                        billing_percentage_rate: null,
+                        billing_fixed_amount: null,
+                        billing_hold_days: null,
+                        billing_rolling_reserve_cap: null,
+                        billing_bill_to: 'merchant',
+                        billing_referral_commission_percentage: null,
+                        billing_referral_commission_fixed: null,
+                        billing_effective_from: null,
+                        billing_effective_to: null,
+                        billing_priority: 100,
+                        billing_is_active: true
                     };
                     vm.entities = [];
                     var modal = new bootstrap.Modal(document.getElementById('baseRateModal'));
@@ -1143,6 +1369,53 @@
                         } else {
                             alert('Validation failed');
                         }
+                        return;
+                    }
+                    if (vm.rateForm.rate_type === 'billing_rule') {
+                        vm.saving = true;
+                        var billingPayload = {
+                            fee_definition_id: vm.rateForm.fee_definition_id,
+                            merchant_id: vm.rateForm.billing_merchant_id || null,
+                            event_type: vm.rateForm.billing_event_type,
+                            applies_to_status: vm.rateForm.billing_applies_to_status,
+                            payment_method: vm.rateForm.billing_payment_method || null,
+                            currency: vm.rateForm.billing_currency || null,
+                            pricing_model: vm.rateForm.billing_pricing_model,
+                            percentage_rate: vm.rateForm.billing_percentage_rate,
+                            fixed_amount: vm.rateForm.billing_fixed_amount,
+                            hold_days: vm.rateForm.billing_hold_days,
+                            rolling_reserve_cap: vm.rateForm.billing_rolling_reserve_cap,
+                            bill_to: vm.rateForm.billing_bill_to,
+                            referral_commission_percentage: vm.rateForm.billing_referral_commission_percentage,
+                            referral_commission_fixed: vm.rateForm.billing_referral_commission_fixed,
+                            effective_from: vm.rateForm.billing_effective_from,
+                            effective_to: vm.rateForm.billing_effective_to,
+                            priority: vm.rateForm.billing_priority,
+                            is_active: !!vm.rateForm.billing_is_active
+                        };
+                        $http({
+                            method: 'POST',
+                            url: '/admin/base-rates/billing-fees',
+                            data: billingPayload,
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
+                            vm.saving = false;
+                            if (response.data && response.data.success) {
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('baseRateModal'));
+                                if (modal) modal.hide();
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'Billing fee rule created successfully', 'success');
+                                } else {
+                                    alert(response.data.message || 'Billing fee rule created successfully');
+                                }
+                                vm.loadRates();
+                            } else {
+                                alert(response.data.message || 'Failed to save billing fee rule');
+                            }
+                        }, function(error) {
+                            vm.saving = false;
+                            alert((error.data && error.data.message) ? error.data.message : 'Failed to save billing fee rule');
+                        });
                         return;
                     }
                     if (!vm.rateForm.rate_type || !vm.rateForm.payment_method || !vm.rateForm.service_type) {
@@ -1239,7 +1512,69 @@
                     });
                 };
 
+                vm.loadBillingFeeMeta = function() {
+                    $http.get('/admin/base-rates/billing-fees/meta').then(function(response) {
+                        if (response.data && response.data.success) {
+                            vm.billingFeeMeta = {
+                                definitions: response.data.definitions || [],
+                                merchants: response.data.merchants || [],
+                                partners: response.data.partners || []
+                            };
+                        }
+                    });
+                };
+
+                vm.toggleInlineFeeDefinitionForm = function(forceState) {
+                    if (typeof forceState === 'boolean') {
+                        vm.showInlineFeeDefinitionForm = forceState;
+                    } else {
+                        vm.showInlineFeeDefinitionForm = !vm.showInlineFeeDefinitionForm;
+                    }
+                    if (!vm.showInlineFeeDefinitionForm) {
+                        vm.newFeeDefinition = {
+                            code: '',
+                            name: '',
+                            category: 'transaction',
+                            description: '',
+                            is_active: true
+                        };
+                    }
+                };
+
+                vm.createInlineFeeDefinition = function() {
+                    if (!vm.newFeeDefinition.code || !vm.newFeeDefinition.name || !vm.newFeeDefinition.category) {
+                        alert('Code, Name and Category are required.');
+                        return;
+                    }
+
+                    vm.creatingFeeDefinition = true;
+                    $http({
+                        method: 'POST',
+                        url: '/admin/base-rates/billing-fees/definitions',
+                        data: vm.newFeeDefinition,
+                        headers: { 'X-CSRF-TOKEN': csrf }
+                    }).then(function(response) {
+                        vm.creatingFeeDefinition = false;
+                        if (response.data && response.data.success) {
+                            vm.loadBillingFeeMeta();
+                            vm.rateForm.fee_definition_id = response.data.data.id;
+                            vm.toggleInlineFeeDefinitionForm(false);
+                            if (typeof showToast === 'function') {
+                                showToast('Fee definition created successfully', 'success');
+                            } else {
+                                alert('Fee definition created successfully');
+                            }
+                        } else {
+                            alert(response.data.message || 'Failed to create fee definition');
+                        }
+                    }, function(error) {
+                        vm.creatingFeeDefinition = false;
+                        alert((error.data && error.data.message) ? error.data.message : 'Failed to create fee definition');
+                    });
+                };
+
                 vm.loadRates();
+                vm.loadBillingFeeMeta();
             }]);
         } catch(e) {
             setTimeout(registerController, 50);

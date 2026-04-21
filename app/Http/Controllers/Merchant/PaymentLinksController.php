@@ -255,7 +255,7 @@ class PaymentLinksController extends Controller
                 'merchant_id' => $merchant->id,
                 'title' => $request->title,
                 'amount' => $request->amount,
-                'currency' => $request->currency ?? 'INR',
+                'currency' => $request->currency ?? 'USD',
             ]);
 
             // Calculate expiry
@@ -270,7 +270,7 @@ class PaymentLinksController extends Controller
                 'title' => $request->title,
                 'description' => $request->description,
                 'amount' => $request->amount,
-                'currency' => $request->currency ?? $merchant->default_currency ?? 'INR',
+                'currency' => $request->currency ?? $merchant->default_currency ?? 'USD',
                 'allow_partial_payment' => $request->has('allow_partial_payment') ? (bool) $request->input('allow_partial_payment') : false,
                 'expires_at' => $expiresAt->toIso8601String(),
                 'payment_methods' => $paymentMethods,
@@ -284,7 +284,7 @@ class PaymentLinksController extends Controller
                     'title' => $request->title,
                     'description' => $request->description,
                     'amount' => $request->amount,
-                    'currency' => $request->currency ?? $merchant->default_currency ?? 'INR',
+                    'currency' => $request->currency ?? $merchant->default_currency ?? 'USD',
                     'allow_partial_payment' => $request->has('allow_partial_payment') ? (bool)$request->input('allow_partial_payment') : false,
                     'amount_paid' => 0,
                     'status' => 'active',

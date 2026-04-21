@@ -18,7 +18,7 @@
                     order_id: '',
                     reason: '', 
                     amount: '', 
-                    currency: 'INR',
+                    currency: 'USD',
                     card_network: '',
                     internal_notes: '' 
                 };
@@ -63,7 +63,7 @@
                                 order_id: '',
                                 reason: '', 
                                 amount: '', 
-                                currency: 'INR',
+                                currency: 'USD',
                                 card_network: '',
                                 internal_notes: '' 
                             };

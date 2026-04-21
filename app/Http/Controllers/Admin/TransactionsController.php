@@ -37,7 +37,7 @@ class TransactionsController extends Controller
             $perPage = min($request->get('per_page', 10), 50);
             
             // Filter by admin's viewing mode
-            $query = Transaction::with(['merchant', 'order.paymentLink'])
+            $query = Transaction::with(['merchant', 'order.paymentLink', 'adminRateSnapshot'])
                 ->where('test_mode', $isTestMode)
                 ->latest();
 
@@ -68,6 +68,9 @@ class TransactionsController extends Controller
             }
             if ($request->has('filter_transaction_id') && $request->get('filter_transaction_id')) {
                 $query->where('txn_id', 'like', "%{$request->get('filter_transaction_id')}%");
+            }
+            if ($request->has('filter_admin_rate_snapshot_id') && $request->get('filter_admin_rate_snapshot_id')) {
+                $query->where('admin_rate_snapshot_id', (int) $request->get('filter_admin_rate_snapshot_id'));
             }
             if ($request->has('filter_order_id') && $request->get('filter_order_id')) {
                 $query->whereHas('order', function($q) use ($request) {
@@ -144,6 +147,7 @@ class TransactionsController extends Controller
                 }
                 
                 try {
+                    $snapshot = $transaction->adminRateSnapshot;
                     return [
                     'id' => $transaction->id,
                     'merchant_id' => $transaction->merchant_id,
@@ -176,6 +180,20 @@ class TransactionsController extends Controller
                     'admin_merchant_rate_pct' => $transaction->admin_fee_percentage_snapshot !== null
                         ? number_format((float) $transaction->admin_fee_percentage_snapshot, 4)
                         : '-',
+                    'admin_rate_snapshot_id' => $transaction->admin_rate_snapshot_id ?? '-',
+                    'admin_rate_snapshot' => $snapshot ? [
+                        'id' => $snapshot->id,
+                        'merchant_id' => $snapshot->merchant_id,
+                        'base_rate_id' => $snapshot->base_rate_id,
+                        'payment_method' => $snapshot->payment_method,
+                        'service_type' => $snapshot->service_type,
+                        'transaction_type' => $snapshot->transaction_type,
+                        'percentage_fee' => number_format((float) $snapshot->percentage_fee, 4),
+                        'flat_fee' => number_format((float) $snapshot->flat_fee, 4),
+                        'gst_percentage' => number_format((float) $snapshot->gst_percentage, 4),
+                        'effective_fee_percentage' => number_format((float) $snapshot->effective_fee_percentage, 4),
+                        'created_at' => optional($snapshot->created_at)->format('d-m-Y H:i:s'),
+                    ] : null,
                     'card_holder_name' => $paymentDetails['card_holder_name'] ?? $paymentDetails['card_holder'] ?? '-',
                     // PCI-DSS: Use last4 from sanitized data (card_number never stored)
                     'card_number' => isset($paymentDetails['last4']) ? '****' . $paymentDetails['last4'] : '-',
@@ -260,6 +278,9 @@ class TransactionsController extends Controller
             if ($request->has('filter_transaction_id') && $request->get('filter_transaction_id')) {
                 $query->where('txn_id', 'like', "%{$request->get('filter_transaction_id')}%");
             }
+            if ($request->has('filter_admin_rate_snapshot_id') && $request->get('filter_admin_rate_snapshot_id')) {
+                $query->where('admin_rate_snapshot_id', (int) $request->get('filter_admin_rate_snapshot_id'));
+            }
             if ($request->has('filter_payment_status') && $request->get('filter_payment_status') !== 'all') {
                 $query->where('status', $request->get('filter_payment_status'));
             }
@@ -278,7 +299,7 @@ class TransactionsController extends Controller
                 // CSV Headers
                 fputcsv($file, [
                     'Merchant ID', 'Transaction Initiation Time', 'Merchant Name', 'Transaction Sequence ID',
-                    'Transaction Order ID', 'Transaction DateTime', 'Transaction ID', 'Amount Paid By Customer',
+                    'Transaction Order ID', 'Transaction DateTime', 'Transaction ID', 'Admin Rate Snapshot ID', 'Amount Paid By Customer',
                     'Payment Status', 'Payment Mode', 'Payment Channel', 'Merc Approved', 'Currency Code',
                     'Bank Reference Number', 'Acq Payment ID', 'Acq Transaction ID', 'Provider Name', 'Account ID',
                     'TDR Amount', 'GST Amount', 'TDR Amount Paid By Merchant', 'TDR Amount Paid By Customer',
@@ -305,6 +326,7 @@ class TransactionsController extends Controller
                         $transaction->order_id ?? '-',
                         $transaction->created_at->format('Y-m-d H:i:s'),
                         $transaction->txn_id,
+                        $transaction->admin_rate_snapshot_id ?? '-',
                         number_format($transaction->amount, 2),
                         $transaction->status,
                         $transaction->payment_method ?? '-',

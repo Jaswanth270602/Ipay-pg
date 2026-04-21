@@ -233,7 +233,7 @@ class RegistrationController extends Controller
                 'approval_status' => 'not_approved',
                 'status' => 'inactive',
                 'registration_date' => now(),
-                'default_currency' => 'INR',
+                'default_currency' => 'USD',
                 'test_mode' => true,
             ]);
 

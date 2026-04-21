@@ -48,7 +48,7 @@
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.net_settlement_amount" checked> Net Settlement Amount</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.tds_percentage" checked> TDS Percentage</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.tds_amount" checked> TDS Amount</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.gst_amount" checked> GST Amount</label></li>
+                        <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.gst_amount" checked> VAT Amount</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.settlement_status" checked> Settlement Status</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="pss.visibleColumns.settlement_date" checked> Settlement Date</label></li>
                     </ul>
@@ -92,7 +92,7 @@
                             <th>Net Settlement Amount</th>
                             <th>TDS Percentage</th>
                             <th>TDS Amount</th>
-                            <th>GST Amount</th>
+                            <th>VAT Amount</th>
                             <th>Settlement Status</th>
                             <th>Settlement Date</th>
                             <th>Bank Reference Id</th>
@@ -117,7 +117,7 @@
                             <th><input type="text" class="form-control form-control-sm" ng-model="pss.filters.net_settlement_amount" ng-change="pss.applyFilters()" placeholder="Net Amount"></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="pss.filters.tds_percentage" ng-change="pss.applyFilters()" placeholder="TDS %"></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="pss.filters.tds_amount" ng-change="pss.applyFilters()" placeholder="TDS Amount"></th>
-                            <th><input type="text" class="form-control form-control-sm" ng-model="pss.filters.gst_amount" ng-change="pss.applyFilters()" placeholder="GST Amount"></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="pss.filters.gst_amount" ng-change="pss.applyFilters()" placeholder="VAT Amount"></th>
                             <th>
                                 <select class="form-select form-select-sm" ng-model="pss.filters.settlement_status" ng-change="pss.applyFilters()">
                                     <option value="all">All</option>

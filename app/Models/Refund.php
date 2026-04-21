@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use App\Models\FeeLedgerEntry;
 
 class Refund extends Model
 {
@@ -16,6 +18,8 @@ class Refund extends Model
         'merchant_id',
         'refund_id',
         'amount',
+        'fee_amount',
+        'net_debit_amount',
         'currency',
         'mode',
         'refund_strategy',
@@ -34,6 +38,8 @@ class Refund extends Model
         'gateway_response' => 'array',
         'is_partial' => 'boolean',
         'amount' => 'decimal:2',
+        'fee_amount' => 'decimal:2',
+        'net_debit_amount' => 'decimal:2',
         'processed_at' => 'datetime',
     ];
 
@@ -59,6 +65,12 @@ class Refund extends Model
     public function initiator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'initiated_by');
+    }
+
+    public function feeLedgerEntries(): HasMany
+    {
+        return $this->hasMany(FeeLedgerEntry::class, 'source_id')
+            ->where('source_type', 'refund');
     }
 
     /**

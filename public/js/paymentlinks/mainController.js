@@ -38,7 +38,7 @@
             title: '',
             description: '',
             amount: '',
-            currency: 'INR',
+            currency: 'USD',
             expires_in_hours: 24
         };
 
@@ -73,7 +73,7 @@
                 title: '',
                 description: '',
                 amount: '',
-                currency: 'INR',
+                currency: 'USD',
                 expires_in_hours: 24
             };
             
@@ -209,7 +209,7 @@
                 title: vm.newLink.title,
                 description: vm.newLink.description || '',
                 amount: parseFloat(vm.newLink.amount),
-                currency: vm.newLink.currency || 'INR',
+                currency: vm.newLink.currency || 'USD',
                 expires_in_hours: parseInt(vm.newLink.expires_in_hours) || 24
             };
 
@@ -243,7 +243,7 @@
                         title: '',
                         description: '',
                         amount: '',
-                        currency: 'INR',
+                        currency: 'USD',
                         expires_in_hours: 24
                     };
 

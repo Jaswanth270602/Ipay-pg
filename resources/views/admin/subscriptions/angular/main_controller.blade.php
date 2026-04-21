@@ -13,7 +13,7 @@
                 vm.plans = { data: [] };
                 vm.subscriptions = { data: [] };
                 vm.filters = { merchant_id: '', status: '' };
-                vm.planForm = { name: '', code: '', amount: '', currency: 'INR', interval: 'month', interval_count: 1, trial_days: 0, status: 'active' };
+                vm.planForm = { name: '', code: '', amount: '', currency: 'USD', interval: 'month', interval_count: 1, trial_days: 0, status: 'active' };
                 vm.subscriptionForm = { merchant_id: '', plan_id: '' };
                 vm.allPlans = [];
 
@@ -28,7 +28,7 @@
 
                 vm.createPlan = function() {
                     $http.post('/admin/plans', vm.planForm, { headers: { 'X-CSRF-TOKEN': csrf } }).then(function() {
-                        vm.planForm = { name: '', code: '', amount: '', currency: 'INR', interval: 'month', interval_count: 1, trial_days: 0, status: 'active' };
+                        vm.planForm = { name: '', code: '', amount: '', currency: 'USD', interval: 'month', interval_count: 1, trial_days: 0, status: 'active' };
                         bootstrap.Modal.getInstance(document.getElementById('planModal')).hide();
                         vm.loadPlans();
                     }, function(err) {

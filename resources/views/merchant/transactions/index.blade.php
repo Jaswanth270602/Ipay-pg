@@ -237,7 +237,7 @@
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Amount</span>
+                                    <span>VAT Amount</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_amount">
                             </th>
@@ -265,13 +265,13 @@
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_merchant.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Paid By Merchant</span>
+                                    <span>VAT Paid By Merchant</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_merchant">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span>GST Paid By Customer</span>
+                                    <span>VAT Paid By Customer</span>
                                 </div>
                                 <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_customer">
                             </th>
@@ -570,12 +570,12 @@
                     provider_name: { visible: true, label: 'Provider Name' },
                     account_id: { visible: true, label: 'Account ID' },
                     tdr_amount: { visible: true, label: 'TDR Amount' },
-                    gst_amount: { visible: true, label: 'GST Amount' },
+                    gst_amount: { visible: true, label: 'VAT Amount' },
                     is_updated_by_recon: { visible: true, label: 'Is Updated By Recon' },
                     tdr_amount_paid_by_merchant: { visible: true, label: 'TDR Amount Paid by Merchant' },
                     tdr_amount_paid_by_customer: { visible: true, label: 'TDR Amount Paid by Customer' },
-                    gst_paid_by_merchant: { visible: true, label: 'GST Paid By Merchant' },
-                    gst_paid_by_customer: { visible: true, label: 'GST Paid By Customer' },
+                    gst_paid_by_merchant: { visible: true, label: 'VAT Paid By Merchant' },
+                    gst_paid_by_customer: { visible: true, label: 'VAT Paid By Customer' },
                     net_settlements_amount: { visible: true, label: 'Net Settlements Amount' },
                     admin_merchant_rate_pct: { visible: true, label: 'Admin→Merchant Fee %' },
                     settlement_batch_id: { visible: true, label: 'Settlement batch' },

@@ -302,7 +302,7 @@
                     vm.formErrors.gst_identification_no = [];
                     var value = (vm.merchantForm.gst_identification_no || '').toString().trim();
                     if (value && !/^[A-Za-z0-9]+$/.test(value)) {
-                        vm.formErrors.gst_identification_no.push('GST identification number may contain only letters and numbers.');
+                        vm.formErrors.gst_identification_no.push('VAT identification number may contain only letters and numbers.');
                     }
                     if (vm.formErrors.gst_identification_no.length === 0) delete vm.formErrors.gst_identification_no;
                 };
@@ -311,7 +311,7 @@
                     vm.formErrors.gstin_state = [];
                     var value = (vm.merchantForm.gstin_state || '').toString().trim();
                     if (value && !/^[A-Za-z ]+$/.test(value)) {
-                        vm.formErrors.gstin_state.push('GSTIN state may contain only letters and spaces.');
+                        vm.formErrors.gstin_state.push('VATIN state may contain only letters and spaces.');
                     }
                     if (vm.formErrors.gstin_state.length === 0) delete vm.formErrors.gstin_state;
                 };
@@ -485,10 +485,10 @@
                             add('name_on_pan_card', 'Name on PAN card may contain only letters and spaces.');
                         }
                         if (f.gst_identification_no && String(f.gst_identification_no).trim() && !/^[A-Za-z0-9]+$/.test(String(f.gst_identification_no).trim())) {
-                            add('gst_identification_no', 'GST identification number may contain only letters and numbers.');
+                            add('gst_identification_no', 'VAT identification number may contain only letters and numbers.');
                         }
                         if (f.gstin_state && String(f.gstin_state).trim() && !/^[A-Za-z ]+$/.test(String(f.gstin_state).trim())) {
-                            add('gstin_state', 'GSTIN state may contain only letters and spaces.');
+                            add('gstin_state', 'VATIN state may contain only letters and spaces.');
                         }
                         if (f.tan_no && String(f.tan_no).trim() && !/^[A-Za-z0-9 ]+$/.test(String(f.tan_no).trim())) {
                             add('tan_no', 'TAN number may contain only letters, numbers, and spaces.');

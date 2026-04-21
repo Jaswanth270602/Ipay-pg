@@ -507,7 +507,7 @@
                                             <td>@{{ amac.selectedMerchant.merchant_pan_number || '-' }}</td>
                                         </tr>
                                         <tr>
-                                            <td class="text-muted"><strong>GSTIN:</strong></td>
+                                            <td class="text-muted"><strong>VATIN:</strong></td>
                                             <td>@{{ amac.selectedMerchant.gst_identification_no || '-' }}</td>
                                         </tr>
                                         <tr>

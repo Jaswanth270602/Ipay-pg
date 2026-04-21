@@ -274,7 +274,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">GST Identification No.</label>
+                                <label class="form-label">VAT Identification No.</label>
                                 <input type="text"
                                        class="form-control"
                                        ng-class="{'is-invalid': amac.formErrors.gst_identification_no}"
@@ -285,7 +285,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">GSTIN State</label>
+                                <label class="form-label">VATIN State</label>
                                 <input type="text"
                                        class="form-control"
                                        ng-class="{'is-invalid': amac.formErrors.gstin_state}"

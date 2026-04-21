@@ -1,7 +1,7 @@
 @extends('layouts.app-sidebar')
 
-@section('title', 'GST Invoices Report - Admin - ' . config('app.name'))
-@section('page-title', 'GST Invoices Report')
+@section('title', 'VAT Invoices Report - Admin - ' . config('app.name'))
+@section('page-title', 'VAT Invoices Report')
 
 @section('content')
 <div ng-app="ipayApp" ng-controller="AdminGSTInvoicesController as gst">
@@ -13,8 +13,8 @@
     <div class="row mb-4">
         <div class="col-md-12 d-flex justify-content-between align-items-center">
             <div>
-                <h2 class="mb-0">GST INVOICES</h2>
-                <small class="text-muted">GST Invoices Report</small>
+                <h2 class="mb-0">VAT INVOICES</h2>
+                <small class="text-muted">VAT Invoices Report</small>
             </div>
             <a href="{{ route('admin.reports.index') }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back
@@ -52,10 +52,10 @@
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.month" checked> Month</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.year" checked> Year</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.merchant_id" checked> Merchant Id</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.gst_provided_by" checked> GST Provided By</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.gst_payer_name" checked> GST Payer Name</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.payer_gstin" checked> Payer GSTIN</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.payer_gstin_state" checked> Payer GSTIN State</label></li>
+                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.gst_provided_by" checked> VAT Provided By</label></li>
+                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.gst_payer_name" checked> VAT Payer Name</label></li>
+                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.payer_gstin" checked> Payer VATIN</label></li>
+                        <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.payer_gstin_state" checked> Payer VATIN State</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.non_taxable_tdr" checked> Non-Taxable TDR</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.taxable_tdr" checked> Taxable TDR</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" ng-model="gst.visibleColumns.sgst" checked> SGST</label></li>
@@ -76,12 +76,12 @@
         </div>
     </div>
 
-    <!-- GST Invoices Table -->
+    <!-- VAT Invoices Table -->
     <div class="stat-card">
         <div ng-show="gst.loading" class="loader-overlay position-relative" style="min-height: 400px;">
             <div class="position-absolute top-50 start-50 translate-middle">
                 <div class="spinner-violet"></div>
-                <p class="mt-2 text-muted text-center">Loading GST invoices...</p>
+                <p class="mt-2 text-muted text-center">Loading VAT invoices...</p>
             </div>
         </div>
 
@@ -94,10 +94,10 @@
                             <th>Month</th>
                             <th>Year</th>
                             <th>Merchant Id</th>
-                            <th>GST Provided By</th>
-                            <th>GST Payer Name</th>
-                            <th>Payer GSTIN</th>
-                            <th>Payer GSTIN State</th>
+                            <th>VAT Provided By</th>
+                            <th>VAT Payer Name</th>
+                            <th>Payer VATIN</th>
+                            <th>Payer VATIN State</th>
                             <th>Non-Taxable TDR</th>
                             <th>Taxable TDR</th>
                             <th>SGST</th>
@@ -130,9 +130,9 @@
                             </th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.year" ng-change="gst.applyFilters()" placeholder="Year"></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.merchant_id" ng-change="gst.applyFilters()" placeholder="Merchant ID"></th>
-                            <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.gst_provided_by" ng-change="gst.applyFilters()" placeholder="GST Provided By"></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.gst_provided_by" ng-change="gst.applyFilters()" placeholder="VAT Provided By"></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.gst_payer_name" ng-change="gst.applyFilters()" placeholder="Payer Name"></th>
-                            <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.payer_gstin" ng-change="gst.applyFilters()" placeholder="GSTIN"></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="gst.filters.payer_gstin" ng-change="gst.applyFilters()" placeholder="VATIN"></th>
                             <th>
                                 <select class="form-select form-select-sm" ng-model="gst.filters.payer_gstin_state" ng-change="gst.applyFilters()">
                                     <option value="all">All</option>
@@ -219,7 +219,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="gstInvoiceModalLabel">@{{ gst.isEditing ? 'Edit' : 'Create' }} GST Invoice</h5>
+                <h5 class="modal-title" id="gstInvoiceModalLabel">@{{ gst.isEditing ? 'Edit' : 'Create' }} VAT Invoice</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -258,22 +258,22 @@
                             <div class="invalid-feedback" ng-if="gst.formErrors.merchant_id">@{{ gst.formErrors.merchant_id }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">GST Provided By</label>
+                            <label class="form-label">VAT Provided By</label>
                             <input type="text" class="form-control" ng-model="gst.form.gst_provided_by" ng-class="{'is-invalid': gst.formErrors.gst_provided_by}">
                             <div class="invalid-feedback" ng-if="gst.formErrors.gst_provided_by">@{{ gst.formErrors.gst_provided_by }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">GST Payer Name <span class="text-danger">*</span></label>
+                            <label class="form-label">VAT Payer Name <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" ng-model="gst.form.gst_payer_name" ng-class="{'is-invalid': gst.formErrors.gst_payer_name}" ng-change="gst.validateForm()" required>
                             <div class="invalid-feedback" ng-if="gst.formErrors.gst_payer_name">@{{ gst.formErrors.gst_payer_name }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Payer GSTIN</label>
+                            <label class="form-label">Payer VATIN</label>
                             <input type="text" class="form-control" ng-model="gst.form.payer_gstin" ng-class="{'is-invalid': gst.formErrors.payer_gstin}" ng-change="gst.enforceGstin(); gst.validateForm()" maxlength="15">
                             <div class="invalid-feedback" ng-if="gst.formErrors.payer_gstin">@{{ gst.formErrors.payer_gstin }}</div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Payer GSTIN State</label>
+                            <label class="form-label">Payer VATIN State</label>
                             <select class="form-select" ng-model="gst.form.payer_gstin_state" ng-class="{'is-invalid': gst.formErrors.payer_gstin_state}">
                                 <option value="">Select State</option>
                                 <option ng-repeat="state in gst.states" value="@{{ state }}">@{{ state }}</option>
@@ -463,9 +463,9 @@
                         }, function () {
                             vm.loading = false;
                             if (typeof showToast === 'function') {
-                                showToast('Failed to load GST invoices', 'error');
+                                showToast('Failed to load VAT invoices', 'error');
                             } else {
-                                alert('Failed to load GST invoices');
+                                alert('Failed to load VAT invoices');
                             }
                         });
                 };
@@ -564,8 +564,8 @@
 
                     if (!month || month < 1 || month > 12) vm.formErrors.month = 'Month is required.';
                     if (!year || year < 2020 || year > 2099) vm.formErrors.year = 'Year must be between 2020 and 2099.';
-                    if (!vm.form.gst_payer_name || !String(vm.form.gst_payer_name).trim()) vm.formErrors.gst_payer_name = 'GST payer name is required.';
-                    if (gstin && !/^[A-Z0-9]{15}$/.test(gstin)) vm.formErrors.payer_gstin = 'Payer GSTIN must be exactly 15 uppercase letters/numbers.';
+                    if (!vm.form.gst_payer_name || !String(vm.form.gst_payer_name).trim()) vm.formErrors.gst_payer_name = 'VAT payer name is required.';
+                    if (gstin && !/^[A-Z0-9]{15}$/.test(gstin)) vm.formErrors.payer_gstin = 'Payer VATIN must be exactly 15 uppercase letters/numbers.';
                     if (vm.form.invoice_value === '' || vm.form.invoice_value === null || vm.form.invoice_value === undefined || Number.isNaN(invoiceValue) || invoiceValue < 0) {
                         vm.formErrors.invoice_value = 'Invoice value must be 0 or greater.';
                     }
@@ -620,13 +620,13 @@
 
                         if (response.data && response.data.success) {
                             if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'GST invoice saved', 'success');
+                                showToast(response.data.message || 'VAT invoice saved', 'success');
                             } else {
-                                alert(response.data.message || 'GST invoice saved');
+                                alert(response.data.message || 'VAT invoice saved');
                             }
                             vm.loadInvoices();
                         } else {
-                            var msg = (response.data && response.data.message) || 'Failed to save GST invoice';
+                            var msg = (response.data && response.data.message) || 'Failed to save VAT invoice';
                             if (typeof showToast === 'function') {
                                 showToast(msg, 'error');
                             } else {
@@ -636,7 +636,7 @@
                     }, function (error) {
                         vm.saving = false;
                         vm.formErrors = {};
-                        var msg = 'Failed to save GST invoice';
+                        var msg = 'Failed to save VAT invoice';
                         if (error.data && error.data.message) {
                             msg = error.data.message;
                         }
@@ -663,8 +663,8 @@
                             var details = 'Invoice Number: ' + invoiceData.invoice_number + '\n' +
                                         'Month: ' + invoiceData.month + '\n' +
                                         'Year: ' + invoiceData.year + '\n' +
-                                        'GST Payer Name: ' + invoiceData.gst_payer_name + '\n' +
-                                        'Payer GSTIN: ' + (invoiceData.payer_gstin || 'N/A') + '\n' +
+                                        'VAT Payer Name: ' + invoiceData.gst_payer_name + '\n' +
+                                        'Payer VATIN: ' + (invoiceData.payer_gstin || 'N/A') + '\n' +
                                         'Invoice Value: ' + invoiceData.invoice_value;
                             alert(details);
                         }
@@ -672,7 +672,7 @@
                 };
 
                 vm.deleteInvoice = function (invoice) {
-                    if (!confirm('Are you sure you want to delete this GST invoice?')) {
+                    if (!confirm('Are you sure you want to delete this VAT invoice?')) {
                         return;
                     }
 
@@ -681,13 +681,13 @@
                     }).then(function (response) {
                         if (response.data && response.data.success) {
                             if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'GST invoice deleted', 'success');
+                                showToast(response.data.message || 'VAT invoice deleted', 'success');
                             } else {
-                                alert(response.data.message || 'GST invoice deleted');
+                                alert(response.data.message || 'VAT invoice deleted');
                             }
                             vm.loadInvoices();
                         } else {
-                            var msg = (response.data && response.data.message) || 'Failed to delete GST invoice';
+                            var msg = (response.data && response.data.message) || 'Failed to delete VAT invoice';
                             if (typeof showToast === 'function') {
                                 showToast(msg, 'error');
                             } else {
@@ -695,7 +695,7 @@
                             }
                         }
                     }, function (error) {
-                        var msg = 'Failed to delete GST invoice';
+                        var msg = 'Failed to delete VAT invoice';
                         if (error.data && error.data.message) {
                             msg = error.data.message;
                         }

@@ -1073,6 +1073,7 @@
                 <span>Base Rates</span>
             </a>
         </div>
+        @if(config('features.partners', false))
         <!-- Partners Management Dropdown -->
         <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.partners.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
             <i class="bi bi-people"></i>
@@ -1105,6 +1106,7 @@
                 <span>Partner Settlement Details</span>
             </a>
         </div>
+        @endif
         <!-- Payments Dropdown -->
         <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
             <i class="bi bi-wallet2"></i>
@@ -1195,16 +1197,16 @@
                 <i class="bi bi-bar-chart"></i>
                 <span>Reports</span>
             </a>
-            <!-- GST Invoices Submenu -->
+            <!-- VAT Invoices Submenu -->
             <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.reports.gst-invoices.*') ? 'active' : '' }}" onclick="event.stopPropagation(); toggleDropdown(this);" style="padding-left: 50px;">
                 <i class="bi bi-receipt"></i>
-                <span>Gst Invoices</span>
+                <span>Vat Invoices</span>
                 <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
             </div>
             <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.reports.gst-invoices.*') ? 'block' : 'none' }}; padding-left: 50px;">
                 <a href="{{ route('admin.reports.gst-invoices.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.reports.gst-invoices.*') ? 'active' : '' }}" style="padding-left: 50px;">
                     <i class="bi bi-file-earmark-text"></i>
-                    <span>Gst Invoices Report</span>
+                    <span>Vat Invoices Report</span>
                 </a>
             </div>
             <!-- Success Rate Submenu -->
@@ -1226,10 +1228,12 @@
                 <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
             </div>
             <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.reports.profitability.*') ? 'block' : 'none' }}; padding-left: 50px;">
+                @if(config('features.partners', false))
                 <a href="{{ route('admin.reports.profitability.partner-team-profit') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.reports.profitability.partner-team-profit*') ? 'active' : '' }}" style="padding-left: 50px;">
                     <i class="bi bi-people"></i>
                     <span>Partner Team Profit</span>
                 </a>
+                @endif
             </div>
             <!-- Sales Submenu -->
             <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.reports.sales.*') ? 'active' : '' }}" onclick="event.stopPropagation(); toggleDropdown(this);" style="padding-left: 50px;">

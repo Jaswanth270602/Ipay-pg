@@ -329,9 +329,9 @@ class UsersController extends Controller
                 $merchant = $user->merchant;
                 
                 if ($request->has('currency_code')) {
-                    $merchant->default_currency = $request->currency_code ?? 'INR';
+                    $merchant->default_currency = $request->currency_code ?? 'USD';
                 } else {
-                    $merchant->default_currency = $merchant->default_currency ?? 'INR';
+                    $merchant->default_currency = $merchant->default_currency ?? 'USD';
                 }
                 
                 if ($request->has('team_name')) {
@@ -383,7 +383,7 @@ class UsersController extends Controller
                 'active' => $user->status === 'active',
                 'email_verified' => $user->email_verified_at !== null,
                 'timezone' => $user->timezone ?? 'Asia/Kolkata',
-                'currency_code' => $user->merchant ? ($user->merchant->default_currency ?? 'INR') : 'INR',
+                'currency_code' => $user->merchant ? ($user->merchant->default_currency ?? 'USD') : 'USD',
                 'team_name' => $user->merchant ? ($user->merchant->team_name ?? '') : '',
                 'merchant_id' => $user->merchant_id,
                 'merchant_name' => $user->merchant ? $user->merchant->name : null,

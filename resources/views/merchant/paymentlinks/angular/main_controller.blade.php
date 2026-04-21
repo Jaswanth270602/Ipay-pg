@@ -36,7 +36,7 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     title: '', 
                     description: '', 
                     amount: '', 
-                    currency: 'INR', 
+                    currency: 'USD', 
                     allow_partial_payment: false,
                     expires_in_hours: 24
                 };
@@ -52,7 +52,7 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         title: '', 
                         description: '', 
                         amount: '', 
-                        currency: 'INR', 
+                        currency: 'USD', 
                         allow_partial_payment: false,
                         expires_in_hours: 24
                     };
@@ -69,7 +69,7 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     if (amountInput) amountInput.value = '';
                     if (descriptionInput) descriptionInput.value = '';
                     if (expiresInput) expiresInput.value = '24';
-                    if (currencySelect) currencySelect.value = 'INR';
+                    if (currencySelect) currencySelect.value = 'USD';
                     if (partialPaymentCheckbox) partialPaymentCheckbox.checked = false;
                     
                     // Force scope update
@@ -243,7 +243,7 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         title: String(vm.newLink.title).trim(),
                         description: vm.newLink.description ? String(vm.newLink.description).trim() : '',
                         amount: amount,
-                        currency: vm.newLink.currency || 'INR',
+                        currency: vm.newLink.currency || 'USD',
                         allow_partial_payment: vm.newLink.allow_partial_payment || false,
                         expires_in_hours: parseInt(vm.newLink.expires_in_hours) || 24,
                         payment_methods: ['card', 'upi', 'netbanking', 'wallet']

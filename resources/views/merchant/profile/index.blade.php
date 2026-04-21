@@ -267,11 +267,11 @@
                         <input type="text" class="form-control" name="name_on_pan_card" value="{{ old('name_on_pan_card', $merchant->name_on_pan_card) }}">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">GST Identification Number</label>
+                        <label class="form-label">VAT Identification Number</label>
                         <input type="text" class="form-control" name="gst_identification_no" value="{{ old('gst_identification_no', $merchant->gst_identification_no) }}" maxlength="15">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">GSTIN State</label>
+                        <label class="form-label">VATIN State</label>
                         <input type="text" class="form-control" name="gstin_state" value="{{ old('gstin_state', $merchant->gstin_state) }}">
                     </div>
                     <div class="col-md-6">

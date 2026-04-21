@@ -382,13 +382,13 @@
                                     <div class="su-error d-none" id="js_err_name_on_pan_card" role="status"></div>
                                 </div>
                                 <div>
-                                    <label class="su-label">GSTIN (optional)</label>
+                                    <label class="su-label">VATIN (optional)</label>
                                     <input type="text" name="gst_identification_no" id="gst_identification_no" value="{{ old('gst_identification_no') }}" class="su-input @error('gst_identification_no') is-invalid @enderror" maxlength="20" pattern="[A-Za-z0-9]*" title="Letters and numbers only" autocomplete="off" data-validate="gst_identification_no">
                                     @error('gst_identification_no')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_gst_identification_no" role="status"></div>
                                 </div>
                                 <div>
-                                    <label class="su-label">GSTIN State</label>
+                                    <label class="su-label">VATIN State</label>
                                     <input type="text" name="gstin_state" id="gstin_state" value="{{ old('gstin_state') }}" class="su-input @error('gstin_state') is-invalid @enderror" maxlength="255" pattern="[A-Za-z ]*" title="Letters and spaces only" autocomplete="off" data-validate="gstin_state">
                                     @error('gstin_state')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_gstin_state" role="status"></div>
@@ -1499,11 +1499,11 @@
             }
             var g = (document.getElementById('gst_identification_no') && document.getElementById('gst_identification_no').value.trim()) || '';
             if (g !== '' && !/^[A-Za-z0-9]+$/.test(g)) {
-                return 'GSTIN: use only letters and numbers.';
+                return 'VATIN: use only letters and numbers.';
             }
             var s = (document.getElementById('gstin_state') && document.getElementById('gstin_state').value.trim()) || '';
             if (s !== '' && !/^[A-Za-z ]+$/.test(s)) {
-                return 'GSTIN State: use only letters and spaces.';
+                return 'VATIN State: use only letters and spaces.';
             }
             var t = (document.getElementById('tan_no') && document.getElementById('tan_no').value.trim()) || '';
             if (t !== '' && !/^[A-Za-z0-9]+$/.test(t)) {

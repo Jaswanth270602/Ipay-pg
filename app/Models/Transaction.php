@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Encrypted;
 use App\Models\Rates\MerchantRateSnapshot;
+use App\Models\FeeLedgerEntry;
 use Illuminate\Support\Str;
 use App\Traits\SanitizesCardData;
 
@@ -180,6 +181,12 @@ class Transaction extends Model
     public function resellerCommissions(): HasMany
     {
         return $this->hasMany(ResellerCommission::class);
+    }
+
+    public function feeLedgerEntries(): HasMany
+    {
+        return $this->hasMany(FeeLedgerEntry::class, 'source_id')
+            ->where('source_type', 'transaction');
     }
 
     /**

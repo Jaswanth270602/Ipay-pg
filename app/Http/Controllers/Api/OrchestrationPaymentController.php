@@ -57,7 +57,7 @@ class OrchestrationPaymentController extends Controller
 
         $orderData = [
             'amount' => $data['amount'],
-            'currency' => $data['currency'] ?? $merchant->default_currency ?? 'INR',
+            'currency' => $data['currency'] ?? $merchant->default_currency ?? 'USD',
             'customer_details' => $data['customer_details'] ?? null,
             'description' => $data['description'] ?? null,
             'metadata' => $data['metadata'] ?? null,

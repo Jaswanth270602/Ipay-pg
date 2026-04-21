@@ -162,8 +162,8 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Currency</label>
                             <select class="form-select" ng-model="mdc.form.currency">
-                                <option value="INR" selected>INR</option>
-                                <option value="USD">USD</option>
+                                <option value="USD" selected>USD</option>
+                                <option value="INR">INR</option>
                                 <option value="EUR">EUR</option>
                             </select>
                         </div>

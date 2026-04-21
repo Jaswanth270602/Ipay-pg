@@ -397,67 +397,69 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/merchant-registration-keys/{id}', [MerchantRegistrationKeysController::class, 'update'])
             ->name('admin.merchant-registration-keys.update');
 
-        // Partners
-        Route::get('/partners', [PartnersController::class, 'index'])
-            ->name('admin.partners.index');
-        Route::get('/partners/data', [PartnersController::class, 'getData'])
-            ->name('admin.partners.data');
-        Route::post('/partners', [PartnersController::class, 'store'])
-            ->name('admin.partners.store');
+        if (config('features.partners', false)) {
+            // Partners
+            Route::get('/partners', [PartnersController::class, 'index'])
+                ->name('admin.partners.index');
+            Route::get('/partners/data', [PartnersController::class, 'getData'])
+                ->name('admin.partners.data');
+            Route::post('/partners', [PartnersController::class, 'store'])
+                ->name('admin.partners.store');
 
-        // Partners TDR (must come before /partners/{id} to avoid route conflicts)
-        Route::get('/partners/tdr', [PartnerTDRController::class, 'index'])
-            ->name('admin.partners.tdr');
-        Route::get('/partners/tdr/data', [PartnerTDRController::class, 'getData'])
-            ->name('admin.partners.tdr.data');
-        Route::get('/partners/tdr/partners', [PartnerTDRController::class, 'getPartners'])
-            ->name('admin.partners.tdr.partners');
-        Route::get('/partners/tdr/categories', [PartnerTDRController::class, 'getCategories'])
-            ->name('admin.partners.tdr.categories');
-        Route::get('/partners/tdr/payment-modes', [PartnerTDRController::class, 'getPaymentModes'])
-            ->name('admin.partners.tdr.payment-modes');
-        Route::get('/partners/tdr/banks', [PartnerTDRController::class, 'getBanks'])
-            ->name('admin.partners.tdr.banks');
-        Route::get('/partners/tdr/merchants/search', [PartnerTDRController::class, 'searchMerchants'])
-            ->name('admin.partners.tdr.merchants.search');
-        Route::post('/partners/tdr', [PartnerTDRController::class, 'store'])
-            ->name('admin.partners.tdr.store');
-        Route::post('/partners/tdr/{id}', [PartnerTDRController::class, 'update'])
-            ->name('admin.partners.tdr.update');
-        Route::delete('/partners/tdr/{id}', [PartnerTDRController::class, 'destroy'])
-            ->name('admin.partners.tdr.destroy');
+            // Partners TDR (must come before /partners/{id} to avoid route conflicts)
+            Route::get('/partners/tdr', [PartnerTDRController::class, 'index'])
+                ->name('admin.partners.tdr');
+            Route::get('/partners/tdr/data', [PartnerTDRController::class, 'getData'])
+                ->name('admin.partners.tdr.data');
+            Route::get('/partners/tdr/partners', [PartnerTDRController::class, 'getPartners'])
+                ->name('admin.partners.tdr.partners');
+            Route::get('/partners/tdr/categories', [PartnerTDRController::class, 'getCategories'])
+                ->name('admin.partners.tdr.categories');
+            Route::get('/partners/tdr/payment-modes', [PartnerTDRController::class, 'getPaymentModes'])
+                ->name('admin.partners.tdr.payment-modes');
+            Route::get('/partners/tdr/banks', [PartnerTDRController::class, 'getBanks'])
+                ->name('admin.partners.tdr.banks');
+            Route::get('/partners/tdr/merchants/search', [PartnerTDRController::class, 'searchMerchants'])
+                ->name('admin.partners.tdr.merchants.search');
+            Route::post('/partners/tdr', [PartnerTDRController::class, 'store'])
+                ->name('admin.partners.tdr.store');
+            Route::post('/partners/tdr/{id}', [PartnerTDRController::class, 'update'])
+                ->name('admin.partners.tdr.update');
+            Route::delete('/partners/tdr/{id}', [PartnerTDRController::class, 'destroy'])
+                ->name('admin.partners.tdr.destroy');
 
-        // Partners (parameterized routes - must come after specific routes)
-        Route::get('/partners/{id}', [PartnersController::class, 'show'])
-            ->name('admin.partners.show');
-        Route::post('/partners/{id}', [PartnersController::class, 'update'])
-            ->name('admin.partners.update');
-        Route::delete('/partners/{id}', [PartnersController::class, 'destroy'])
-            ->name('admin.partners.destroy');
+            // Partners (parameterized routes - must come after specific routes)
+            Route::get('/partners/{id}', [PartnersController::class, 'show'])
+                ->name('admin.partners.show');
+            Route::post('/partners/{id}', [PartnersController::class, 'update'])
+                ->name('admin.partners.update');
+            Route::delete('/partners/{id}', [PartnersController::class, 'destroy'])
+                ->name('admin.partners.destroy');
 
-        // Partner Settlements
-        Route::get('/partner-settlements/summary', [PartnerSettlementsController::class, 'index'])
-            ->name('admin.partner-settlements.summary');
-        Route::get('/partner-settlements/data', [PartnerSettlementsController::class, 'getData'])
-            ->name('admin.partner-settlements.data');
-        Route::get('/partner-settlements/organizations', [PartnerSettlementsController::class, 'getOrganizations'])
-            ->name('admin.partner-settlements.organizations');
-        Route::post('/partner-settlements/mark-settled', [PartnerSettlementsController::class, 'markAsSettled'])
-            ->name('admin.partner-settlements.mark-settled');
-        Route::post('/partner-settlements/transfer-imps', [PartnerSettlementsController::class, 'transferByIMPS'])
-            ->name('admin.partner-settlements.transfer-imps');
-        Route::post('/partner-settlements/transfer-neft', [PartnerSettlementsController::class, 'transferByNEFT'])
-            ->name('admin.partner-settlements.transfer-neft');
-        Route::post('/partner-settlements/check-status', [PartnerSettlementsController::class, 'checkStatus'])
-            ->name('admin.partner-settlements.check-status');
-        Route::get('/partner-settlements/details', [PartnerSettlementsController::class, 'details'])
-            ->name('admin.partner-settlements.details');
-        Route::get('/partner-settlements/details/data', [PartnerSettlementsController::class, 'getDetails'])
-            ->name('admin.partner-settlements.details.data');
-        Route::get('/partner-settlements/merchant-categories', [PartnerSettlementsController::class, 'getMerchantCategories'])
-            ->name('admin.partner-settlements.merchant-categories');
-        Route::get('/partner-settlements/payment-modes', [PartnerSettlementsController::class, 'getPaymentModes'])
-            ->name('admin.partner-settlements.payment-modes');
+            // Partner Settlements
+            Route::get('/partner-settlements/summary', [PartnerSettlementsController::class, 'index'])
+                ->name('admin.partner-settlements.summary');
+            Route::get('/partner-settlements/data', [PartnerSettlementsController::class, 'getData'])
+                ->name('admin.partner-settlements.data');
+            Route::get('/partner-settlements/organizations', [PartnerSettlementsController::class, 'getOrganizations'])
+                ->name('admin.partner-settlements.organizations');
+            Route::post('/partner-settlements/mark-settled', [PartnerSettlementsController::class, 'markAsSettled'])
+                ->name('admin.partner-settlements.mark-settled');
+            Route::post('/partner-settlements/transfer-imps', [PartnerSettlementsController::class, 'transferByIMPS'])
+                ->name('admin.partner-settlements.transfer-imps');
+            Route::post('/partner-settlements/transfer-neft', [PartnerSettlementsController::class, 'transferByNEFT'])
+                ->name('admin.partner-settlements.transfer-neft');
+            Route::post('/partner-settlements/check-status', [PartnerSettlementsController::class, 'checkStatus'])
+                ->name('admin.partner-settlements.check-status');
+            Route::get('/partner-settlements/details', [PartnerSettlementsController::class, 'details'])
+                ->name('admin.partner-settlements.details');
+            Route::get('/partner-settlements/details/data', [PartnerSettlementsController::class, 'getDetails'])
+                ->name('admin.partner-settlements.details.data');
+            Route::get('/partner-settlements/merchant-categories', [PartnerSettlementsController::class, 'getMerchantCategories'])
+                ->name('admin.partner-settlements.merchant-categories');
+            Route::get('/partner-settlements/payment-modes', [PartnerSettlementsController::class, 'getPaymentModes'])
+                ->name('admin.partner-settlements.payment-modes');
+        }
 
         // Payments Module
         Route::get('/payments/transactions', [AdminTransactionsController::class, 'index'])
@@ -585,15 +587,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/success-rate/bankcode-wise/merchants', [BankCodeSuccessRateController::class, 'getMerchants'])
             ->name('admin.reports.success-rate.bankcode-wise.merchants');
 
-        // Profitability - Partner Team Profit
-        Route::get('/reports/profitability/partner-team-profit', [PartnerTeamProfitController::class, 'index'])
-            ->name('admin.reports.profitability.partner-team-profit');
-        Route::get('/reports/profitability/partner-team-profit/data', [PartnerTeamProfitController::class, 'getData'])
-            ->name('admin.reports.profitability.partner-team-profit.data');
-        Route::get('/reports/profitability/partner-team-profit/payment-modes', [PartnerTeamProfitController::class, 'getPaymentModes'])
-            ->name('admin.reports.profitability.partner-team-profit.payment-modes');
-        Route::get('/reports/profitability/partner-team-profit/payment-channels', [PartnerTeamProfitController::class, 'getPaymentChannels'])
-            ->name('admin.reports.profitability.partner-team-profit.payment-channels');
+        if (config('features.partners', false)) {
+            // Profitability - Partner Team Profit
+            Route::get('/reports/profitability/partner-team-profit', [PartnerTeamProfitController::class, 'index'])
+                ->name('admin.reports.profitability.partner-team-profit');
+            Route::get('/reports/profitability/partner-team-profit/data', [PartnerTeamProfitController::class, 'getData'])
+                ->name('admin.reports.profitability.partner-team-profit.data');
+            Route::get('/reports/profitability/partner-team-profit/payment-modes', [PartnerTeamProfitController::class, 'getPaymentModes'])
+                ->name('admin.reports.profitability.partner-team-profit.payment-modes');
+            Route::get('/reports/profitability/partner-team-profit/payment-channels', [PartnerTeamProfitController::class, 'getPaymentChannels'])
+                ->name('admin.reports.profitability.partner-team-profit.payment-channels');
+        }
 
         // Sales Reports
         Route::get('/reports/sales/date-and-merchant', [SalesReportController::class, 'dateAndMerchant'])
@@ -773,6 +777,18 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.base-rates.update');
         Route::delete('/base-rates/{id}', [\App\Http\Controllers\Admin\BaseRatesController::class, 'destroy'])
             ->name('admin.base-rates.destroy');
+        Route::get('/base-rates/billing-fees/data', [\App\Http\Controllers\Admin\BaseRatesController::class, 'getBillingFeeData'])
+            ->name('admin.base-rates.billing-fees.data');
+        Route::get('/base-rates/billing-fees/meta', [\App\Http\Controllers\Admin\BaseRatesController::class, 'getBillingFeeMeta'])
+            ->name('admin.base-rates.billing-fees.meta');
+        Route::post('/base-rates/billing-fees', [\App\Http\Controllers\Admin\BaseRatesController::class, 'storeBillingFeeRule'])
+            ->name('admin.base-rates.billing-fees.store');
+        Route::post('/base-rates/billing-fees/definitions', [\App\Http\Controllers\Admin\BaseRatesController::class, 'storeBillingFeeDefinition'])
+            ->name('admin.base-rates.billing-fees.definitions.store');
+        Route::post('/base-rates/billing-fees/{id}', [\App\Http\Controllers\Admin\BaseRatesController::class, 'updateBillingFeeRule'])
+            ->name('admin.base-rates.billing-fees.update');
+        Route::delete('/base-rates/billing-fees/{id}', [\App\Http\Controllers\Admin\BaseRatesController::class, 'destroyBillingFeeRule'])
+            ->name('admin.base-rates.billing-fees.destroy');
 
         // Acquirer Details
         Route::get('/acquirer-accounts', [AcquirerAccountsController::class, 'index'])
