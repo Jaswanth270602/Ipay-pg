@@ -65,11 +65,11 @@
                         ng-disabled="!amc.hasSelection()">
                     Bulk Deactivate
                 </button>
-                <button class="btn btn-sm btn-danger"
+                <!-- <button class="btn btn-sm btn-danger"
                         ng-click="amc.openBulkConfirm('delete')"
                         ng-disabled="!amc.hasSelection()">
                     Bulk Delete
-                </button>
+                </button> -->
             </div>
             <div class="text-muted small" ng-if="amc.selectedIds.length">
                 @{{ amc.selectedIds.length }} selected

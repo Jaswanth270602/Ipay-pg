@@ -135,7 +135,7 @@
                     <div class="row g-2 mt-1">
                         <div class="col-md-6">
                             <label class="form-label small mb-1">Phone</label>
-                            <input class="form-control form-control-sm" ng-class="{'is-invalid': arc.firstError('phone')}" placeholder="Enter phone" ng-model="arc.form.phone" ng-change="arc.validateField('phone')" ng-blur="arc.validateField('phone')">
+                            <input class="form-control form-control-sm" ng-class="{'is-invalid': arc.firstError('phone')}" placeholder="Enter phone (+14155552671 or 14155552671)" ng-model="arc.form.phone" ng-change="arc.validateField('phone')" ng-blur="arc.validateField('phone')">
                             <div class="text-danger small mt-1" ng-if="arc.firstError('phone')">@{{ arc.firstError('phone') }}</div>
                         </div>
                         <div class="col-md-6">
@@ -274,7 +274,13 @@
                 vm.form.email = String(vm.form.email).trim().toLowerCase();
             }
             if (field === 'phone' && vm.form.phone) {
-                vm.form.phone = String(vm.form.phone).replace(/\D/g, '').slice(0, 10);
+                var raw = String(vm.form.phone).replace(/[^0-9+]/g, '');
+                if (raw.indexOf('+') > 0) {
+                    raw = '+' + raw.replace(/\+/g, '');
+                } else if (raw.indexOf('+') === 0) {
+                    raw = '+' + raw.substring(1).replace(/\+/g, '');
+                }
+                vm.form.phone = raw.slice(0, 16);
             }
             if (field === 'company_name' && vm.form.company_name) {
                 vm.form.company_name = String(vm.form.company_name).trim().replace(/\s+/g, ' ');
@@ -292,7 +298,7 @@
             if (field === 'name') {
                 if (!name) vm.setError('name', 'Name is required.');
                 else if (name.length < 3) vm.setError('name', 'Name must be at least 3 characters.');
-                else if (name.length > 100) vm.setError('name', 'Name must be at most 100 characters.');
+                else if (name.length > 256) vm.setError('name', 'Name must be at most 256 characters.');
                 else if (!/^[A-Za-z\s]+$/.test(name)) vm.setError('name', 'Only alphabets and spaces are allowed.');
             }
 
@@ -303,13 +309,13 @@
 
             if (field === 'phone') {
                 if (!phone) vm.setError('phone', 'Phone is required.');
-                else if (!/^\d{10}$/.test(phone)) vm.setError('phone', 'Phone must be exactly 10 digits.');
+                else if (!/^\+?[1-9][0-9]{6,14}$/.test(phone)) vm.setError('phone', 'Phone must be 7-15 digits with optional leading +.');
             }
 
             if (field === 'company_name') {
                 if (!company) vm.setError('company_name', 'Company name is required.');
-                else if (company.length < 2) vm.setError('company_name', 'Company name must be at least 2 characters.');
-                else if (company.length > 150) vm.setError('company_name', 'Company name must be at most 150 characters.');
+                else if (company.length < 3) vm.setError('company_name', 'Company name must be at least 3 characters.');
+                else if (company.length > 256) vm.setError('company_name', 'Company name must be at most 256 characters.');
             }
 
             if (field === 'password') {
@@ -345,10 +351,10 @@
             var company = String(vm.form.company_name || '').trim();
             var password = String(vm.form.password || '');
             var confirmation = String(vm.form.password_confirmation || '');
-            var baseValid = name.length >= 3 && name.length <= 100 && /^[A-Za-z\s]+$/.test(name)
+            var baseValid = name.length >= 3 && name.length <= 256 && /^[A-Za-z\s]+$/.test(name)
                 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-                && /^\d{10}$/.test(phone)
-                && company.length >= 2 && company.length <= 150;
+                && /^\+?[1-9][0-9]{6,14}$/.test(phone)
+                && company.length >= 3 && company.length <= 256;
             if (!vm.form.id) {
                 return baseValid
                     && password.length >= 8
@@ -425,7 +431,13 @@
             vm.syncStatusFromToggle();
             vm.form.name = String(vm.form.name || '').trim();
             vm.form.email = String(vm.form.email || '').trim().toLowerCase();
-            vm.form.phone = String(vm.form.phone || '').replace(/\D/g, '');
+            var cleanedPhone = String(vm.form.phone || '').replace(/[^0-9+]/g, '');
+            if (cleanedPhone.indexOf('+') > 0) {
+                cleanedPhone = '+' + cleanedPhone.replace(/\+/g, '');
+            } else if (cleanedPhone.indexOf('+') === 0) {
+                cleanedPhone = '+' + cleanedPhone.substring(1).replace(/\+/g, '');
+            }
+            vm.form.phone = cleanedPhone.slice(0, 16);
             vm.form.company_name = String(vm.form.company_name || '').trim().replace(/\s+/g, ' ');
             vm.form.status = vm.form.status_toggle ? true : false;
             var req = vm.form.id

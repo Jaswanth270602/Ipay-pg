@@ -151,8 +151,10 @@
                     var merchantNameRegex = /^[A-Za-z ]+$/;
                     if (!value.trim()) {
                         vm.formErrors.name.push('Merchant name is required.');
-                    } else if (value.length >= 250) {
-                        vm.formErrors.name.push('Merchant name cannot exceed 250 characters.');
+                    } else if (value.length < 3) {
+                        vm.formErrors.name.push('Merchant name must be at least 3 characters.');
+                    } else if (value.length > 256) {
+                        vm.formErrors.name.push('Merchant name cannot exceed 256 characters.');
                     } else if (!merchantNameRegex.test(value.trim())) {
                         vm.formErrors.name.push('Merchant name may contain only letters and spaces.');
                     }
@@ -167,8 +169,10 @@
                     var merchantNameRegex = /^[A-Za-z ]+$/;
                     if (!value.trim()) {
                         vm.formErrors.legal_name.push('Merchant legal name is required.');
-                    } else if (value.length >= 250) {
-                        vm.formErrors.legal_name.push('Merchant legal name cannot exceed 250 characters.');
+                    } else if (value.length < 3) {
+                        vm.formErrors.legal_name.push('Merchant legal name must be at least 3 characters.');
+                    } else if (value.length > 256) {
+                        vm.formErrors.legal_name.push('Merchant legal name cannot exceed 256 characters.');
                     } else if (!merchantNameRegex.test(value.trim())) {
                         vm.formErrors.legal_name.push('Merchant legal name may contain only letters and spaces.');
                     }
@@ -205,8 +209,16 @@
                         } else {
                             // basic duplicate check against already loaded merchants list
                             var lower = value.toLowerCase();
+                            var editingId = vm.editingMerchantId;
                             var exists = vm.merchants.some(function(m) {
-                                return m && m.email && m.email.toLowerCase() === lower;
+                                if (!m || !m.email) {
+                                    return false;
+                                }
+                                // When editing, ignore the current merchant's own row
+                                if (editingId != null && editingId !== '' && String(m.id) === String(editingId)) {
+                                    return false;
+                                }
+                                return m.email.toLowerCase() === lower;
                             });
                             if (exists) {
                                 vm.formErrors.email.push('Email already exists.');
@@ -220,14 +232,32 @@
 
                 vm.validateMerchantPhone = function () {
                     vm.formErrors.phone = [];
-                    var value = (vm.merchantForm.phone || '').trim();
+                    var value = String(vm.merchantForm.phone == null ? '' : vm.merchantForm.phone).trim();
                     if (!value) {
                         vm.formErrors.phone.push('Merchant phone is required.');
-                    } else if (!/^\+?[0-9]+$/.test(value) || value.length > 20) {
-                        vm.formErrors.phone.push('Merchant phone may contain only digits and the + symbol (max 20 characters).');
+                    } else if (!/^\+?[0-9]{6,15}$/.test(value)) {
+                        vm.formErrors.phone.push('Merchant phone must be 6-15 digits with optional leading +.');
                     }
                     if (vm.formErrors.phone.length === 0) {
                         delete vm.formErrors.phone;
+                    }
+                };
+
+                vm.validateWebsiteLink = function () {
+                    vm.formErrors.website_link = [];
+                    var value = (vm.merchantForm.website_link || '').toString().trim();
+                    if (value) {
+                        try {
+                            var parsed = new URL(value);
+                            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                                vm.formErrors.website_link.push('Website link must be a valid URL (http:// or https://).');
+                            }
+                        } catch (e) {
+                            vm.formErrors.website_link.push('Website link must be a valid URL (http:// or https://).');
+                        }
+                    }
+                    if (vm.formErrors.website_link.length === 0) {
+                        delete vm.formErrors.website_link;
                     }
                 };
 
@@ -252,11 +282,11 @@
 
                 vm.validateContactMobile = function () {
                     vm.formErrors.contact_mobile = [];
-                    var value = (vm.merchantForm.contact_mobile || '').trim();
+                    var value = String(vm.merchantForm.contact_mobile == null ? '' : vm.merchantForm.contact_mobile).trim();
                     if (!value) {
                         vm.formErrors.contact_mobile.push('Contact mobile is required.');
-                    } else if (!/^\+?[0-9]+$/.test(value) || value.length > 20) {
-                        vm.formErrors.contact_mobile.push('Contact mobile may contain only digits and the + symbol (max 20 characters).');
+                    } else if (!/^\+?[0-9]{6,15}$/.test(value)) {
+                        vm.formErrors.contact_mobile.push('Contact mobile must be 6-15 digits with optional leading +.');
                     }
                     if (vm.formErrors.contact_mobile.length === 0) {
                         delete vm.formErrors.contact_mobile;
@@ -268,10 +298,10 @@
                     var value = (vm.merchantForm.business_postal_code || '').toString().trim();
                     if (!value) {
                         vm.formErrors.business_postal_code.push('Zip code is required.');
-                    } else if (!/^\d+$/.test(value)) {
-                        vm.formErrors.business_postal_code.push('Zip code must contain only numbers.');
-                    } else if (value.length > 15) {
-                        vm.formErrors.business_postal_code.push('Zip code may not exceed 15 digits.');
+                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+                        vm.formErrors.business_postal_code.push('Zip code may contain only letters and numbers.');
+                    } else if (value.length < 4 || value.length > 12) {
+                        vm.formErrors.business_postal_code.push('Zip code must be 4 to 12 characters.');
                     }
                     if (vm.formErrors.business_postal_code.length === 0) delete vm.formErrors.business_postal_code;
                 };
@@ -330,6 +360,10 @@
                     var value = (vm.merchantForm.contact_name || '').toString().trim();
                     if (!value) {
                         vm.formErrors.contact_name.push('Contact name is required.');
+                    } else if (value.length < 3) {
+                        vm.formErrors.contact_name.push('Contact name must be at least 3 characters.');
+                    } else if (value.length > 256) {
+                        vm.formErrors.contact_name.push('Contact name cannot exceed 256 characters.');
                     } else if (!/^[A-Za-z ]+$/.test(value)) {
                         vm.formErrors.contact_name.push('Contact name may contain only letters and spaces.');
                     }
@@ -339,8 +373,8 @@
                 vm.validateContactLandline = function () {
                     vm.formErrors.contact_landline = [];
                     var value = (vm.merchantForm.contact_landline || '').toString().trim();
-                    if (value && (!/^\+?[0-9]+$/.test(value) || value.length > 20)) {
-                        vm.formErrors.contact_landline.push('Contact landline may contain only digits and the + symbol (max 20 characters).');
+                    if (value && !/^\+?[0-9]{6,15}$/.test(value)) {
+                        vm.formErrors.contact_landline.push('Contact landline must be 6-15 digits with optional leading +.');
                     }
                     if (vm.formErrors.contact_landline.length === 0) delete vm.formErrors.contact_landline;
                 };
@@ -391,11 +425,16 @@
 
                 vm.validateIfscCode = function () {
                     vm.formErrors.bank_ifsc_code = [];
-                    var value = (vm.merchantForm.bank_ifsc_code || '').toString().trim();
+                    var raw = (vm.merchantForm.bank_ifsc_code || '').toString();
+                    var sanitized = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15);
+                    vm.merchantForm.bank_ifsc_code = sanitized;
+                    var value = sanitized.trim();
                     if (!value) {
                         vm.formErrors.bank_ifsc_code.push('IFSC code is required.');
-                    } else if (!/^[A-Za-z0-9]+$/.test(value)) {
-                        vm.formErrors.bank_ifsc_code.push('IFSC code may contain only letters and numbers.');
+                    } else if (value.length < 7 || value.length > 15) {
+                        vm.formErrors.bank_ifsc_code.push('IFSC code must be 7 to 15 characters.');
+                    } else if (!/^[A-Za-z]{4}[A-Za-z0-9]{3,11}$/.test(value)) {
+                        vm.formErrors.bank_ifsc_code.push('IFSC code must start with 4 letters followed by letters or numbers (e.g., ABCD0001234).');
                     }
                     if (vm.formErrors.bank_ifsc_code.length === 0) delete vm.formErrors.bank_ifsc_code;
                 };
@@ -453,10 +492,20 @@
                         }
                         if (!f.business_postal_code) {
                             add('business_postal_code', 'Zip code is required.');
-                        } else if (!/^\d+$/.test(String(f.business_postal_code))) {
-                            add('business_postal_code', 'Zip code must contain only numbers.');
-                        } else if (String(f.business_postal_code).length > 15) {
-                            add('business_postal_code', 'Zip code may not exceed 15 digits.');
+                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.business_postal_code))) {
+                            add('business_postal_code', 'Zip code may contain only letters and numbers.');
+                        } else if (String(f.business_postal_code).length < 4 || String(f.business_postal_code).length > 12) {
+                            add('business_postal_code', 'Zip code must be 4 to 12 characters.');
+                        }
+                        if (f.website_link && String(f.website_link).trim()) {
+                            try {
+                                var parsedWebsite = new URL(String(f.website_link).trim());
+                                if (parsedWebsite.protocol !== 'http:' && parsedWebsite.protocol !== 'https:') {
+                                    add('website_link', 'Website link must be a valid URL (http:// or https://).');
+                                }
+                            } catch (e) {
+                                add('website_link', 'Website link must be a valid URL (http:// or https://).');
+                            }
                         }
                         if (f.is_reseller_merchant && !f.reseller_id) {
                             add('reseller_id', 'Please select a reseller.');
@@ -503,8 +552,8 @@
                         vm.validateContactMobile();
                         vm.validateContactEmail();
                         if (f.contact_landline && String(f.contact_landline).trim()) {
-                            if (!/^\+?[0-9]+$/.test(String(f.contact_landline).trim()) || String(f.contact_landline).trim().length > 20) {
-                                add('contact_landline', 'Contact landline may contain only digits and the + symbol (max 20 characters).');
+                            if (!/^\+?[0-9]{6,15}$/.test(String(f.contact_landline).trim())) {
+                                add('contact_landline', 'Contact landline must be 6-15 digits with optional leading +.');
                             }
                         }
                         break;
@@ -534,8 +583,10 @@
                         }
                         if (!f.bank_ifsc_code || !String(f.bank_ifsc_code).trim()) {
                             add('bank_ifsc_code', 'IFSC code is required.');
-                        } else if (!/^[A-Za-z0-9]+$/.test(String(f.bank_ifsc_code).trim())) {
-                            add('bank_ifsc_code', 'IFSC code may contain only letters and numbers.');
+                        } else if (String(f.bank_ifsc_code).trim().length < 7 || String(f.bank_ifsc_code).trim().length > 15) {
+                            add('bank_ifsc_code', 'IFSC code must be 7 to 15 characters.');
+                        } else if (!/^[A-Za-z]{4}[A-Za-z0-9]{3,11}$/.test(String(f.bank_ifsc_code).trim())) {
+                            add('bank_ifsc_code', 'IFSC code must start with 4 letters followed by letters or numbers (e.g., ABCD0001234).');
                         }
                         break;
                     case 'login':

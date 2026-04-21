@@ -86,6 +86,40 @@
         font-weight: 600;
         margin-left: 2px;
     }
+
+    .verify-email-modal .modal-header {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: #fff;
+    }
+
+    .verify-email-modal .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    .verify-email-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .verify-email-icon--confirm {
+        background-color: rgba(99, 102, 241, 0.12);
+        color: #4f46e5;
+    }
+
+    .verify-email-icon--success {
+        background-color: rgba(25, 135, 84, 0.12);
+        color: #198754;
+    }
+
+    .verify-email-icon--error {
+        background-color: rgba(220, 53, 69, 0.12);
+        color: #dc3545;
+    }
 </style>
 @endpush
 
@@ -140,12 +174,16 @@
                 <button class="btn btn-sm btn-primary" ng-click="auc.openNewModal()">
                     <i class="bi bi-plus-lg"></i> + New
                 </button>
-                <button class="btn btn-sm btn-outline-primary" ng-click="auc.editSelected()" ng-disabled="!auc.selectedUser">
+                <!-- <button class="btn btn-sm btn-outline-primary" ng-click="auc.editSelected()" ng-disabled="!auc.selectedUser">
                     <i class="bi bi-pencil"></i> Edit
-                </button>
-                <button class="btn btn-sm btn-outline-danger" ng-click="auc.deleteSelected()" ng-disabled="!auc.selectedUser">
+                </button> -->
+
+
+
+                <!-- delete option deseabled presently because users should not be delete just do activate or deactivate -->
+                <!-- <button class="btn btn-sm btn-outline-danger" ng-click="auc.deleteSelected()" ng-disabled="!auc.selectedUser">
                     <i class="bi bi-trash"></i> Delete
-                </button>
+                </button> -->
                 <button class="btn btn-sm btn-outline-info" ng-click="auc.duplicateSelected()" ng-disabled="!auc.selectedUser">
                     <i class="bi bi-files"></i> Duplicate
                 </button>
@@ -280,11 +318,11 @@
                             <td ng-show="auc.visibleColumns.updated_at.visible">@{{ user.updated_at }}</td>
                             <td style="text-align: center; vertical-align: middle;">
                                 <div class="action-buttons-container">
-                                    <button class="action-btn action-btn-edit" 
+                                    <!-- <button class="action-btn action-btn-edit" 
                                             ng-click="auc.editUser(user, $event)" 
                                             title="Edit">
                                         <i class="bi bi-pencil"></i>
-                                    </button>
+                                    </button> -->
                                     <button class="action-btn action-btn-email" 
                                             ng-click="auc.toggleEmailVerification(user, $event)" 
                                             title="Toggle Email Verification">
@@ -340,8 +378,6 @@
             </div>
         </div>
     </div>
-</div>
-
 <!-- Edit User Modal -->
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -429,6 +465,58 @@
     </div>
 </div>
 
+<!-- Email Verification Modal -->
+<div class="modal fade verify-email-modal" id="emailVerificationModal" tabindex="-1" aria-labelledby="emailVerificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailVerificationModalLabel">Email Verification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" ng-click="auc.closeEmailVerificationModal()" ng-disabled="auc.emailVerificationModal.processing"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div ng-if="auc.emailVerificationModal.mode === 'confirm'" class="mb-3">
+                    <span class="verify-email-icon verify-email-icon--confirm">
+                        <i class="bi bi-envelope-check"></i>
+                    </span>
+                </div>
+                <div ng-if="auc.emailVerificationModal.mode === 'result'" class="mb-3">
+                    <span class="verify-email-icon" ng-class="auc.emailVerificationModal.isError ? 'verify-email-icon--error' : 'verify-email-icon--success'">
+                        <i class="bi" ng-class="auc.emailVerificationModal.isError ? 'bi-x-circle' : 'bi-check-circle'"></i>
+                    </span>
+                </div>
+
+                <h6 class="mb-2" ng-if="auc.emailVerificationModal.mode === 'confirm'">
+                    @{{ auc.emailVerificationModal.action === 'verify' ? 'Verify email address?' : 'Unverify email address?' }}
+                </h6>
+                <p class="text-muted mb-0" ng-if="auc.emailVerificationModal.mode === 'confirm'">
+                    @{{ auc.emailVerificationModal.user ? ('User: ' + auc.emailVerificationModal.user.name + ' (' + auc.emailVerificationModal.user.email + ')') : '' }}
+                </p>
+
+                <p class="mb-0" ng-if="auc.emailVerificationModal.mode === 'result'" ng-class="auc.emailVerificationModal.isError ? 'text-danger' : 'text-success'">
+                    @{{ auc.emailVerificationModal.message }}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" ng-if="auc.emailVerificationModal.mode === 'confirm'" ng-click="auc.closeEmailVerificationModal()" ng-disabled="auc.emailVerificationModal.processing">Cancel</button>
+                <button type="button"
+                        class="btn"
+                        ng-class="auc.emailVerificationModal.action === 'verify' ? 'btn-success' : 'btn-danger'"
+                        ng-if="auc.emailVerificationModal.mode === 'confirm'"
+                        ng-click="auc.confirmToggleEmailVerification()"
+                        ng-disabled="auc.emailVerificationModal.processing">
+                    <span ng-if="!auc.emailVerificationModal.processing">@{{ auc.emailVerificationModal.action === 'verify' ? 'Verify' : 'Unverify' }}</span>
+                    <span ng-if="auc.emailVerificationModal.processing">
+                        <span class="spinner-border spinner-border-sm me-2"></span>Updating...
+                    </span>
+                </button>
+                <button type="button" class="btn btn-primary" ng-if="auc.emailVerificationModal.mode === 'result'" ng-click="auc.closeEmailVerificationModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
 @push('scripts')
 <script>
 (function() {
@@ -452,6 +540,14 @@
                 vm.sortColumn = 'id';
                 vm.sortDirection = 'desc';
                 vm.selectAll = false;
+                vm.emailVerificationModal = {
+                    user: null,
+                    action: 'verify',
+                    mode: 'confirm',
+                    processing: false,
+                    message: '',
+                    isError: false
+                };
 
                 vm.visibleColumns = {
                     id: { visible: true, label: 'Id' },
@@ -592,28 +688,66 @@
                     vm.clearFilters();
                 };
 
-                vm.toggleEmailVerification = function(user, event) {
+                vm.openEmailVerificationModal = function(user, event) {
                     if (event) event.stopPropagation();
-                    if (!confirm('Are you sure you want to ' + (user.email_verified ? 'unverify' : 'verify') + ' this user\'s email?')) {
+                    if (!user) {
                         return;
                     }
+
+                    vm.emailVerificationModal.user = user;
+                    vm.emailVerificationModal.action = user.email_verified ? 'unverify' : 'verify';
+                    vm.emailVerificationModal.mode = 'confirm';
+                    vm.emailVerificationModal.processing = false;
+                    vm.emailVerificationModal.message = '';
+                    vm.emailVerificationModal.isError = false;
+
+                    var modalEl = document.getElementById('emailVerificationModal');
+                    if (modalEl) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                };
+
+                vm.closeEmailVerificationModal = function() {
+                    vm.emailVerificationModal.processing = false;
+                    var modalEl = document.getElementById('emailVerificationModal');
+                    if (modalEl) {
+                        var modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+                };
+
+                vm.confirmToggleEmailVerification = function() {
+                    var user = vm.emailVerificationModal.user;
+                    if (!user) return;
+                    vm.emailVerificationModal.processing = true;
 
                     $http.post('/admin/users/' + user.id + '/toggle-email-verification', {}, {
                         headers: { 'X-CSRF-TOKEN': csrf }
                     }).then(function(response) {
+                        vm.emailVerificationModal.processing = false;
                         if (response.data.success) {
                             user.email_verified = response.data.email_verified;
                             user.email_verified_at = response.data.email_verified_at;
-                            alert(response.data.message);
+                            vm.emailVerificationModal.mode = 'result';
+                            vm.emailVerificationModal.isError = false;
+                            vm.emailVerificationModal.message = response.data.message || 'Email verification updated successfully.';
                             vm.loadUsers();
                         } else {
-                            alert('Failed to update email verification: ' + (response.data.message || 'Unknown error'));
+                            vm.emailVerificationModal.mode = 'result';
+                            vm.emailVerificationModal.isError = true;
+                            vm.emailVerificationModal.message = 'Failed to update email verification: ' + (response.data.message || 'Unknown error');
                         }
                     }, function(error) {
+                        vm.emailVerificationModal.processing = false;
                         console.error('Error toggling email verification:', error);
-                        alert('Failed to update email verification. Please try again.');
+                        vm.emailVerificationModal.mode = 'result';
+                        vm.emailVerificationModal.isError = true;
+                        vm.emailVerificationModal.message = 'Failed to update email verification. Please try again.';
                     });
                 };
+
+                vm.toggleEmailVerification = vm.openEmailVerificationModal;
 
                 vm.editForm = {};
                 vm.teams = [];

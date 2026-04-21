@@ -287,13 +287,13 @@
                             <div class="su-form-grid">
                                 <div>
                                     <label class="su-label">Business / Brand Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_name" id="business_name" value="{{ old('business_name') }}" class="su-input @error('business_name') is-invalid @enderror" maxlength="255" pattern="[A-Za-z0-9 ]+" title="Letters, numbers, and spaces only" required autocomplete="organization" data-validate="business_name">
+                                    <input type="text" name="business_name" id="business_name" value="{{ old('business_name') }}" class="su-input @error('business_name') is-invalid @enderror" minlength="3" maxlength="256" pattern="[A-Za-z0-9 ]+" title="Letters, numbers, and spaces only" required autocomplete="organization" data-validate="business_name">
                                     @error('business_name')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_business_name" role="status"></div>
                                 </div>
                                 <div>
                                     <label class="su-label">Legal Name (as per PAN) <span class="text-danger">*</span></label>
-                                    <input type="text" name="legal_name" id="legal_name" value="{{ old('legal_name') }}" class="su-input @error('legal_name') is-invalid @enderror" maxlength="255" pattern="[A-Za-z ]+" title="Letters and spaces only" required autocomplete="off" data-validate="legal_name">
+                                    <input type="text" name="legal_name" id="legal_name" value="{{ old('legal_name') }}" class="su-input @error('legal_name') is-invalid @enderror" minlength="3" maxlength="256" pattern="[A-Za-z ]+" title="Letters and spaces only" required autocomplete="off" data-validate="legal_name">
                                     @error('legal_name')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_legal_name" role="status"></div>
                                 </div>
@@ -305,7 +305,7 @@
                                 </div>
                                 <div>
                                     <label class="su-label">Business Phone <span class="text-danger">*</span></label>
-                                    <input type="tel" name="business_phone" id="business_phone" value="{{ old('business_phone') }}" class="su-input @error('business_phone') is-invalid @enderror" pattern="[+0-9]+" minlength="10" maxlength="20" title="Digits only, optional + prefix" required autocomplete="tel" data-validate="business_phone">
+                                    <input type="tel" name="business_phone" id="business_phone" value="{{ old('business_phone') }}" class="su-input @error('business_phone') is-invalid @enderror" pattern="\+?[1-9][0-9]{6,14}" minlength="7" maxlength="16" title="7-15 digits with optional leading + (e.g. +14155552671 or 14155552671)" required autocomplete="tel" data-validate="business_phone">
                                     @error('business_phone')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_business_phone" role="status"></div>
                                 </div>
@@ -348,7 +348,7 @@
                                 </div>
                                 <div>
                                     <label class="su-label">Pin / ZIP Code <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_postal_code" id="business_postal_code" value="{{ old('business_postal_code') }}" class="su-input @error('business_postal_code') is-invalid @enderror" pattern="[0-9]+" inputmode="numeric" maxlength="15" title="Numbers only" required data-validate="business_postal_code">
+                                    <input type="text" name="business_postal_code" id="business_postal_code" value="{{ old('business_postal_code') }}" class="su-input @error('business_postal_code') is-invalid @enderror" pattern="[A-Za-z0-9]{4,12}" inputmode="text" minlength="4" maxlength="12" title="Letters and numbers only (4-12 characters)" required data-validate="business_postal_code">
                                     @error('business_postal_code')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_business_postal_code" role="status"></div>
                                 </div>
@@ -420,7 +420,7 @@
                                 </div>
                                 <div>
                                     <label class="su-label">Bank Account Number <span class="text-danger">*</span></label>
-                                    <input type="text" name="bank_account_number" id="bank_account_number" value="{{ old('bank_account_number') }}" class="su-input @error('bank_account_number') is-invalid @enderror" minlength="8" maxlength="34" pattern="[A-Za-z0-9]+" title="Letters and numbers only (8–34 characters)" required inputmode="text" autocomplete="off" data-validate="bank_account_number">
+                                    <input type="text" name="bank_account_number" id="bank_account_number" value="{{ old('bank_account_number') }}" class="su-input @error('bank_account_number') is-invalid @enderror" minlength="6" maxlength="24" pattern="[A-Za-z0-9]+" title="Letters and numbers only (6–24 characters)" required inputmode="text" autocomplete="off" data-validate="bank_account_number">
                                     @error('bank_account_number')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_bank_account_number" role="status"></div>
                                 </div>
@@ -448,7 +448,7 @@
                                 </div>
                                 <div>
                                     <label class="su-label">IFSC Code <span class="text-danger">*</span></label>
-                                    <input type="text" name="bank_ifsc_code" id="bank_ifsc_code" value="{{ old('bank_ifsc_code') }}" class="su-input text-uppercase @error('bank_ifsc_code') is-invalid @enderror" maxlength="11" pattern="[A-Za-z0-9]+" title="Letters and numbers only" required autocomplete="off" data-validate="bank_ifsc_code">
+                                    <input type="text" name="bank_ifsc_code" id="bank_ifsc_code" value="{{ old('bank_ifsc_code') }}" class="su-input text-uppercase @error('bank_ifsc_code') is-invalid @enderror" minlength="7" maxlength="15" pattern="[A-Za-z0-9]+" title="Letters and numbers only (7-15 characters)" required autocomplete="off" data-validate="bank_ifsc_code">
                                     @error('bank_ifsc_code')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_bank_ifsc_code" role="status"></div>
                                 </div>
@@ -467,13 +467,13 @@
                             <div class="su-form-grid">
                                 <div>
                                     <label class="su-label">Primary Contact Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name') }}" class="su-input @error('contact_name') is-invalid @enderror" maxlength="255" pattern="[A-Za-z ]+" title="Letters and spaces; include at least one letter" required autocomplete="name" data-validate="contact_name">
+                                    <input type="text" name="contact_name" id="contact_name" value="{{ old('contact_name') }}" class="su-input @error('contact_name') is-invalid @enderror" minlength="3" maxlength="256" pattern="[A-Za-z ]+" title="Letters and spaces; include at least one letter" required autocomplete="name" data-validate="contact_name">
                                     @error('contact_name')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_contact_name" role="status"></div>
                                 </div>
                                 <div>
                                     <label class="su-label">Contact Mobile <span class="text-danger">*</span></label>
-                                    <input type="tel" name="contact_mobile" id="contact_mobile" value="{{ old('contact_mobile') }}" class="su-input @error('contact_mobile') is-invalid @enderror" maxlength="20" title="Digits only; optional + at start" required autocomplete="tel" inputmode="tel" data-validate="contact_mobile">
+                                    <input type="tel" name="contact_mobile" id="contact_mobile" value="{{ old('contact_mobile') }}" class="su-input @error('contact_mobile') is-invalid @enderror" pattern="\+?[1-9][0-9]{6,14}" minlength="7" maxlength="16" title="7-15 digits with optional leading + (e.g. +14155552671 or 14155552671)" required autocomplete="tel" inputmode="tel" data-validate="contact_mobile">
                                     @error('contact_mobile')<div class="su-error">{{ $message }}</div>@enderror
                                     <div class="su-error d-none" id="js_err_contact_mobile" role="status"></div>
                                 </div>
@@ -632,6 +632,9 @@
                     var lead = this.value.charAt(0) === '+';
                     var digits = this.value.replace(/[^0-9]/g, '');
                     var v = lead ? ('+' + digits) : digits;
+                    if (v.length > 16) {
+                        v = v.slice(0, 16);
+                    }
                     if (this.value !== v) {
                         this.value = v;
                     }
@@ -640,7 +643,10 @@
             var pin = document.getElementById('business_postal_code');
             if (pin) {
                 pin.addEventListener('input', function () {
-                    var v = this.value.replace(/[^0-9]/g, '');
+                    var v = this.value.replace(/[^A-Za-z0-9]/g, '');
+                    if (v.length > 12) {
+                        v = v.slice(0, 12);
+                    }
                     if (this.value !== v) {
                         this.value = v;
                     }
@@ -730,7 +736,7 @@
             var ifsc = document.getElementById('bank_ifsc_code');
             if (ifsc) {
                 ifsc.addEventListener('input', function () {
-                    var v = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 11);
+                    var v = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15);
                     if (this.value !== v) {
                         this.value = v;
                     }
@@ -751,6 +757,9 @@
                     var lead = this.value.charAt(0) === '+';
                     var digits = this.value.replace(/[^0-9]/g, '');
                     var v = lead ? ('+' + digits) : digits;
+                    if (v.length > 16) {
+                        v = v.slice(0, 16);
+                    }
                     if (this.value !== v) {
                         this.value = v;
                     }
@@ -797,6 +806,12 @@
                 if (!ln) {
                     return 'Legal name is required.';
                 }
+                if (ln.length < 3) {
+                    return 'Legal name must be at least 3 characters.';
+                }
+                if (ln.length > 256) {
+                    return 'Legal name cannot exceed 256 characters.';
+                }
                 if (!/^(?=.*[A-Za-z])[A-Za-z ]+$/.test(ln)) {
                     return 'Use only letters and spaces.';
                 }
@@ -808,8 +823,8 @@
                 if (!ph.trim()) {
                     return 'Business phone is required.';
                 }
-                if (!/^[+0-9]+$/.test(ph) || ph.replace(/[^0-9]/g, '').length < 10) {
-                    return 'Use digits only (optional + at start). At least 10 digits.';
+                if (!/^\+?[1-9][0-9]{6,14}$/.test(ph)) {
+                    return 'Use 7-15 digits with optional leading +.';
                 }
                 return '';
             }
@@ -831,15 +846,19 @@
             }
 
             function msgPin() {
-                var pin = (document.getElementById('business_postal_code') && document.getElementById('business_postal_code').value.trim()) || '';
-                if (!pin) {
-                    return 'Pin / ZIP code is required.';
-                }
-                if (!/^[0-9]+$/.test(pin)) {
-                    return 'Use numbers only.';
-                }
-                return '';
-            }
+    var pin = (document.getElementById('business_postal_code') && 
+               document.getElementById('business_postal_code').value.trim()) || '';
+
+    if (!pin) {
+        return 'Postal code is required.';
+    }
+
+    if (!/^[A-Za-z0-9]{4,12}$/.test(pin)) {
+        return 'Enter a valid postal code (letters and numbers only, 4-12 characters).';
+    }
+
+    return '';
+}
 
             var emailDebounce = null;
             var emailEl = document.getElementById('business_email');
@@ -1061,8 +1080,8 @@
                 if (!v) {
                     return 'Bank account number is required.';
                 }
-                if (v.length < 8 || v.length > 34) {
-                    return 'Use 8 to 34 characters.';
+                if (v.length < 6 || v.length > 24) {
+                    return 'Use 6 to 24 characters.';
                 }
                 if (!/^[A-Za-z0-9]+$/.test(v)) {
                     return 'Use only letters and numbers.';
@@ -1192,8 +1211,8 @@
                 if (!ph.trim()) {
                     return 'Contact mobile is required.';
                 }
-                if (!/^\+?[0-9]{10,19}$/.test(ph)) {
-                    return 'Use optional + at the start, then 10–19 digits.';
+                if (!/^\+?[1-9][0-9]{6,14}$/.test(ph)) {
+                    return 'Use 7-15 digits with optional leading +.';
                 }
                 return '';
             }
@@ -1457,11 +1476,14 @@
             if (!/^(?=.*[A-Za-z])[A-Za-z ]+$/.test(ln.trim())) {
                 return 'Legal Name: use only letters and spaces (not empty or spaces only).';
             }
+            if (ln.trim().length < 3 || ln.trim().length > 256) {
+                return 'Legal Name: use 3 to 256 characters.';
+            }
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim())) {
                 return 'Business Email: enter a valid email address.';
             }
-            if (!/^[+0-9]+$/.test(ph) || ph.length < 10) {
-                return 'Business Phone: use only digits and + (at least 10 digits).';
+            if (!/^\+?[1-9][0-9]{6,14}$/.test(ph)) {
+                return 'Business Phone: use 7-15 digits with optional leading +.';
             }
             if (web.trim() !== '') {
                 try {
@@ -1473,8 +1495,8 @@
                     return 'Website: enter a valid URL (e.g. https://example.com).';
                 }
             }
-            if (!/^[0-9]+$/.test(pin.trim())) {
-                return 'Pin / ZIP Code: numbers only.';
+            if (!/^[A-Za-z0-9]{4,12}$/.test(pin.trim())) {
+                return 'Pin / ZIP Code: use letters and numbers only (4-12 characters).';
             }
             return null;
         }
@@ -1527,8 +1549,8 @@
             if (!acc) {
                 return 'Bank account number: this field is required.';
             }
-            if (acc.length < 8 || acc.length > 34) {
-                return 'Bank account number: use 8–34 characters.';
+            if (acc.length < 6 || acc.length > 24) {
+                return 'Bank account number: use 6–24 characters.';
             }
             if (!/^[A-Za-z0-9]+$/.test(acc)) {
                 return 'Bank account number: use only letters and numbers.';
@@ -1554,6 +1576,9 @@
             var ifsc = (document.getElementById('bank_ifsc_code') && document.getElementById('bank_ifsc_code').value.trim()) || '';
             if (!ifsc) {
                 return 'IFSC code: this field is required.';
+            }
+            if (ifsc.length < 7 || ifsc.length > 15) {
+                return 'IFSC code: use 7 to 15 characters.';
             }
             if (!/^[A-Za-z0-9]+$/.test(ifsc)) {
                 return 'IFSC code: use only letters and numbers.';
@@ -1581,8 +1606,8 @@
             if (!ph.trim()) {
                 return 'Contact mobile: this field is required.';
             }
-            if (!/^\+?[0-9]{10,19}$/.test(ph)) {
-                return 'Contact mobile: optional + at the start, then 10–19 digits.';
+            if (!/^\+?[1-9][0-9]{6,14}$/.test(ph)) {
+                return 'Contact mobile: use 7-15 digits with optional leading +.';
             }
 
             var ce = (document.getElementById('contact_email') && document.getElementById('contact_email').value.trim()) || '';

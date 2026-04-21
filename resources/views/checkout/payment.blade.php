@@ -486,8 +486,8 @@
 
         .payment-methods-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 50px;
             margin-top: 2px;
         }
 
@@ -895,10 +895,12 @@
                                     name="customerName"
                                     autocomplete="name"
                                     maxlength="50"
+                                    pattern="[A-Za-z ]+"
+                                    title="Letters and spaces only"
                                     required
                                 >
                                 <small style="display:block;color:#64748b;font-size:12px;margin-top:4px;">
-                                    Enter your full legal name.
+                                    Enter your full legal name (letters and spaces only).
                                 </small>
                                 <div id="customerNameError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;"></div>
                             </div>
@@ -962,11 +964,11 @@
                             <div class="method-label">Net Banking</div>
                             <div class="method-desc">Online Banking</div>
                         </div>
-                        <div class="payment-method-btn" data-method="wallet">
+                        <!-- <div class="payment-method-btn" data-method="wallet">
                             <i class="bi bi-wallet2"></i>
                             <div class="method-label">Wallets</div>
                             <div class="method-desc">Paytm, PhonePe</div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
 
@@ -1564,6 +1566,17 @@
             card: false,
         };
 
+        // Full name: strip numbers and special characters as the user types (letters + spaces only)
+        const customerNameSanitizeEl = document.getElementById('customerName');
+        if (customerNameSanitizeEl) {
+            customerNameSanitizeEl.addEventListener('input', (e) => {
+                const v = e.target.value.replace(/[^A-Za-z ]/g, '');
+                if (e.target.value !== v) {
+                    e.target.value = v;
+                }
+            });
+        }
+
         // Real-time validation (debounced)
         document.querySelectorAll('input, select').forEach(input => {
             input.addEventListener('input', () => validateForm(true)); // Silent validation on input
@@ -1801,6 +1814,12 @@
                     if (fieldTouched.customerName && nameErrorEl) {
                         nameErrorEl.style.display = 'block';
                         nameErrorEl.textContent = 'Full name must be at most 50 characters.';
+                    }
+                    hasError = true;
+                } else if (!/^(?=.*[A-Za-z])[A-Za-z ]+$/.test(nameTrimmed)) {
+                    if (fieldTouched.customerName && nameErrorEl) {
+                        nameErrorEl.style.display = 'block';
+                        nameErrorEl.textContent = 'Full name may contain only letters and spaces (include at least one letter).';
                     }
                     hasError = true;
                 }

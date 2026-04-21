@@ -264,7 +264,8 @@ class Transaction extends Model
      */
     public function refundableAmount(): float
     {
-        return max(0, $this->amount - $this->totalRefunded() - $this->reservedRefundAmount());
+        // Option B behavior: only completed refunds reduce refundable balance.
+        return max(0, $this->amount - $this->totalRefunded());
     }
 }
 

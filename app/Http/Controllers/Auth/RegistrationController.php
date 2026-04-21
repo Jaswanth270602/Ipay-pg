@@ -123,16 +123,16 @@ class RegistrationController extends Controller
 
         $validator = Validator::make($payload, [
             // Business basics
-            'business_name' => ['required', 'string', 'max:255', 'regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9 ]+$/'],
-            'legal_name' => ['required', 'string', 'max:255', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
+            'business_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9 ]+$/'],
+            'legal_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
             'business_email' => 'required|email|unique:merchants,email',
-            'business_phone' => ['required', 'string', 'max:20', 'regex:/^[+0-9]+$/'],
+            'business_phone' => ['required', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
             'website_link' => ['nullable', 'string', 'url', 'max:255'],
             'merchant_category' => 'required|string|max:100',
             'business_country' => 'required|string|max:100',
             'business_state' => 'required|string|max:100',
             'business_city' => 'required|string|max:100',
-            'business_postal_code' => ['required', 'string', 'regex:/^[0-9]+$/', 'max:15'],
+            'business_postal_code' => ['required', 'string', 'min:4', 'max:12', 'regex:/^[A-Za-z0-9]+$/'],
             'address_line_1' => 'required|string|max:255',
             'address_line_2' => 'nullable|string|max:255',
 
@@ -144,17 +144,17 @@ class RegistrationController extends Controller
             'tan_no' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9]*$/'],
 
             // Contact
-            'contact_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
-            'contact_mobile' => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]{10,19}$/'],
+            'contact_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^[A-Za-z ]+$/'],
+            'contact_mobile' => ['required', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
             'contact_email' => 'required|email',
 
             // Bank
             'bank_account_holder_name' => ['required', 'string', 'max:255', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
-            'bank_account_number' => ['required', 'string', 'min:8', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
+            'bank_account_number' => ['required', 'string', 'min:6', 'max:24', 'regex:/^[A-Za-z0-9]+$/'],
             'bank_name' => ['required', 'string', 'max:255', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
             'account_type' => 'required|string|in:Savings Account,Current Account',
             'bank_branch' => ['required', 'string', 'max:255', 'regex:/^(?=.*[A-Za-z0-9])[A-Za-z0-9 ]+$/'],
-            'bank_ifsc_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
+            'bank_ifsc_code' => ['required', 'string', 'min:7', 'max:15', 'regex:/^[A-Za-z0-9]+$/'],
 
             // Login
             'login_name' => 'required|email|unique:users,email',
@@ -166,10 +166,16 @@ class RegistrationController extends Controller
             ],
             'password_confirmation' => 'required|same:password',
         ], [
-            'business_phone.regex' => 'Business phone may contain only digits and the + symbol.',
-            'contact_mobile.regex' => 'Contact mobile must be 10–19 digits, with an optional + at the start.',
+            'business_phone.regex' => 'Business phone must be 7-15 digits with optional leading +.',
+            'business_phone.min' => 'Business phone must be at least 7 characters.',
+            'business_phone.max' => 'Business phone may not be greater than 16 characters.',
+            'contact_mobile.regex' => 'Contact mobile must be 7-15 digits with optional leading +.',
+            'contact_mobile.min' => 'Contact mobile must be at least 7 characters.',
+            'contact_mobile.max' => 'Contact mobile may not be greater than 16 characters.',
             'merchant_pan_number.size' => 'PAN must be exactly 10 characters.',
-            'business_postal_code.regex' => 'Zipcode must contain only numbers.',
+            'business_postal_code.regex' => 'Zipcode may contain only letters and numbers.',
+            'business_postal_code.min' => 'Zipcode must be at least 4 characters.',
+            'business_postal_code.max' => 'Zipcode may not be greater than 12 characters.',
             'merchant_pan_number.regex' => 'Merchant PAN number may contain only letters and numbers.',
             'name_on_pan_card.regex' => 'Name on PAN card may contain only letters and spaces.',
             'gst_identification_no.regex' => 'GST identification number may contain only letters and numbers.',
@@ -182,6 +188,8 @@ class RegistrationController extends Controller
             'bank_account_number.min' => 'Bank account number looks too short.',
             'bank_account_number.max' => 'Bank account number looks too long.',
             'bank_account_number.regex' => 'Bank account number may contain only letters and numbers.',
+            'bank_ifsc_code.min' => 'IFSC code must be at least 7 characters.',
+            'bank_ifsc_code.max' => 'IFSC code may not be greater than 15 characters.',
             'bank_ifsc_code.regex' => 'IFSC code may contain only letters and numbers.',
             'password.regex' => 'Password must have minimum 12 characters and include at least 1 uppercase, 1 lowercase, 1 number and 1 special character.',
             'business_name.regex' => 'Business / brand name may only contain letters, numbers, and spaces.',

@@ -167,16 +167,21 @@ class PaymentCheckoutController extends Controller
         if (isset($customerDetails['phone'])) {
             $customerDetails['phone'] = preg_replace('/[^0-9]/', '', (string) $customerDetails['phone']);
         }
+        if (isset($customerDetails['name'])) {
+            $customerDetails['name'] = trim((string) $customerDetails['name']);
+        }
 
         $baseValidator = Validator::make([
             'customer_details' => $customerDetails,
             'amount' => $request->input('amount'),
         ], [
             'customer_details' => 'required|array',
-            'customer_details.name' => 'required|string|max:255',
+            'customer_details.name' => ['required', 'string', 'max:50', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
             'customer_details.email' => 'required|email',
             'customer_details.phone' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
             'amount' => 'nullable|numeric|min:0.01',
+        ], [
+            'customer_details.name.regex' => 'Full name may contain only letters and spaces.',
         ]);
 
         if ($baseValidator->fails()) {
@@ -524,16 +529,21 @@ class PaymentCheckoutController extends Controller
             if (isset($customerDetails['phone'])) {
                 $customerDetails['phone'] = preg_replace('/[^0-9]/', '', $customerDetails['phone']);
             }
-            
+            if (isset($customerDetails['name'])) {
+                $customerDetails['name'] = trim((string) $customerDetails['name']);
+            }
+
             $allowedMethods = ['card', 'upi', 'netbanking', 'wallet'];
             $validator = Validator::make(array_merge($request->all(), ['customer_details' => $customerDetails]), [
                 'payment_method' => ['required', 'in:' . implode(',', $allowedMethods)],
                 'customer_details' => 'required|array',
-                'customer_details.name' => 'required|string|max:255',
+                'customer_details.name' => ['required', 'string', 'max:50', 'regex:/^(?=.*[A-Za-z])[A-Za-z ]+$/'],
                 'customer_details.email' => 'required|email',
                 'customer_details.phone' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
                 'payment_details' => $paymentDetailsRequired ? 'required|array' : 'nullable|array',
                 'amount' => 'nullable|numeric|min:0.01', // Optional custom amount for partial payment
+            ], [
+                'customer_details.name.regex' => 'Full name may contain only letters and spaces.',
             ]);
             
             // Additional validation for payment_details

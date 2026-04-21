@@ -202,15 +202,15 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Phone</label>
-                        <input type="text" class="form-control" name="phone" value="{{ old('phone', $merchant->phone) }}">
+                        <input type="text" class="form-control" name="phone" value="{{ old('phone', $merchant->phone) }}" minlength="7" maxlength="16" pattern="\+?[1-9][0-9]{6,14}" title="7-15 digits with optional leading +">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Contact Mobile</label>
-                        <input type="text" class="form-control" name="contact_mobile" value="{{ old('contact_mobile', $merchant->contact_mobile) }}">
+                        <input type="text" class="form-control" name="contact_mobile" value="{{ old('contact_mobile', $merchant->contact_mobile) }}" minlength="7" maxlength="16" pattern="\+?[1-9][0-9]{6,14}" title="7-15 digits with optional leading +">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Contact Landline</label>
-                        <input type="text" class="form-control" name="contact_landline" value="{{ old('contact_landline', $merchant->contact_landline) }}">
+                        <input type="text" class="form-control" name="contact_landline" value="{{ old('contact_landline', $merchant->contact_landline) }}" minlength="7" maxlength="16" pattern="\+?[1-9][0-9]{6,14}" title="7-15 digits with optional leading +">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Contact Email</label>
@@ -247,7 +247,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Postal Code</label>
-                        <input type="text" class="form-control" name="business_postal_code" value="{{ old('business_postal_code', $merchant->business_postal_code) }}">
+                        <input type="text" class="form-control" name="business_postal_code" value="{{ old('business_postal_code', $merchant->business_postal_code) }}" minlength="4" maxlength="12" pattern="[A-Za-z0-9]{4,12}" title="Letters and numbers only (4-12 characters)">
                     </div>
                 </div>
             </div>
@@ -303,7 +303,7 @@
                     <div class="col-md-6">
                         <label class="form-label">IFSC Code</label>
                         <div class="small text-muted mb-1">On file: <strong class="text-body">{{ $maskedBankIfsc ?: '—' }}</strong></div>
-                        <input type="text" class="form-control" name="bank_ifsc_code" value="{{ old('bank_ifsc_code') }}" maxlength="11" placeholder="Enter new IFSC only to change" autocomplete="off">
+                        <input type="text" class="form-control" name="bank_ifsc_code" value="{{ old('bank_ifsc_code') }}" minlength="7" maxlength="15" pattern="[A-Za-z]{4}[A-Za-z0-9]{3,11}" title="Start with 4 letters, then letters/numbers (7-15 chars), e.g., ABCD0001234" placeholder="Enter new IFSC only to change" autocomplete="off">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Bank Name</label>

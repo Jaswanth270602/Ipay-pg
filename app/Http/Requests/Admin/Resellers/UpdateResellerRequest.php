@@ -26,7 +26,7 @@ class UpdateResellerRequest extends FormRequest
         $this->merge([
             'name' => trim((string) $this->input('name')),
             'email' => strtolower(trim((string) $this->input('email'))),
-            'phone' => preg_replace('/\D+/', '', (string) $this->input('phone')),
+            'phone' => trim((string) $this->input('phone')),
             'company_name' => preg_replace('/\s+/', ' ', trim((string) $this->input('company_name'))),
             'status' => $status,
         ]);
@@ -37,10 +37,10 @@ class UpdateResellerRequest extends FormRequest
         $resellerId = (int) $this->route('id');
 
         return [
-            'name' => ['required', 'string', 'min:3', 'max:100', 'regex:/^[A-Za-z\s]+$/'],
+            'name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^[A-Za-z\s]+$/'],
             'email' => ['required', 'email', 'max:255', 'unique:resellers,email,' . $resellerId],
-            'phone' => ['required', 'digits:10'],
-            'company_name' => ['required', 'string', 'min:2', 'max:150'],
+            'phone' => ['required', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
+            'company_name' => ['required', 'string', 'min:3', 'max:256'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/'],
             'status' => ['required', 'boolean'],
         ];
@@ -50,7 +50,9 @@ class UpdateResellerRequest extends FormRequest
     {
         return [
             'name.regex' => 'Name can contain only alphabets and spaces.',
-            'phone.digits' => 'Phone must be exactly 10 digits.',
+            'phone.regex' => 'Phone must be 7-15 digits with optional leading +.',
+            'phone.min' => 'Phone must be at least 7 characters.',
+            'phone.max' => 'Phone may not be greater than 16 characters.',
             'password.regex' => 'Password must include uppercase, lowercase, number, and special character.',
         ];
     }

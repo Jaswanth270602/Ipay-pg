@@ -44,7 +44,7 @@
                             <strong>@{{ key.name }}</strong>
                         </td>
                         <td>
-                            <code class="text-primary">@{{ key.key }}</code>
+                            <code class="text-primary">@{{ akc.maskApiKey(key.key) }}</code>
                             <button class="btn btn-sm btn-link p-0 ms-2" ng-click="akc.copyToClipboard(key.key)" title="Copy">
                                 <i class="bi bi-clipboard"></i>
                             </button>

@@ -35,17 +35,17 @@ class ProfileController extends Controller
 
         $validator = Validator::make($request->all(), [
             // User fields
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|min:3|max:256',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|min:8|confirmed',
             
             // Merchant basic fields
-            'company_name' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'company_name' => 'nullable|string|min:3|max:256',
+            'phone' => ['nullable', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
             'contact_email' => 'nullable|email|max:255',
-            'contact_mobile' => 'nullable|string|max:20',
-            'contact_landline' => 'nullable|string|max:20',
-            'contact_name' => 'nullable|string|max:255',
+            'contact_mobile' => ['nullable', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
+            'contact_landline' => ['nullable', 'string', 'min:7', 'max:16', 'regex:/^\+?[1-9][0-9]{6,14}$/'],
+            'contact_name' => 'nullable|string|min:3|max:256',
             
             // Business Details
             'business_type' => 'nullable|string|max:255',
@@ -55,7 +55,7 @@ class ProfileController extends Controller
             'business_city' => 'nullable|string|max:255',
             'business_state' => 'nullable|string|max:255',
             'business_country' => 'nullable|string|max:255',
-            'business_postal_code' => 'nullable|string|max:20',
+            'business_postal_code' => ['nullable', 'string', 'min:4', 'max:12', 'regex:/^[A-Za-z0-9]+$/'],
             'business_website' => 'nullable|url|max:255',
             
             // Tax & Legal
@@ -69,7 +69,7 @@ class ProfileController extends Controller
             // Bank Details
             'bank_account_holder_name' => 'nullable|string|max:255',
             'bank_account_number' => 'nullable|string|max:50',
-            'bank_ifsc_code' => 'nullable|string|max:20',
+            'bank_ifsc_code' => ['nullable', 'string', 'min:7', 'max:15', 'regex:/^[A-Za-z]{4}[A-Za-z0-9]{3,11}$/'],
             'bank_name' => 'nullable|string|max:255',
             'bank_branch' => 'nullable|string|max:255',
         ]);

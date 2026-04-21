@@ -282,11 +282,12 @@
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label"><span class="text-danger">*</span> Email:</label>
-                                <input type="email"
+                                <input type="text"
                                        class="form-control"
+                                       inputmode="email"
                                        ng-model="apc.form.email"
                                        ng-class="{'is-invalid': apc.firstError('email')}"
-                                       ng-change="apc.normalizeEmail(); apc.validatePartnerForm()"
+                                       ng-change="apc.sanitizeEmailChars()"
                                        ng-blur="apc.normalizeEmail(); apc.validatePartnerForm()"
                                        required
                                        placeholder="Enter email address">
@@ -306,7 +307,7 @@
                                        class="form-control"
                                        ng-model="apc.form.team_name"
                                        ng-class="{'is-invalid': apc.firstError('team_name')}"
-                                       ng-change="apc.enforceMaxLength('team_name', 255); apc.validatePartnerForm()"
+                                       ng-change="apc.enforceLettersSpaces('team_name', 255); apc.validatePartnerForm()"
                                        ng-blur="apc.validatePartnerForm()"
                                        placeholder="Enter team name">
                                 <div class="invalid-feedback d-block" ng-if="apc.firstError('team_name')">@{{ apc.firstError('team_name') }}</div>
@@ -324,7 +325,7 @@
                                        class="form-control"
                                        ng-model="apc.form.referral_code"
                                        ng-disabled="apc.isEditing"
-                                       ng-change="apc.enforceUpperAlphaNum('referral_code', 8); apc.validatePartnerForm()"
+                                       ng-change="apc.enforceUpperAlphaNum('referral_code', 32); apc.validatePartnerForm()"
                                        ng-blur="apc.validatePartnerForm()"
                                        ng-class="{'is-invalid': apc.firstError('referral_code')}"
                                        placeholder="Auto-generated if empty">
@@ -337,7 +338,7 @@
                                        class="form-control"
                                        ng-model="apc.form.ref"
                                        ng-class="{'is-invalid': apc.firstError('ref')}"
-                                       ng-change="apc.enforceMaxLength('ref', 100); apc.validatePartnerForm()"
+                                       ng-change="apc.enforceLettersSpaces('ref', 100); apc.validatePartnerForm()"
                                        ng-blur="apc.validatePartnerForm()"
                                        placeholder="Enter reference">
                                 <div class="invalid-feedback d-block" ng-if="apc.firstError('ref')">@{{ apc.firstError('ref') }}</div>
@@ -639,6 +640,16 @@
                     vm.form.email = current.trim().toLowerCase();
                 };
 
+                vm.sanitizeEmailChars = function() {
+                    if (!vm.form) return;
+                    var current = vm.form.email;
+                    if (typeof current !== 'string') {
+                        current = current == null ? '' : String(current);
+                    }
+                    // Allow common email characters while user is typing.
+                    vm.form.email = current.replace(/[^A-Za-z0-9@._%+\-]/g, '');
+                };
+
                 vm.loadPartners = function () {
                     vm.loading = true;
                     var params = {
@@ -803,7 +814,8 @@
 
                     if (!name) add('name', 'Partner name is required.');
                     else {
-                        if (name.length > 255) add('name', 'Partner name may not be greater than 255 characters.');
+                        if (name.length < 3) add('name', 'Partner name must be at least 3 characters.');
+                        if (name.length > 256) add('name', 'Partner name may not be greater than 256 characters.');
                         if (!/^[A-Za-z ]+$/.test(name)) add('name', 'Partner name may contain only letters and spaces.');
                     }
 
@@ -814,7 +826,7 @@
                     }
 
                     if (!phone) add('phone', 'Mobile number is required.');
-                    else if (!/^\+[1-9]\d{7,14}$/.test(phone)) add('phone', 'Mobile must be in valid E.164 format (e.g., +14155552671).');
+                    else if (!/^\+?[1-9]\d{6,14}$/.test(phone)) add('phone', 'Mobile must be 7-15 digits with optional leading +.');
 
                     if (!email) add('email', 'Email is required.');
                     else {
@@ -825,12 +837,18 @@
                     if (vm.form.is_approved === null || vm.form.is_approved === undefined || vm.form.is_approved === '') add('is_approved', 'Approval status is required.');
                     if (vm.form.is_internal === null || vm.form.is_internal === undefined || vm.form.is_internal === '') add('is_internal', 'Internal status is required.');
 
-                    if (teamName && teamName.length > 255) add('team_name', 'Team name may not be greater than 255 characters.');
+                    if (teamName) {
+                        if (teamName.length > 255) add('team_name', 'Team name may not be greater than 255 characters.');
+                        if (!/^[A-Za-z ]+$/.test(teamName)) add('team_name', 'Team name may contain only letters and spaces.');
+                    }
                     if (vm.form.referral_code && vm.form.referral_code.toString().trim() !== '') {
                         var rc = vm.form.referral_code.toString().trim();
-                        if (!/^[A-Z0-9]{8}$/.test(rc)) add('referral_code', 'Referral code must be exactly 8 uppercase letters or numbers.');
+                        if (!/^[A-Z0-9]{1,32}$/.test(rc)) add('referral_code', 'Referral code may contain only letters and numbers, up to 32 characters.');
                     }
-                    if (ref && ref.length > 100) add('ref', 'Ref may not be greater than 100 characters.');
+                    if (ref) {
+                        if (ref.length > 100) add('ref', 'Ref may not be greater than 100 characters.');
+                        if (!/^[A-Za-z ]+$/.test(ref)) add('ref', 'Ref may contain only letters and spaces.');
+                    }
                     if (notes && notes.length > 1000) add('notes', 'Notes may not be greater than 1000 characters.');
 
                     if (url) {

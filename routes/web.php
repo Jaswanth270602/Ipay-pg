@@ -291,6 +291,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Onboarding
         Route::get('/onboarding', [\App\Http\Controllers\Merchant\OnboardingController::class, 'index'])->name('merchant.onboarding.index');
+        Route::get('/onboarding/locations', [\App\Http\Controllers\Merchant\OnboardingController::class, 'locations'])->name('merchant.onboarding.locations');
         Route::post('/onboarding/step/{step}', [\App\Http\Controllers\Merchant\OnboardingController::class, 'updateStep'])->name('merchant.onboarding.step');
 
         // Settings

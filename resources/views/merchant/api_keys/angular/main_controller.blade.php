@@ -87,6 +87,15 @@
             vm.showToast('Secret key is only shown once when created', 'info');
         };
 
+        vm.maskApiKey = function(key) {
+            var value = (key || '').toString();
+            if (!value) return '';
+            if (value.length <= 8) return '********';
+            var prefix = value.slice(0, 6);
+            var suffix = value.slice(-4);
+            return prefix + '********' + suffix;
+        };
+
         vm.copyToClipboard = function(text) {
             var t = document.createElement('textarea');
             t.value = text;
