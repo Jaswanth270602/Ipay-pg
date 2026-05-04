@@ -193,6 +193,24 @@
                 return false;
             }
 
+            var title = String(vm.newLink.title || '').trim();
+            if (title.length > 255) {
+                showToast('Title cannot exceed 255 characters', 'error');
+                return false;
+            }
+
+            var description = String(vm.newLink.description || '').trim();
+            if (description.length > 1000) {
+                showToast('Description cannot exceed 1000 characters', 'error');
+                return false;
+            }
+
+            var expiresInHours = parseInt(vm.newLink.expires_in_hours, 10);
+            if (isNaN(expiresInHours) || expiresInHours < 1 || expiresInHours > 720) {
+                showToast('Expires In must be between 1 and 720 hours', 'error');
+                return false;
+            }
+
             vm.creating = true;
 
             // Get CSRF token
@@ -206,11 +224,11 @@
 
             // Prepare data
             var postData = {
-                title: vm.newLink.title,
-                description: vm.newLink.description || '',
+                title: title,
+                description: description,
                 amount: parseFloat(vm.newLink.amount),
                 currency: vm.newLink.currency || 'USD',
-                expires_in_hours: parseInt(vm.newLink.expires_in_hours) || 24
+                expires_in_hours: expiresInHours
             };
 
             $http.post('/merchant/payment-links', postData, {

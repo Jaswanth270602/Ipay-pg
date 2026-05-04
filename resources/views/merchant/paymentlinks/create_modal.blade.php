@@ -15,8 +15,10 @@
                                id="linkTitle"
                                ng-model="plc.newLink.title" 
                                placeholder="e.g., Invoice Payment"
+                               maxlength="255"
                                required
                                ng-disabled="plc.creating">
+                        <small class="text-muted">Maximum 255 characters</small>
                     </div>
 
                     <div class="mb-3">
@@ -26,7 +28,9 @@
                                   ng-model="plc.newLink.description" 
                                   rows="3"
                                   placeholder="Optional description for this payment link"
+                                  maxlength="1000"
                                   ng-disabled="plc.creating"></textarea>
+                        <small class="text-muted">Maximum 1000 characters</small>
                     </div>
 
                     <div class="row">
@@ -83,6 +87,7 @@
                                ng-model="plc.newLink.expires_in_hours" 
                                min="1"
                                max="720"
+                               step="1"
                                value="24"
                                ng-init="plc.newLink.expires_in_hours = 24"
                                ng-disabled="plc.creating">

@@ -17,7 +17,7 @@
         vm.perPage = 10;
         vm.pagination = { current_page: 1, last_page: 1, total: 0, from: 0, to: 0, per_page: 10 };
         vm.filters = { status: '', from_date: '', to_date: '', search: '' };
-        vm.defaultCurrency = @json($merchant->default_currency ?? config('ipay.default_currency', 'USD'));
+        vm.defaultCurrency = 'USD';
         vm.newRefund = { transaction_id: '', amount: '', reason: '', currency: vm.defaultCurrency };
         vm.selectedRefund = null;
 

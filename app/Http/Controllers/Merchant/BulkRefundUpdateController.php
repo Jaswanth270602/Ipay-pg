@@ -53,6 +53,7 @@ class BulkRefundUpdateController extends Controller
                 'started_at' => null,
                 'user_id' => auth()->id(),
                 'merchant_id' => $merchant->id,
+                'test_mode' => (bool) $merchant->test_mode,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -82,6 +83,15 @@ class BulkRefundUpdateController extends Controller
             $query = DB::table('bulk_refund_jobs')
                 ->where('merchant_id', $merchant->id)
                 ->latest();
+
+            if ((bool) $merchant->test_mode) {
+                $query->where(function ($q) {
+                    $q->where('test_mode', true)
+                      ->orWhereNull('test_mode');
+                });
+            } else {
+                $query->where('test_mode', false);
+            }
 
             // Filters
             if ($request->has('filter_job_id') && $request->get('filter_job_id')) {
@@ -150,10 +160,22 @@ class BulkRefundUpdateController extends Controller
     {
         try {
             $merchant = auth()->user()->merchant;
-            $job = DB::table('bulk_refund_jobs')
-                ->where('id', $id)
-                ->where('merchant_id', $merchant->id)
-                ->first();
+            if ((bool) $merchant->test_mode) {
+                $job = DB::table('bulk_refund_jobs')
+                    ->where('id', $id)
+                    ->where('merchant_id', $merchant->id)
+                    ->where(function ($q) {
+                        $q->where('test_mode', true)
+                          ->orWhereNull('test_mode');
+                    })
+                    ->first();
+            } else {
+                $job = DB::table('bulk_refund_jobs')
+                    ->where('id', $id)
+                    ->where('merchant_id', $merchant->id)
+                    ->where('test_mode', false)
+                    ->first();
+            }
 
             if (!$job) {
                 return response()->json([
@@ -176,7 +198,10 @@ class BulkRefundUpdateController extends Controller
                     $status = strtoupper((string) $value);
                     return match ($status) {
                         'SUCCESS' => 'SUCCESS (OK)',
+                        'ALREADY_REFUNDED' => 'ALREADY REFUNDED (DONE EARLIER)',
                         'FAILED' => 'FAILED (ERROR)',
+                        'PENDING_APPROVAL' => 'PENDING APPROVAL (WAITING ADMIN)',
+                        'PENDING_PROCESSING' => 'PENDING PROCESSING (BANK/GATEWAY)',
                         'COMPLETED' => 'COMPLETED (DONE)',
                         'COMPLETED_WITH_ERRORS' => 'COMPLETED WITH ERRORS (PARTIAL)',
                         'PROCESSING' => 'PROCESSING (IN PROGRESS)',
@@ -206,9 +231,10 @@ class BulkRefundUpdateController extends Controller
 
                 foreach ($rowResults as $result) {
                     $rStatus = strtoupper((string) ($result['status'] ?? 'N/A'));
-                    $isSuccess = $rStatus === 'SUCCESS';
-                    $bg = $isSuccess ? '#e8f5e9' : '#ffebee';
-                    $fg = $isSuccess ? '#1b5e20' : '#b71c1c';
+                    $isSuccess = in_array($rStatus, ['SUCCESS', 'ALREADY_REFUNDED'], true);
+                    $isPending = in_array($rStatus, ['PENDING_APPROVAL', 'PENDING_PROCESSING'], true);
+                    $bg = $isSuccess ? '#e8f5e9' : ($isPending ? '#fff8e1' : '#ffebee');
+                    $fg = $isSuccess ? '#1b5e20' : ($isPending ? '#8a6d1d' : '#b71c1c');
                     $html .= '<tr>'
                         . '<td>' . $esc($result['row'] ?? '') . '</td>'
                         . '<td>' . $esc($result['transaction_id'] ?? '') . '</td>'
@@ -231,6 +257,45 @@ class BulkRefundUpdateController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to download file',
+            ], 500);
+        }
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        try {
+            $merchant = $request->user()->merchant;
+
+            $deleteQuery = DB::table('bulk_refund_jobs')
+                ->where('id', $id)
+                ->where('merchant_id', $merchant->id);
+
+            if ((bool) $merchant->test_mode) {
+                $deleteQuery->where(function ($q) {
+                    $q->where('test_mode', true)
+                      ->orWhereNull('test_mode');
+                });
+            } else {
+                $deleteQuery->where('test_mode', false);
+            }
+
+            $deleted = $deleteQuery->delete();
+
+            if (! $deleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job not found',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete job',
             ], 500);
         }
     }

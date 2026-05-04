@@ -12,13 +12,10 @@
         </div>
     </div>
 
-    <!-- Advanced Filter and Status -->
+    <!-- Status -->
     <div class="stat-card mb-3">
         <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <button class="btn btn-primary w-100">Advanced Filter</button>
-            </div>
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-sm" 
                             ng-class="{'btn-primary': mtc.filters.status === 'all', 'btn-outline-primary': mtc.filters.status !== 'all'}"
@@ -181,13 +178,13 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Payment Channel</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_payment_channel">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_payment_channel" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.merc_approved.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Merc Approved</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_merc_approved">
+                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_merc_approved" ng-change="mtc.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -197,55 +194,55 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Currency Code</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_currency_code">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_currency_code" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.bank_reference_number.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Bank Reference Number</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_bank_reference_number">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_bank_reference_number" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.acq_payment_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Payment Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_payment_id">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_payment_id" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.acq_transaction_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Acq Transaction Id</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_transaction_id">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_acq_transaction_id" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.provider_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Provider Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_provider_name">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_provider_name" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.account_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Account ID</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_account_id">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_account_id" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.tdr_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>VAT Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_amount">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_amount" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.is_updated_by_recon.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Is Updated By Recon</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_is_updated_by_recon">
+                                <select class="form-select form-select-sm mt-1" ng-model="mtc.filters.filter_is_updated_by_recon" ng-change="mtc.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="Yes">Yes</option>
                                     <option value="No">No</option>
@@ -255,31 +252,31 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_merchant">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_merchant" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.tdr_amount_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>TDR Amount Paid by Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_customer">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_tdr_amount_paid_by_customer" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_merchant.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>VAT Paid By Merchant</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_merchant">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_merchant" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.gst_paid_by_customer.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>VAT Paid By Customer</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_customer">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_gst_paid_by_customer" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.net_settlements_amount.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Net Settlements Amount</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_net_settlements_amount" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.admin_merchant_rate_pct.visible">
                                 <div class="d-flex align-items-center gap-2">
@@ -308,55 +305,55 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Holder Name</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_holder_name">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_holder_name" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.card_number.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Card Number</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_number">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_card_number" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.customer_ip_address.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Customer IP Address</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_customer_ip_address">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_customer_ip_address" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf1.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF1</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf1" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf1" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf2.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF2</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf2" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf2" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf3.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF3</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf3" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf3" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf4.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF4</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf4" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf4" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.udf5.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF5</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf5" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_udf5" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th ng-show="mtc.visibleColumns.upi_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UPI ID</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_upi_id" ng-change="mtc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mtc.filters.filter_upi_id" ng-keyup="$event.keyCode === 13 && mtc.applyFilters()">
                             </th>
                             <th>Action</th>
                         </tr>

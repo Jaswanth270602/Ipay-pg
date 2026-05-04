@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
-use App\Models\MerchantVendor;
 use App\Models\Transaction;
 use App\Models\SplitTransaction;
 use Illuminate\Http\Request;
@@ -31,6 +30,7 @@ class SplitTransactionsController extends Controller
             $query = $merchant->transactions()
                 ->where('test_mode', $merchant->test_mode)
                 ->whereNotNull('order_id')
+                ->where('status', 'success')
                 ->latest();
 
             // Date range filter
@@ -211,23 +211,6 @@ class SplitTransactionsController extends Controller
     }
 
     /**
-     * Approved vendors for manual split dropdown.
-     */
-    public function getApprovedVendors(Request $request): JsonResponse
-    {
-        $merchant = $request->user()->merchant;
-        $vendors = MerchantVendor::where('merchant_id', $merchant->id)
-            ->where('status', 'approved')
-            ->orderBy('vendor_name')
-            ->get(['id', 'vendor_name', 'vendor_code']);
-
-        return response()->json([
-            'success' => true,
-            'data' => $vendors,
-        ]);
-    }
-
-    /**
      * Replace split with manually entered merchant vs vendor amounts (successful txns only).
      */
     public function updateManualSplit(Request $request, int $transactionId): JsonResponse
@@ -237,7 +220,6 @@ class SplitTransactionsController extends Controller
         $request->validate([
             'primary_amount' => 'required|numeric|min:0',
             'secondary_amount' => 'required|numeric|min:0',
-            'merchant_vendor_id' => 'nullable|integer|exists:merchant_vendors,id',
         ]);
 
         $transaction = Transaction::where('id', $transactionId)
@@ -262,27 +244,7 @@ class SplitTransactionsController extends Controller
             ], 422);
         }
 
-        if ($secondary > 0 && ! $request->filled('merchant_vendor_id')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Select a vendor when the vendor share is greater than zero.',
-            ], 422);
-        }
-
         $vendor = null;
-        if ($secondary > 0) {
-            $vendor = MerchantVendor::where('id', (int) $request->input('merchant_vendor_id'))
-                ->where('merchant_id', $merchant->id)
-                ->where('status', 'approved')
-                ->first();
-
-            if (! $vendor) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid or unapproved vendor for this account.',
-                ], 422);
-            }
-        }
 
         $pctPrimary = $total > 0 ? round(($primary / $total) * 100, 2) : 100.0;
         $pctSecondary = $total > 0 ? round(($secondary / $total) * 100, 2) : 0.0;
@@ -301,7 +263,6 @@ class SplitTransactionsController extends Controller
                     'secondary_amount' => $secondary,
                     'primary_merchant_id' => $merchant->id,
                     'secondary_merchant_id' => null,
-                    'merchant_vendor_id' => $vendor?->id,
                     'primary_percentage' => $pctPrimary,
                     'secondary_percentage' => $pctSecondary,
                     'status' => 'completed',

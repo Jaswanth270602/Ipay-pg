@@ -50,7 +50,7 @@ class PaymentLinkController extends Controller
             'allow_partial_payment' => 'nullable|boolean',
             'customer_details' => 'nullable|array',
             'max_usage' => 'nullable|integer|min:1',
-            'expires_in' => 'nullable|integer|min:60', // seconds
+            'expires_in' => 'nullable|integer|min:60|max:2592000', // 60s to 30 days
             'success_url' => 'nullable|url',
             'cancel_url' => 'nullable|url',
             'metadata' => 'nullable|array',

@@ -211,6 +211,18 @@ console.log('=== Payment Links Controller Script Loaded ===');
                         return;
                     }
 
+                    var title = String(vm.newLink.title).trim();
+                    if (title.length > 255) {
+                        vm.showToast('Title cannot exceed 255 characters', 'error');
+                        return;
+                    }
+
+                    var description = vm.newLink.description ? String(vm.newLink.description).trim() : '';
+                    if (description.length > 1000) {
+                        vm.showToast('Description cannot exceed 1000 characters', 'error');
+                        return;
+                    }
+
                     if (!vm.newLink.amount) {
                         vm.showToast('Please enter an amount', 'error');
                         return;
@@ -219,6 +231,12 @@ console.log('=== Payment Links Controller Script Loaded ===');
                     var amount = parseFloat(vm.newLink.amount);
                     if (isNaN(amount) || amount <= 0) {
                         vm.showToast('Please enter a valid amount greater than 0', 'error');
+                        return;
+                    }
+
+                    var expiresInHours = parseInt(vm.newLink.expires_in_hours, 10);
+                    if (isNaN(expiresInHours) || expiresInHours < 1 || expiresInHours > 720) {
+                        vm.showToast('Expires In must be between 1 and 720 hours', 'error');
                         return;
                     }
 
@@ -240,12 +258,12 @@ console.log('=== Payment Links Controller Script Loaded ===');
 
                     // Payload
                     var payload = {
-                        title: String(vm.newLink.title).trim(),
-                        description: vm.newLink.description ? String(vm.newLink.description).trim() : '',
+                        title: title,
+                        description: description,
                         amount: amount,
                         currency: vm.newLink.currency || 'USD',
                         allow_partial_payment: vm.newLink.allow_partial_payment || false,
-                        expires_in_hours: parseInt(vm.newLink.expires_in_hours) || 24,
+                        expires_in_hours: expiresInHours,
                         payment_methods: ['card', 'upi', 'netbanking', 'wallet']
                     };
 
