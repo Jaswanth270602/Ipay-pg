@@ -29,6 +29,9 @@ class BulkRefundUpdateController extends Controller
     public function upload(Request $request): JsonResponse
     {
         try {
+            $adminViewMode = session('admin_view_mode', 'test');
+            $isTestMode = $adminViewMode === 'test';
+
             $request->validate([
                 'file' => 'required|file|mimes:csv,txt|max:10240',
             ]);
@@ -51,6 +54,7 @@ class BulkRefundUpdateController extends Controller
                 'progress' => 0,
                 'started_at' => null,
                 'user_id' => auth()->id(),
+                'test_mode' => $isTestMode,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -74,9 +78,19 @@ class BulkRefundUpdateController extends Controller
     public function getJobs(Request $request): JsonResponse
     {
         try {
+            $adminViewMode = session('admin_view_mode', 'test');
+            $isTestMode = $adminViewMode === 'test';
             $perPage = min($request->get('per_page', 5), 50);
             
             $query = DB::table('bulk_refund_jobs')->latest();
+            if ($isTestMode) {
+                $query->where(function ($q) {
+                    $q->where('test_mode', true)
+                      ->orWhereNull('test_mode');
+                });
+            } else {
+                $query->where('test_mode', false);
+            }
 
             // Filters
             if ($request->has('filter_job_id') && $request->get('filter_job_id')) {
@@ -143,7 +157,18 @@ class BulkRefundUpdateController extends Controller
 
     public function downloadStatusFile($id): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $job = DB::table('bulk_refund_jobs')->where('id', $id)->first();
+        $adminViewMode = session('admin_view_mode', 'test');
+        $isTestMode = $adminViewMode === 'test';
+        $jobQuery = DB::table('bulk_refund_jobs')->where('id', $id);
+        if ($isTestMode) {
+            $jobQuery->where(function ($q) {
+                $q->where('test_mode', true)
+                  ->orWhereNull('test_mode');
+            });
+        } else {
+            $jobQuery->where('test_mode', false);
+        }
+        $job = $jobQuery->first();
         
         if (!$job) {
             abort(404, 'Job not found');
@@ -165,7 +190,10 @@ class BulkRefundUpdateController extends Controller
                 $status = strtoupper((string) $value);
                 return match ($status) {
                     'SUCCESS' => 'SUCCESS (OK)',
+                    'ALREADY_REFUNDED' => 'ALREADY REFUNDED (DONE EARLIER)',
                     'FAILED' => 'FAILED (ERROR)',
+                    'PENDING_APPROVAL' => 'PENDING APPROVAL (WAITING ADMIN)',
+                    'PENDING_PROCESSING' => 'PENDING PROCESSING (BANK/GATEWAY)',
                     'COMPLETED' => 'COMPLETED (DONE)',
                     'COMPLETED_WITH_ERRORS' => 'COMPLETED WITH ERRORS (PARTIAL)',
                     'PROCESSING' => 'PROCESSING (IN PROGRESS)',
@@ -195,9 +223,10 @@ class BulkRefundUpdateController extends Controller
 
             foreach ($rowResults as $result) {
                 $rStatus = strtoupper((string) ($result['status'] ?? 'N/A'));
-                $isSuccess = $rStatus === 'SUCCESS';
-                $bg = $isSuccess ? '#e8f5e9' : '#ffebee';
-                $fg = $isSuccess ? '#1b5e20' : '#b71c1c';
+                $isSuccess = in_array($rStatus, ['SUCCESS', 'ALREADY_REFUNDED'], true);
+                $isPending = in_array($rStatus, ['PENDING_APPROVAL', 'PENDING_PROCESSING'], true);
+                $bg = $isSuccess ? '#e8f5e9' : ($isPending ? '#fff8e1' : '#ffebee');
+                $fg = $isSuccess ? '#1b5e20' : ($isPending ? '#8a6d1d' : '#b71c1c');
                 $html .= '<tr>'
                     . '<td>' . $esc($result['row'] ?? '') . '</td>'
                     . '<td>' . $esc($result['transaction_id'] ?? '') . '</td>'

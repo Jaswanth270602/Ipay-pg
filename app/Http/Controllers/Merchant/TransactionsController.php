@@ -71,6 +71,109 @@ class TransactionsController extends Controller
             if ($request->has('filter_payment_mode') && $request->get('filter_payment_mode')) {
                 $query->where('payment_method', 'like', "%{$request->get('filter_payment_mode')}%");
             }
+            if ($request->filled('filter_payment_channel')) {
+                $channel = trim((string) $request->get('filter_payment_channel'));
+                $query->where('gateway_response->channel', 'like', '%' . $channel . '%');
+            }
+            if ($request->filled('filter_merc_approved') && $request->get('filter_merc_approved') !== 'all') {
+                $isApproved = strtolower((string) $request->get('filter_merc_approved')) === 'yes';
+                if ($isApproved) {
+                    $query->where('status', 'success');
+                } else {
+                    $query->where('status', '!=', 'success');
+                }
+            }
+            if ($request->filled('filter_currency_code')) {
+                $currency = strtoupper(trim((string) $request->get('filter_currency_code')));
+                $query->where('currency', 'like', '%' . $currency . '%');
+            }
+            if ($request->filled('filter_bank_reference_number')) {
+                $bankRef = trim((string) $request->get('filter_bank_reference_number'));
+                $query->where('gateway_response->bank_reference', 'like', '%' . $bankRef . '%');
+            }
+            if ($request->filled('filter_acq_payment_id')) {
+                $acqPaymentId = trim((string) $request->get('filter_acq_payment_id'));
+                $query->where('gateway_response->acq_payment_id', 'like', '%' . $acqPaymentId . '%');
+            }
+            if ($request->filled('filter_acq_transaction_id')) {
+                $acqTransactionId = trim((string) $request->get('filter_acq_transaction_id'));
+                $query->where('gateway_response->acq_transaction_id', 'like', '%' . $acqTransactionId . '%');
+            }
+            if ($request->filled('filter_provider_name')) {
+                $provider = trim((string) $request->get('filter_provider_name'));
+                $query->where('gateway_response->provider', 'like', '%' . $provider . '%');
+            }
+            if ($request->filled('filter_account_id')) {
+                $accountId = trim((string) $request->get('filter_account_id'));
+                $query->where('gateway_response->account_id', 'like', '%' . $accountId . '%');
+            }
+            if ($request->filled('filter_tdr_amount')) {
+                $tdrAmount = (float) $request->get('filter_tdr_amount');
+                $query->where('fee_amount', $tdrAmount);
+            }
+            if ($request->filled('filter_gst_amount')) {
+                $vatAmount = (float) $request->get('filter_gst_amount');
+                $query->whereRaw('ROUND(COALESCE(fee_amount, 0) * 0.18, 2) = ?', [$vatAmount]);
+            }
+            if ($request->filled('filter_is_updated_by_recon') && $request->get('filter_is_updated_by_recon') !== 'all') {
+                // Merchant table currently renders this as static "No"
+                $reconFilter = strtolower(trim((string) $request->get('filter_is_updated_by_recon')));
+                if ($reconFilter === 'yes') {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+            if ($request->filled('filter_tdr_amount_paid_by_merchant')) {
+                $tdrMerchant = (float) $request->get('filter_tdr_amount_paid_by_merchant');
+                $query->where('fee_amount', $tdrMerchant);
+            }
+            if ($request->filled('filter_tdr_amount_paid_by_customer')) {
+                $tdrCustomer = (float) $request->get('filter_tdr_amount_paid_by_customer');
+                if (abs($tdrCustomer) > 0.00001) {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+            if ($request->filled('filter_gst_paid_by_merchant')) {
+                $vatMerchant = (float) $request->get('filter_gst_paid_by_merchant');
+                $query->whereRaw('ROUND(COALESCE(fee_amount, 0) * 0.18, 2) = ?', [$vatMerchant]);
+            }
+            if ($request->filled('filter_gst_paid_by_customer')) {
+                $vatCustomer = (float) $request->get('filter_gst_paid_by_customer');
+                if (abs($vatCustomer) > 0.00001) {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+            if ($request->filled('filter_net_settlements_amount')) {
+                $netAmount = (float) $request->get('filter_net_settlements_amount');
+                $query->whereRaw('COALESCE(net_amount, amount) = ?', [$netAmount]);
+            }
+            if ($request->filled('filter_customer_ip_address')) {
+                $ipAddress = trim((string) $request->get('filter_customer_ip_address'));
+                $query->where('ip_address', 'like', '%' . $ipAddress . '%');
+            }
+            if ($request->filled('filter_card_holder_name')) {
+                $cardHolder = trim((string) $request->get('filter_card_holder_name'));
+                $query->where(function ($q) use ($cardHolder) {
+                    $q->where('payment_details->card_holder_name', 'like', '%' . $cardHolder . '%')
+                      ->orWhere('payment_details->card_holder', 'like', '%' . $cardHolder . '%');
+                });
+            }
+            if ($request->filled('filter_card_number')) {
+                $cardLast4 = preg_replace('/\D+/', '', (string) $request->get('filter_card_number'));
+                if (!empty($cardLast4)) {
+                    $query->where('payment_details->last4', 'like', '%' . $cardLast4 . '%');
+                }
+            }
+            foreach (['udf1', 'udf2', 'udf3', 'udf4', 'udf5'] as $udfKey) {
+                $requestKey = 'filter_' . $udfKey;
+                if ($request->filled($requestKey)) {
+                    $udfVal = trim((string) $request->get($requestKey));
+                    $query->where('payment_details->' . $udfKey, 'like', '%' . $udfVal . '%');
+                }
+            }
+            if ($request->filled('filter_upi_id')) {
+                $upiId = trim((string) $request->get('filter_upi_id'));
+                $query->where('gateway_response->upi_id', 'like', '%' . $upiId . '%');
+            }
             // NOTE: We intentionally ignore filter_transaction_datetime and
             // filter_transaction_initiation_time on the backend now.
             // Dates are handled entirely on the client (Angular) so that the

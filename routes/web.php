@@ -13,7 +13,6 @@ use App\Http\Controllers\Merchant\SettingsController;
 use App\Http\Controllers\Merchant\ProfileController;
 use App\Http\Controllers\Merchant\ApiKeysController;
 use App\Http\Controllers\Merchant\IntegrationController;
-use App\Http\Controllers\Merchant\SubscriptionsController as MerchantSubscriptionsController;
 use App\Http\Controllers\Merchant\WebhooksController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\MerchantsController;
@@ -46,7 +45,6 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\DisputesController;
 use App\Http\Controllers\PaymentCheckoutController;
 use App\Http\Controllers\NotificationsController;
-use App\Http\Controllers\Admin\SubscriptionsController;
 use App\Http\Controllers\Admin\RiskManagementController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Admin\AdminSettingsController;
@@ -182,6 +180,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.bulk-refund-update.template');
         Route::get('/payments/bulk-refund-update/download/{id}', [\App\Http\Controllers\Merchant\BulkRefundUpdateController::class, 'downloadStatusFile'])
             ->name('merchant.payments.bulk-refund-update.download');
+        Route::delete('/payments/bulk-refund-update/{id}', [\App\Http\Controllers\Merchant\BulkRefundUpdateController::class, 'destroy'])
+            ->name('merchant.payments.bulk-refund-update.destroy');
         Route::get('/payments/chargebacks', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'index'])
             ->name('merchant.payments.chargebacks');
         Route::get('/payments/chargebacks/data', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'getData'])
@@ -198,8 +198,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.split-transactions');
         Route::get('/payments/split-transactions/data', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getData'])
             ->name('merchant.payments.split-transactions.data');
-        Route::get('/payments/split-transactions/vendors', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getApprovedVendors'])
-            ->name('merchant.payments.split-transactions.vendors');
         Route::post('/payments/split-transactions/{transactionId}/manual-split', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'updateManualSplit'])
             ->middleware('throttle:30,1')
             ->name('merchant.payments.split-transactions.manual-split');
@@ -276,18 +274,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/webhooks/update-url', [WebhooksController::class, 'updateWebhookUrl'])->name('merchant.webhooks.update-url');
         Route::post('/webhooks/test', [WebhooksController::class, 'testWebhook'])->name('merchant.webhooks.test');
         Route::post('/webhooks/{id}/retry', [WebhooksController::class, 'retryWebhook'])->name('merchant.webhooks.retry');
-
-        // Plans & Subscriptions (Merchant)
-        Route::get('/subscriptions', [MerchantSubscriptionsController::class, 'index'])
-            ->name('merchant.subscriptions.index');
-        Route::get('/subscriptions/data', [MerchantSubscriptionsController::class, 'getSubscriptions'])
-            ->name('merchant.subscriptions.data');
-        Route::post('/subscriptions', [MerchantSubscriptionsController::class, 'createSubscription'])
-            ->name('merchant.subscriptions.store');
-        Route::post('/subscriptions/{id}', [MerchantSubscriptionsController::class, 'updateSubscription'])
-            ->name('merchant.subscriptions.update');
-        Route::get('/plans/data', [MerchantSubscriptionsController::class, 'getPlans'])
-            ->name('merchant.plans.data');
 
         // Onboarding
         Route::get('/onboarding', [\App\Http\Controllers\Merchant\OnboardingController::class, 'index'])->name('merchant.onboarding.index');
@@ -673,24 +659,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.disputes.update-status');
         Route::get('/disputes/export/csv', [\App\Http\Controllers\Admin\DisputesController::class, 'export'])
             ->name('admin.disputes.export');
-
-        // Subscriptions (Admin)
-        Route::get('/subscriptions', [SubscriptionsController::class, 'index'])
-            ->name('admin.subscriptions.index');
-        Route::get('/subscriptions/data', [SubscriptionsController::class, 'getSubscriptions'])
-            ->name('admin.subscriptions.data');
-        Route::post('/subscriptions', [SubscriptionsController::class, 'createSubscription'])
-            ->name('admin.subscriptions.store');
-        Route::post('/subscriptions/{id}', [SubscriptionsController::class, 'updateSubscription'])
-            ->name('admin.subscriptions.update');
-
-        // Plans (Admin)
-        Route::get('/plans/data', [SubscriptionsController::class, 'getPlans'])
-            ->name('admin.plans.data');
-        Route::post('/plans', [SubscriptionsController::class, 'storePlan'])
-            ->name('admin.plans.store');
-        Route::post('/plans/{id}', [SubscriptionsController::class, 'updatePlan'])
-            ->name('admin.plans.update');
 
         // Admin Settings (Mode Switching)
         Route::post('/settings/switch-mode', [AdminSettingsController::class, 'switchMode'])

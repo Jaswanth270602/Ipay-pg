@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Models\Refund;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\RefundService;
 use Illuminate\Bus\Queueable;
@@ -78,6 +80,8 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
             $results = [];
             $successCount = 0;
             $errorCount = 0;
+            $pendingApprovalCount = 0;
+            $pendingProcessingCount = 0;
             $errorMessages = [];
             $dataRows = array_slice($rows, 1);
             $totalRows = count($dataRows);
@@ -107,7 +111,9 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                     continue;
                 }
 
-                $amount = filter_var($amountRaw, FILTER_VALIDATE_FLOAT);
+                // Accept common CSV numeric formats like "15,000.00"
+                $normalizedAmountRaw = str_replace(',', '', $amountRaw);
+                $amount = filter_var($normalizedAmountRaw, FILTER_VALIDATE_FLOAT);
                 if ($amount === false || (float) $amount <= 0) {
                     $message = "Invalid amount: {$amountRaw}";
                     $results[] = [
@@ -143,7 +149,7 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                         (float) $amount,
                         $reason !== '' ? $reason : null,
                         $job->merchant_id ?? null,
-                        isset($job->merchant_id) && $job->merchant_id ? (bool) optional($initiator->merchant)->test_mode : null
+                        isset($job->test_mode) ? (bool) $job->test_mode : (isset($job->merchant_id) && $job->merchant_id ? (bool) optional($initiator->merchant)->test_mode : null)
                     );
 
                     if ($refund->status === 'completed') {
@@ -154,6 +160,22 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                             'message' => 'Refund created successfully',
                         ];
                         $successCount++;
+                    } elseif ($refund->status === 'pending_approval') {
+                        $results[] = [
+                            'row' => $rowNumber,
+                            'transaction_id' => $transactionId,
+                            'status' => 'PENDING_APPROVAL',
+                            'message' => 'Refund request submitted and pending admin approval',
+                        ];
+                        $pendingApprovalCount++;
+                    } elseif (in_array($refund->status, ['pending_processing', 'processing'], true)) {
+                        $results[] = [
+                            'row' => $rowNumber,
+                            'transaction_id' => $transactionId,
+                            'status' => 'PENDING_PROCESSING',
+                            'message' => 'Refund initiated and pending gateway processing',
+                        ];
+                        $pendingProcessingCount++;
                     } else {
                         $results[] = [
                             'row' => $rowNumber,
@@ -175,6 +197,41 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
                     $errorCount++;
                 } catch (\Exception $e) {
                     $message = $this->normalizeRefundErrorMessage($e->getMessage());
+
+                    if ($message === 'Already refunded (max refundable: 0)') {
+                        $existingStatus = $this->resolveExistingRefundStatus($transactionId, $job);
+                        if ($existingStatus === 'pending_approval') {
+                            $results[] = [
+                                'row' => $rowNumber,
+                                'transaction_id' => $transactionId,
+                                'status' => 'PENDING_APPROVAL',
+                                'message' => 'Refund already requested and pending admin approval',
+                            ];
+                            $pendingApprovalCount++;
+                            continue;
+                        }
+                        if (in_array($existingStatus, ['pending_processing', 'processing'], true)) {
+                            $results[] = [
+                                'row' => $rowNumber,
+                                'transaction_id' => $transactionId,
+                                'status' => 'PENDING_PROCESSING',
+                                'message' => 'Refund already initiated and pending gateway processing',
+                            ];
+                            $pendingProcessingCount++;
+                            continue;
+                        }
+                        if ($existingStatus === 'completed') {
+                            $results[] = [
+                                'row' => $rowNumber,
+                                'transaction_id' => $transactionId,
+                                'status' => 'ALREADY_REFUNDED',
+                                'message' => 'Refund already completed earlier',
+                            ];
+                            $successCount++;
+                            continue;
+                        }
+                    }
+
                     $results[] = [
                         'row' => $rowNumber,
                         'transaction_id' => $transactionId,
@@ -193,7 +250,7 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
 
             // Update job status
             $finalStatus = $errorCount > 0 ? 'completed_with_errors' : 'completed';
-            $statusInfo = "Processed: {$totalRows} rows | Success: {$successCount} | Errors: {$errorCount}";
+            $statusInfo = "Processed: {$totalRows} rows | Success: {$successCount} | Pending approval: {$pendingApprovalCount} | Pending processing: {$pendingProcessingCount} | Errors: {$errorCount}";
             $finishedAt = now();
 
             DB::table('bulk_refund_jobs')
@@ -294,6 +351,29 @@ class ProcessBulkRefundUpdateJob implements ShouldQueue
         }
 
         return $message;
+    }
+
+    private function resolveExistingRefundStatus(string $transactionId, object $job): ?string
+    {
+        $txnQuery = Transaction::query()->where('txn_id', $transactionId);
+        if (isset($job->merchant_id) && $job->merchant_id) {
+            $txnQuery->where('merchant_id', (int) $job->merchant_id);
+        }
+        if (isset($job->test_mode)) {
+            $txnQuery->where('test_mode', (bool) $job->test_mode);
+        }
+
+        $transaction = $txnQuery->first();
+        if (! $transaction) {
+            return null;
+        }
+
+        $refund = Refund::query()
+            ->where('transaction_id', $transaction->id)
+            ->orderByDesc('id')
+            ->first();
+
+        return $refund?->status;
     }
 }
 

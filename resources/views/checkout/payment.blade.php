@@ -1793,6 +1793,7 @@
                 const nameTrimmed = (name || '').trim();
                 const emailTrimmed = (email || '').trim();
                 const phoneTrimmed = (phone || '').trim();
+                const fullNamePattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
                 const nameErrorEl = document.getElementById('customerNameError');
                 const emailErrorEl = document.getElementById('customerEmailError');
@@ -1816,15 +1817,15 @@
                         nameErrorEl.textContent = 'Full name must be at most 50 characters.';
                     }
                     hasError = true;
-                } else if (!/^(?=.*[A-Za-z])[A-Za-z ]+$/.test(nameTrimmed)) {
+                } else if (!fullNamePattern.test(nameTrimmed)) {
                     if (fieldTouched.customerName && nameErrorEl) {
                         nameErrorEl.style.display = 'block';
-                        nameErrorEl.textContent = 'Full name may contain only letters and spaces (include at least one letter).';
+                        nameErrorEl.textContent = 'Full name may contain only letters and spaces.';
                     }
                     hasError = true;
                 }
 
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailPattern = /^[^\s@]+@[A-Za-z.-]+\.[A-Za-z]{2,}$/;
                 if (!emailTrimmed) {
                     if (fieldTouched.customerEmail && emailErrorEl) {
                         emailErrorEl.style.display = 'block';
@@ -1834,7 +1835,7 @@
                 } else if (!emailPattern.test(emailTrimmed)) {
                     if (fieldTouched.customerEmail && emailErrorEl) {
                         emailErrorEl.style.display = 'block';
-                        emailErrorEl.textContent = 'Enter a valid email address.';
+                        emailErrorEl.textContent = 'Enter a valid email (domain after @ cannot contain numbers).';
                     }
                     hasError = true;
                 }
@@ -2871,6 +2872,17 @@
         const customerPhoneInput = document.getElementById('customerPhone');
         
         if (customerNameInput) {
+            customerNameInput.addEventListener('input', (event) => {
+                const currentValue = event.target.value || '';
+                const hasInvalidNameChars = /[^A-Za-z ]/.test(currentValue);
+                const nameErrorEl = document.getElementById('customerNameError');
+                if (hasInvalidNameChars && nameErrorEl) {
+                    nameErrorEl.style.display = 'block';
+                    nameErrorEl.textContent = 'Full name can contain only letters and spaces.';
+                }
+                fieldTouched.customerName = true;
+                validateForm(true);
+            });
             customerNameInput.addEventListener('blur', () => validateForm(false));
         }
         if (customerEmailInput) {

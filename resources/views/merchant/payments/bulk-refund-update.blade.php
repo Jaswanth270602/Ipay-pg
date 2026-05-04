@@ -145,9 +145,9 @@
         </form>
     </div>
 
-    <!-- List of PgRefunds Section -->
+    <!-- List of Refunds Section -->
     <div class="stat-card">
-        <h5 class="mb-3">List of PgRefunds</h5>
+        <h5 class="mb-3">List of Refunds</h5>
         
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <div>
@@ -291,6 +291,9 @@
                                     <button class="btn btn-sm btn-outline-primary" ng-click="mbruc.downloadStatusFile(job)" ng-if="job.export_files !== '-'">
                                         <i class="bi bi-download"></i> Download
                                     </button>
+                                    <button class="btn btn-sm btn-outline-danger ms-1" ng-click="mbruc.deleteJob(job)">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
                                     <span ng-if="job.export_files === '-'">-</span>
                                 </div>
                             </td>
@@ -332,6 +335,7 @@
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -450,6 +454,89 @@
                     if (job.export_files && job.export_files !== '-') {
                         window.location.href = '/merchant/payments/bulk-refund-update/download/' + job.id;
                     }
+                };
+
+                vm.deleteJob = function(job) {
+                    var notify = function(message, type) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(message, type || 'info');
+                        } else if (typeof window.ipayAlert === 'function') {
+                            window.ipayAlert(message, type || 'info');
+                        }
+                    };
+
+                    if (!job || !job.id) {
+                        notify('Invalid job selected.', 'warning');
+                        return;
+                    }
+
+                    var modalEl = document.getElementById('logoutConfirmModal');
+                    var titleEl = document.getElementById('logoutConfirmLabel');
+                    var bodyEl = modalEl ? modalEl.querySelector('.modal-body') : null;
+                    var confirmBtn = document.getElementById('logoutConfirmBtn');
+                    var cancelBtn = modalEl ? modalEl.querySelector('.modal-footer .btn.btn-secondary') : null;
+
+                    if (!modalEl || !titleEl || !bodyEl || !confirmBtn || !cancelBtn) {
+                        notify('Confirmation modal is unavailable.', 'error');
+                        return;
+                    }
+
+                    var originalTitle = titleEl.textContent;
+                    var originalBody = bodyEl.textContent;
+                    var originalConfirmText = confirmBtn.textContent;
+                    var originalCancelText = cancelBtn.textContent;
+                    var originalConfirmClass = confirmBtn.className;
+
+                    titleEl.textContent = 'Confirm Delete';
+                    bodyEl.textContent = 'Are you sure you want to delete this job?';
+                    confirmBtn.textContent = 'Delete';
+                    cancelBtn.textContent = 'Cancel';
+                    confirmBtn.className = 'btn btn-danger btn-sm';
+
+                    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    var cleanedUp = false;
+
+                    function cleanup() {
+                        if (cleanedUp) return;
+                        cleanedUp = true;
+                        titleEl.textContent = originalTitle;
+                        bodyEl.textContent = originalBody;
+                        confirmBtn.textContent = originalConfirmText;
+                        cancelBtn.textContent = originalCancelText;
+                        confirmBtn.className = originalConfirmClass;
+                        confirmBtn.removeEventListener('click', onConfirmDelete);
+                        modalEl.removeEventListener('hidden.bs.modal', onModalHidden);
+                    }
+
+                    function onModalHidden() {
+                        cleanup();
+                    }
+
+                    function onConfirmDelete() {
+                        $http({
+                            method: 'DELETE',
+                            url: '/merchant/payments/bulk-refund-update/' + job.id,
+                            headers: {
+                                'X-CSRF-TOKEN': csrf
+                            }
+                        }).then(function(response) {
+                            modal.hide();
+                            if (response.data && response.data.success) {
+                                notify(response.data.message || 'Job deleted successfully.', 'success');
+                                vm.loadJobs();
+                            } else {
+                                notify((response.data && response.data.message) ? response.data.message : 'Failed to delete job.', 'error');
+                            }
+                        }, function(error) {
+                            modal.hide();
+                            var message = (error && error.data && error.data.message) ? error.data.message : 'Failed to delete job.';
+                            notify(message, 'error');
+                        });
+                    }
+
+                    confirmBtn.addEventListener('click', onConfirmDelete);
+                    modalEl.addEventListener('hidden.bs.modal', onModalHidden);
+                    modal.show();
                 };
 
                 vm.changePage = function(page) {

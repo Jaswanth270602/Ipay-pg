@@ -335,37 +335,37 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF1</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf1" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf1" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.udf2.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF2</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf2" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf2" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.udf3.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF3</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf3" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf3" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.udf4.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF4</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf4" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf4" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.udf5.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UDF5</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf5" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_udf5" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th ng-show="atc.visibleColumns.upi_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>UPI ID</span>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_upi_id" ng-change="atc.applyFilters()">
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="atc.filters.filter_upi_id" ng-keyup="$event.keyCode === 13 && atc.applyFilters()">
                             </th>
                             <th>Action</th>
                         </tr>

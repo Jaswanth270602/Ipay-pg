@@ -992,10 +992,6 @@
             <i class="bi bi-link-45deg"></i>
             <span>Payment Links</span>
         </a>
-        <a href="{{ route('merchant.subscriptions.index') }}" class="sidebar-menu-item {{ request()->routeIs('merchant.subscriptions.*') || request()->routeIs('merchant.plans.*') ? 'active' : '' }}">
-            <i class="bi bi-receipt"></i>
-            <span>Subscriptions</span>
-        </a>
         <!-- Settlements Dropdown -->
         <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('merchant.settlements.*') ? 'active' : '' }}" onclick="toggleDropdown(this)">
             <i class="bi bi-file-earmark-text"></i>
@@ -1292,10 +1288,6 @@
                 </a>
             </div>
         </div>
-        <a href="{{ route('admin.subscriptions.index') }}" class="sidebar-menu-item {{ request()->routeIs('admin.subscriptions.*') ? 'active' : '' }}">
-            <i class="bi bi-receipt"></i>
-            <span>Subscriptions</span>
-        </a>
         <a href="{{ route('admin.disputes.index') }}" class="sidebar-menu-item {{ request()->routeIs('admin.disputes.*') ? 'active' : '' }}">
             <i class="bi bi-exclamation-octagon"></i>
             <span>Disputes</span>
