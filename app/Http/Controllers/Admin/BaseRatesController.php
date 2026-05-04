@@ -93,6 +93,46 @@ class BaseRatesController extends Controller
                 $query->where('currency', $request->get('currency'));
             }
 
+            if ($request->filled('team_id')) {
+                $query->where('team_id', $request->get('team_id'));
+            }
+
+            if ($request->filled('team_name')) {
+                $query->where('team_name', 'like', '%' . $request->get('team_name') . '%');
+            }
+
+            if ($request->filled('bank_code')) {
+                $query->where('bank_code', 'like', '%' . $request->get('bank_code') . '%');
+            }
+
+            if ($request->filled('bank_description')) {
+                $query->where('bank_description', 'like', '%' . $request->get('bank_description') . '%');
+            }
+
+            if ($request->filled('flat_fee')) {
+                $query->where('flat_fee', (float) $request->get('flat_fee'));
+            }
+
+            if ($request->filled('percentage_fee')) {
+                $query->where('percentage_fee', (float) $request->get('percentage_fee'));
+            }
+
+            if ($request->filled('min_amount')) {
+                $query->where('min_amount', (float) $request->get('min_amount'));
+            }
+
+            if ($request->filled('max_amount')) {
+                $query->where('max_amount', (float) $request->get('max_amount'));
+            }
+
+            if ($request->filled('min_share')) {
+                $query->where('min_share', (float) $request->get('min_share'));
+            }
+
+            if ($request->filled('max_share')) {
+                $query->where('max_share', (float) $request->get('max_share'));
+            }
+
             if ($request->filled('merchant_email')) {
                 $v = $request->get('merchant_email');
                 $query->whereHas('merchant', function ($q) use ($v) {
@@ -196,7 +236,7 @@ class BaseRatesController extends Controller
             unset($data['reseller_id'], $data['admin_share_pct'], $data['reseller_share_pct'], $data['merchant_share_pct'], $data['split_is_active']);
             // Set entity_type based on rate_type if not provided
             if (!isset($data['entity_type']) && isset($data['rate_type'])) {
-                if (in_array($data['rate_type'], ['merchant', 'bank'])) {
+                if (in_array($data['rate_type'], ['merchant', 'bank', 'receiver', 'pricer'])) {
                     $data['entity_type'] = $data['rate_type'];
                 }
             }
@@ -239,6 +279,12 @@ class BaseRatesController extends Controller
                 'is_active' => array_key_exists('split_is_active', $payload) ? (bool) $payload['split_is_active'] : true,
             ];
             unset($payload['reseller_id'], $payload['admin_share_pct'], $payload['reseller_share_pct'], $payload['merchant_share_pct'], $payload['split_is_active']);
+
+            if (!isset($payload['entity_type']) && isset($payload['rate_type'])) {
+                if (in_array($payload['rate_type'], ['merchant', 'bank', 'receiver', 'pricer'])) {
+                    $payload['entity_type'] = $payload['rate_type'];
+                }
+            }
 
             $rate->update($payload);
             $this->upsertMerchantSplit($rate, $splitData);
@@ -283,7 +329,7 @@ class BaseRatesController extends Controller
     }
 
     /**
-     * Get entities (merchants, banks) for dropdowns.
+     * Get entities (merchants, banks, receivers, pricers) for dropdowns.
      */
     public function getEntities(Request $request): JsonResponse
     {
@@ -307,6 +353,24 @@ class BaseRatesController extends Controller
                     ->get()
                     ->map(function($b) {
                         return ['id' => $b->id, 'name' => $b->name . ' (' . $b->code . ')'];
+                    });
+            } elseif ($type === 'receiver') {
+                $entities = Partner::select('id', 'name')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($partner) {
+                        return ['id' => $partner->id, 'name' => $partner->name];
+                    });
+            } elseif ($type === 'pricer') {
+                $entities = Reseller::select('id', 'name', 'email')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($reseller) {
+                        $label = $reseller->name ?: ('Reseller #' . $reseller->id);
+                        if (!empty($reseller->email)) {
+                            $label .= ' (' . $reseller->email . ')';
+                        }
+                        return ['id' => $reseller->id, 'name' => $label];
                     });
             } else {
                 $entities = [];

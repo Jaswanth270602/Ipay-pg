@@ -38,9 +38,6 @@
                 <button class="btn btn-sm btn-outline-secondary" ng-click="mrk.loadKeys()">
                     <i class="bi bi-arrow-clockwise"></i> Reload
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" ng-click="mrk.resetView()">
-                    <i class="bi bi-arrow-counterclockwise"></i> Reset
-                </button>
                 <button class="btn btn-sm btn-primary" ng-click="mrk.openCreateModal()">
                     <i class="bi bi-plus-lg"></i> + New
                 </button>
@@ -62,7 +59,7 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>S.No</th>
                             <th>Status</th>
                             <th>IP Address</th>
                             <th>Key Description</th>
@@ -85,12 +82,36 @@
                             </th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="mrk.filters.ip_address" ng-change="mrk.applyFilters()"></th>
                             <th><input type="text" class="form-control form-control-sm" ng-model="mrk.filters.key_description" ng-change="mrk.applyFilters()"></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="mrk.filters.merchant_name" ng-change="mrk.applyFilters()"></th>
+                            <th><input type="text" class="form-control form-control-sm" ng-model="mrk.filters.registration_key" ng-change="mrk.applyFilters()"></th>
+                            <th>
+                                <select class="form-select form-select-sm" ng-model="mrk.filters.copy_merchant_params" ng-change="mrk.applyFilters()">
+                                    <option value="all">All</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-select form-select-sm" ng-model="mrk.filters.copy_velocity_checks" ng-change="mrk.applyFilters()">
+                                    <option value="all">All</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-select form-select-sm" ng-model="mrk.filters.copy_routing_randomize" ng-change="mrk.applyFilters()">
+                                    <option value="all">All</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-select form-select-sm" ng-model="mrk.filters.copy_account_whitelisting" ng-change="mrk.applyFilters()">
+                                    <option value="all">All</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </th>
                             <th></th>
                         </tr>
                     </thead>
@@ -99,7 +120,7 @@
                             <td colspan="11" class="text-center text-muted py-4">No data available in table</td>
                         </tr>
                         <tr ng-repeat="key in mrk.keys track by key.id">
-                            <td>@{{ key.id }}</td>
+                            <td>@{{ (mrk.pagination.current_page - 1) * mrk.pagination.per_page + $index + 1 }}</td>
                             <td>
                                 <span class="badge" ng-class="key.status === 'active' ? 'bg-success' : 'bg-secondary'">
                                     @{{ key.status === 'active' ? 'ACTIVE' : 'NOT-ACTIVE' }}
@@ -160,12 +181,16 @@
                 <div class="modal-body">
                     <form novalidate>
                         <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label">Merchant Id <span class="text-danger" ng-if="!mrk.isEditing">*</span></label>
+                            <div class="col-md-12" ng-if="!mrk.isEditing">
+                                <label class="form-label">Merchant Name <span class="text-danger">*</span></label>
                                 <select class="form-select" ng-model="mrk.form.merchant_id" ng-disabled="mrk.isEditing">
                                     <option value="">Type one or more letters to search</option>
                                     <option ng-repeat="m in mrk.merchants" value="@{{ m.id }}">@{{ m.name }}</option>
                                 </select>
+                            </div>
+                            <div class="col-md-12" ng-if="mrk.isEditing">
+                                <label class="form-label">Merchant Name</label>
+                                <input type="text" class="form-control" ng-model="mrk.form.merchant_name" readonly>
                             </div>
                             <div class="col-md-12">
                                 <label class="form-label">Key Description <span class="text-danger">*</span></label>
@@ -262,7 +287,13 @@
                     id: '',
                     status: 'all',
                     ip_address: '',
-                    key_description: ''
+                    key_description: '',
+                    merchant_name: '',
+                    registration_key: '',
+                    copy_merchant_params: 'all',
+                    copy_velocity_checks: 'all',
+                    copy_routing_randomize: 'all',
+                    copy_account_whitelisting: 'all'
                 };
 
                 vm.loadMerchants = function () {
@@ -321,14 +352,15 @@
                         id: '',
                         status: 'all',
                         ip_address: '',
-                        key_description: ''
+                        key_description: '',
+                        merchant_name: '',
+                        registration_key: '',
+                        copy_merchant_params: 'all',
+                        copy_velocity_checks: 'all',
+                        copy_routing_randomize: 'all',
+                        copy_account_whitelisting: 'all'
                     };
                     vm.applyFilters();
-                };
-
-                vm.resetView = function () {
-                    vm.clearFilters();
-                    vm.pagination.current_page = 1;
                 };
 
                 vm.openCreateModal = function () {
@@ -353,6 +385,7 @@
                     vm.form = {
                         id: key.id,
                         merchant_id: key.merchant_id,
+                        merchant_name: key.merchant ? key.merchant.name : '',
                         key_description: key.key_description,
                         status: key.status === 'active' ? 'Active' : 'Not-Active',
                         ip_address: key.ip_address,
@@ -370,8 +403,9 @@
                     vm.formErrors.ip_address = [];
                     var value = (vm.form.ip_address || '').toString().trim();
 
-                    if (value && !/^[0-9.]+$/.test(value)) {
-                        vm.formErrors.ip_address.push('IP Address may contain only numbers and dot (.)');
+                    var ipv4Regex = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+                    if (value && !ipv4Regex.test(value)) {
+                        vm.formErrors.ip_address.push('IP Address must be a valid IPv4 address.');
                     }
 
                     if (vm.formErrors.ip_address.length === 0) {

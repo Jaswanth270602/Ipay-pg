@@ -184,6 +184,15 @@
                                     <span ng-repeat="msg in amac.formErrors.website_link">@{{ msg }}<br></span>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Organization</label>
+                                <input type="text"
+                                       class="form-control"
+                                       maxlength="255"
+                                       ng-model="amac.merchantForm.organization_name"
+                                       ng-change="amac.enforceMaxLength('organization_name', 255)"
+                                       placeholder="Enter organization name">
+                            </div>
                             <div class="col-md-12">
                                 <label class="form-label">* Address Line 1</label>
                                 <input type="text"
@@ -398,9 +407,8 @@
                                        autocomplete="off"
                                        ng-class="{'is-invalid': amac.formErrors.bank_account_holder_name}"
                                        ng-model="amac.merchantForm.bank_account_holder_name"
-                                       ng-change="amac.syncAccountHolderNameField()"
-                                       ng-keyup="amac.syncAccountHolderNameField()"
-                                       ng-paste="amac.syncAccountHolderNameField()"
+                                       ng-change="amac.enforceMaxLength('bank_account_holder_name', 255); amac.validateAccountHolderName()"
+                                       ng-blur="amac.validateAccountHolderName()"
                                        required>
                                 <div class="invalid-feedback" ng-if="amac.formErrors.bank_account_holder_name">
                                     <span ng-repeat="msg in amac.formErrors.bank_account_holder_name">@{{ msg }}<br></span>
@@ -410,10 +418,12 @@
                                 <label class="form-label">* Bank Account Number</label>
                                 <input type="text"
                                        class="form-control"
+                                       inputmode="numeric"
                                        maxlength="34"
                                        ng-class="{'is-invalid': amac.formErrors.bank_account_number}"
                                        ng-model="amac.merchantForm.bank_account_number"
-                                       ng-change="amac.enforceAlphaNumericOnly('bank_account_number', 34); amac.validateBankAccountNumber()"
+                                       ng-change="amac.enforceMaxLength('bank_account_number', 34); amac.validateBankAccountNumber()"
+                                       ng-blur="amac.validateBankAccountNumber()"
                                        required>
                                 <div class="invalid-feedback" ng-if="amac.formErrors.bank_account_number">
                                     <span ng-repeat="msg in amac.formErrors.bank_account_number">@{{ msg }}<br></span>
@@ -451,7 +461,8 @@
                                        class="form-control"
                                        ng-class="{'is-invalid': amac.formErrors.bank_branch}"
                                        ng-model="amac.merchantForm.bank_branch"
-                                       ng-change="amac.validateBankBranch()"
+                                       ng-change="amac.enforceLettersAndSpacesOnly('bank_branch', 255); amac.validateBankBranch()"
+                                       ng-blur="amac.validateBankBranch()"
                                        required>
                                 <div class="invalid-feedback" ng-if="amac.formErrors.bank_branch">
                                     <span ng-repeat="msg in amac.formErrors.bank_branch">@{{ msg }}<br></span>

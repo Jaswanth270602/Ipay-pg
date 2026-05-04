@@ -1236,7 +1236,7 @@
                         vm.loadBillingFeeMeta();
                         return;
                     }
-                    if (vm.rateForm.rate_type && (vm.rateForm.rate_type === 'merchant' || vm.rateForm.rate_type === 'bank')) {
+                    if (vm.rateForm.rate_type && ['merchant', 'bank', 'receiver', 'pricer'].includes(vm.rateForm.rate_type)) {
                         vm.rateForm.entity_type = vm.rateForm.rate_type;
                         $http.get('/admin/base-rates/entities', { params: { type: vm.rateForm.rate_type } }).then(function(response) {
                             vm.entities = response.data.data || [];
@@ -1442,6 +1442,18 @@
                             var modal = bootstrap.Modal.getInstance(document.getElementById('baseRateModal'));
                             modal.hide();
                             var successMsg = vm.isEditing ? 'Base rate updated successfully' : 'Base rate created successfully';
+                            if (response.data.data) {
+                                var savedRate = response.data.data;
+                                var existingIndex = vm.rates.findIndex(function(rate) { return String(rate.id) === String(savedRate.id); });
+                                if (existingIndex > -1) {
+                                    vm.rates[existingIndex] = angular.extend({}, vm.rates[existingIndex], savedRate);
+                                } else {
+                                    vm.rates.unshift(savedRate);
+                                    if (vm.rates.length > vm.pagination.per_page) {
+                                        vm.rates.pop();
+                                    }
+                                }
+                            }
                             if (typeof showToast === 'function') {
                                 showToast(successMsg, 'success');
                             } else {

@@ -3,6 +3,32 @@
 @section('title', 'Merchant Accounts - Admin - ' . config('app.name'))
 @section('page-title', 'Merchants Management')
 
+@push('styles')
+<style>
+    .btn-new-merchant {
+        background: linear-gradient(135deg, #ef4444 0%, #f43f5e 100%);
+        border: none;
+        color: #fff;
+        font-weight: 600;
+        min-width: 130px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn-new-merchant:hover,
+    .btn-new-merchant:focus {
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(239, 68, 68, 0.3);
+    }
+    
+    .btn-new-merchant:active {
+        transform: translateY(0);
+    }
+</style>
+@endpush
+
 @section('content')
 <div ng-app="ipayApp" ng-controller="AdminMerchantAccountsController as amac">
     <x-breadcrumbs :items="[
@@ -79,8 +105,8 @@
                 <button class="btn btn-sm btn-outline-secondary" ng-click="amac.resetView()">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
                 </button>
-                <button class="btn btn-sm btn-primary" ng-click="amac.openNewModal()">
-                    <i class="bi bi-plus-lg"></i> + New
+                <button class="btn btn-sm btn-new-merchant" ng-click="amac.openNewModal()">
+                    <i class="bi bi-plus-lg me-1"></i> New
                 </button>
                 <button class="btn btn-sm btn-outline-primary" ng-click="amac.duplicateSelected()" ng-disabled="!amac.selectedMerchant">
                     <i class="bi bi-files"></i> Duplicate Merchant
@@ -178,7 +204,9 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Account Status</span>
                                 </div>
-                                <select class="form-select form-select-sm mt-1">
+                                <select class="form-select form-select-sm mt-1"
+                                        ng-model="amac.filters.filter_account_status"
+                                        ng-change="amac.applyFilters()">
                                     <option value="all">All</option>
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
@@ -272,7 +300,9 @@
                                        ng-model="amac.filters.filter_challan_urn"
                                        ng-keyup="$event.keyCode === 13 && amac.applyFilters()">
                             </th>
-                            <th>Action</th>
+                            <th class="align-top">
+                                <div class="pt-1">Action</div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -412,7 +442,7 @@
                                         </tr>
                                         <tr>
                                             <td class="text-muted"><strong>Website:</strong></td>
-                                            <td>@{{ amac.selectedMerchant.website_link || '-' }}</td>
+                                            <td>@{{ amac.selectedMerchant.website_link || amac.selectedMerchant.business_website || '-' }}</td>
                                         </tr>
                                     </table>
                                 </div>
@@ -483,11 +513,11 @@
                                         </tr>
                                         <tr>
                                             <td class="text-muted"><strong>Registration Date:</strong></td>
-                                            <td>@{{ amac.selectedMerchant.registration_date || '-' }}</td>
+                                            <td>@{{ amac.selectedMerchant.registration_date ? (amac.selectedMerchant.registration_date | date:'dd-MM-yyyy') : '-' }}</td>
                                         </tr>
                                         <tr>
                                             <td class="text-muted"><strong>Created At:</strong></td>
-                                            <td>@{{ amac.selectedMerchant.created_at || '-' }}</td>
+                                            <td>@{{ amac.selectedMerchant.created_at ? (amac.selectedMerchant.created_at | date:'dd-MM-yyyy hh:mm a') : '-' }}</td>
                                         </tr>
                                     </table>
                                 </div>
@@ -637,14 +667,25 @@
                             <label class="form-label">
                                 <strong>Fee Percentage (%)</strong>
                             </label>
-                            <input type="number" class="form-control" ng-model="amac.settlementSettings.fee_percentage" step="0.01" min="0" max="100">
+                            <input type="number"
+                                   class="form-control"
+                                   ng-model="amac.settlementSettings.fee_percentage"
+                                   ng-change="amac.settlementSettings.fee_percentage = amac.normalizeSettlementDecimal(amac.settlementSettings.fee_percentage, 100)"
+                                   step="0.01"
+                                   min="0"
+                                   max="100">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">
                                 <strong>Flat Fee (INR)</strong>
                             </label>
-                            <input type="number" class="form-control" ng-model="amac.settlementSettings.fee_flat" step="0.01" min="0">
+                            <input type="number"
+                                   class="form-control"
+                                   ng-model="amac.settlementSettings.fee_flat"
+                                   ng-change="amac.settlementSettings.fee_flat = amac.normalizeSettlementDecimal(amac.settlementSettings.fee_flat)"
+                                   step="0.01"
+                                   min="0">
                         </div>
                     </div>
                 </div>

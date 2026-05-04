@@ -78,6 +78,9 @@ class MerchantAccountsController extends Controller
             if ($request->has('filter_status') && $request->get('filter_status') !== 'all') {
                 $query->where('approval_status', $request->get('filter_status'));
             }
+            if ($request->has('filter_account_status') && $request->get('filter_account_status') !== 'all') {
+                $query->where('status', $request->get('filter_account_status'));
+            }
             if ($request->has('filter_partner') && $request->get('filter_partner')) {
                 $query->where('partner_name', 'like', "%{$request->get('filter_partner')}%");
             }
@@ -97,7 +100,13 @@ class MerchantAccountsController extends Controller
             // Registration date filter (single date from calendar)
             if ($request->has('filter_registration_date') && $request->get('filter_registration_date')) {
                 try {
-                    $date = \Carbon\Carbon::parse($request->get('filter_registration_date'))->toDateString();
+                    $rawDate = (string) $request->get('filter_registration_date');
+                    // Prefer literal YYYY-MM-DD to avoid timezone shifts from ISO datetime strings.
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate) === 1) {
+                        $date = $rawDate;
+                    } else {
+                        $date = \Carbon\Carbon::parse($rawDate)->format('Y-m-d');
+                    }
                     $query->whereDate('registration_date', $date);
                 } catch (\Exception $e) {
                     // Ignore invalid date
@@ -682,8 +691,13 @@ class MerchantAccountsController extends Controller
             $validator = Validator::make($request->all(), [
                 'settlement_cycle_domestic' => 'nullable|integer|min:1|max:7',
                 'settlement_cycle_international' => 'nullable|integer|min:1|max:7',
-                'fee_percentage' => 'nullable|numeric|min:0|max:100',
-                'fee_flat' => 'nullable|numeric|min:0',
+                'fee_percentage' => ['nullable', 'numeric', 'min:0', 'max:100', 'decimal:0,2', 'regex:/^\d+(\.\d{1,2})?$/'],
+                'fee_flat' => ['nullable', 'numeric', 'min:0', 'decimal:0,2', 'regex:/^\d+(\.\d{1,2})?$/'],
+            ], [
+                'fee_percentage.decimal' => 'Fee Percentage may have at most 2 decimal places.',
+                'fee_percentage.regex' => 'Fee Percentage may have at most 2 decimal places.',
+                'fee_flat.decimal' => 'Flat Fee may have at most 2 decimal places.',
+                'fee_flat.regex' => 'Flat Fee may have at most 2 decimal places.',
             ]);
 
             if ($validator->fails()) {
@@ -856,10 +870,10 @@ class MerchantAccountsController extends Controller
             'contact_landline' => ['nullable', 'string', 'min:6', 'max:16', 'regex:/^\+?[0-9]{6,15}$/'],
             'contact_email' => 'required|email|max:120',
             'bank_account_holder_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
-            'bank_account_number' => ['required', 'string', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
+            'bank_account_number' => ['required', 'string', 'max:34', 'regex:/^[0-9]+$/'],
             'bank_name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
             'account_type' => 'required|string',
-            'bank_branch' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9 ]+$/'],
+            'bank_branch' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z ]+$/'],
             'bank_ifsc_code' => ['required', 'string', 'min:7', 'max:15', 'regex:/^[A-Za-z]{4}[A-Za-z0-9]{3,11}$/'],
             'acquirer_account_id' => 'nullable|exists:acquirer_accounts,id',
             'is_reseller_merchant' => 'nullable|boolean',
@@ -906,10 +920,10 @@ class MerchantAccountsController extends Controller
             'contact_landline.regex' => 'Contact landline must be 6-15 digits with optional leading +.',
             'contact_landline.min' => 'Contact landline must be at least 6 characters.',
             'contact_landline.max' => 'Contact landline may not be greater than 16 characters.',
-            'bank_account_holder_name.regex' => 'Account holder name may contain only letters and numbers.',
+            'bank_account_holder_name.regex' => 'Account holder name may contain only letters and spaces.',
             'bank_name.regex' => 'Bank name may contain only letters and spaces.',
-            'bank_branch.regex' => 'Bank branch may contain only letters, numbers, and spaces.',
-            'bank_account_number.regex' => 'Bank account number may contain only letters and numbers.',
+            'bank_branch.regex' => 'Bank branch may contain only letters and spaces.',
+            'bank_account_number.regex' => 'Bank account number may contain only numbers.',
             'bank_ifsc_code.min' => 'IFSC code must be at least 7 characters.',
             'bank_ifsc_code.max' => 'IFSC code may not be greater than 15 characters.',
             'bank_ifsc_code.regex' => 'IFSC code must start with 4 letters followed by letters or numbers (e.g., ABCD0001234).',

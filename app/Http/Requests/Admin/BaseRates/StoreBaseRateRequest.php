@@ -29,7 +29,7 @@ class StoreBaseRateRequest extends FormRequest
             'entity_id' => 'required|integer',
 
             'payment_method' => 'required|in:card,upi,netbanking,wallet',
-            'payment_mode' => 'required|string|max:255',
+            'payment_mode' => 'nullable|string|max:255',
             'service_type' => 'required|in:payment,refund,chargeback',
             'transaction_type' => 'required|in:domestic,international',
             'sector' => 'required|string|max:255',
@@ -37,10 +37,10 @@ class StoreBaseRateRequest extends FormRequest
 
             'calculation_type' => 'required|in:percentage_only,percentage_fixed,fixed_only,tiered',
             'tier_fee_unit' => 'nullable|required_if:calculation_type,tiered|in:percent,fixed',
-            'tier_slabs' => 'nullable|required_if:calculation_type,tiered|array|min:1',
-            'tier_slabs.*.txn_from' => 'required|integer|min:0',
+            'tier_slabs' => 'exclude_unless:calculation_type,tiered|array|min:1',
+            'tier_slabs.*.txn_from' => 'required_with:tier_slabs|integer|min:0',
             'tier_slabs.*.txn_to' => 'nullable|integer|min:0',
-            'tier_slabs.*.fee_value' => 'required|numeric|min:0',
+            'tier_slabs.*.fee_value' => 'required_with:tier_slabs|numeric|min:0',
 
             'percentage_fee' => 'nullable|numeric|min:0|max:100',
             'flat_fee' => 'nullable|numeric|min:0',
@@ -120,6 +120,8 @@ class StoreBaseRateRequest extends FormRequest
             'status.required_without' => 'Status is required.',
             'status.in' => 'Status must be either active or inactive.',
             'is_active.required_without' => 'Status is required.',
+            'tier_slabs.array' => 'Tier slabs must be a valid list.',
+            'tier_slabs.min' => 'Please add at least one tier slab.',
         ];
     }
 
@@ -137,8 +139,9 @@ class StoreBaseRateRequest extends FormRequest
 
             $paymentMethod = (string) $this->input('payment_method');
             $paymentMode = (string) $this->input('payment_mode');
-            if ($paymentMethod === 'card' && trim($paymentMode) === '') {
-                $v->errors()->add('payment_mode', 'Payment Mode is required for Card payments.');
+            $serviceType = (string) $this->input('service_type');
+            if (($serviceType !== 'chargeback' || $paymentMethod === 'card') && trim($paymentMode) === '') {
+                $v->errors()->add('payment_mode', 'Payment Mode is required for this service type.');
             }
 
             $admin = (float) $this->input('admin_share_pct', 0);

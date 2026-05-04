@@ -43,7 +43,12 @@ class OrdersController extends Controller
                 ->latest();
 
             if ($status && $status !== 'all') {
-                $query->where('status', $status);
+                if ($status === 'created') {
+                    // Keep backward compatibility for older records stored as "initiated".
+                    $query->whereIn('status', ['created', 'initiated']);
+                } else {
+                    $query->where('status', $status);
+                }
             }
 
             if ($merchantId) {

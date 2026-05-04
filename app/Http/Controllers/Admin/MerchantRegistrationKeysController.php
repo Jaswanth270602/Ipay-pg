@@ -56,6 +56,22 @@ class MerchantRegistrationKeysController extends Controller
             $query->where('key_description', 'like', '%' . $request->get('key_description') . '%');
         }
 
+        if ($request->filled('merchant_name')) {
+            $query->whereHas('merchant', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->get('merchant_name') . '%');
+            });
+        }
+
+        if ($request->filled('registration_key')) {
+            $query->where('registration_key', 'like', '%' . $request->get('registration_key') . '%');
+        }
+
+        foreach (['copy_merchant_params', 'copy_velocity_checks', 'copy_routing_randomize', 'copy_account_whitelisting'] as $booleanFilter) {
+            if ($request->has($booleanFilter) && $request->get($booleanFilter) !== 'all') {
+                $query->where($booleanFilter, $request->boolean($booleanFilter));
+            }
+        }
+
         $keys = $query->orderByDesc('id')->paginate($perPage);
 
         return response()->json([
@@ -79,13 +95,13 @@ class MerchantRegistrationKeysController extends Controller
             'merchant_id' => 'required|exists:merchants,id',
             'key_description' => 'required|string|max:255',
             'status' => 'required|in:Active,Not-Active',
-            'ip_address' => 'nullable|string|max:255|regex:/^[0-9.]+$/',
+            'ip_address' => 'nullable|ip',
             'copy_merchant_params' => 'boolean',
             'copy_velocity_checks' => 'boolean',
             'copy_routing_randomize' => 'boolean',
             'copy_account_whitelisting' => 'boolean',
         ], [
-            'ip_address.regex' => 'IP Address may contain only numbers and dot (.)',
+            'ip_address.ip' => 'IP Address must be a valid IP address.',
         ]);
 
         if ($validator->fails()) {
@@ -119,13 +135,13 @@ class MerchantRegistrationKeysController extends Controller
         $validator = Validator::make($request->all(), [
             'key_description' => 'sometimes|string|max:255',
             'status' => 'sometimes|in:Active,Not-Active',
-            'ip_address' => 'nullable|string|max:255|regex:/^[0-9.]+$/',
+            'ip_address' => 'nullable|ip',
             'copy_merchant_params' => 'boolean',
             'copy_velocity_checks' => 'boolean',
             'copy_routing_randomize' => 'boolean',
             'copy_account_whitelisting' => 'boolean',
         ], [
-            'ip_address.regex' => 'IP Address may contain only numbers and dot (.)',
+            'ip_address.ip' => 'IP Address must be a valid IP address.',
         ]);
 
         if ($validator->fails()) {
