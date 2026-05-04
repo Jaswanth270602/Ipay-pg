@@ -753,19 +753,43 @@ class MerchantAccountsController extends Controller
     {
         try {
             $original = Merchant::findOrFail($id);
-            
-            $duplicate = $original->replicate();
-            $duplicate->name = $original->name . ' (Copy)';
-            $duplicate->email = 'copy_' . time() . '_' . $original->email;
-            $duplicate->approval_status = 'not_approved';
-            $duplicate->status = 'inactive';
-            $duplicate->registration_date = now();
-            $duplicate->reseller_id = null;
-            $duplicate->save();
+
+            $duplicate = DB::transaction(function () use ($original) {
+                $copy = $original->replicate();
+
+                $copy->name = $original->name . ' (Copy)';
+                $copy->email = 'copy_' . time() . '_' . $original->email;
+                $copy->approval_status = 'not_approved';
+                $copy->status = 'inactive';
+                $copy->registration_date = now();
+                $copy->reseller_id = null;
+
+                // Do not copy columns with UNIQUE constraints — replicate() would otherwise reuse values.
+                $copy->merchant_unique_id = null;
+                $copy->test_public_key = null;
+                $copy->test_secret_key = null;
+                $copy->live_public_key = null;
+                $copy->live_secret_key = null;
+
+                $copy->save();
+
+                // Pivot is not copied by replicate(); mirror acquirer assignment from the source merchant.
+                $pivotIds = $original->acquirerAccounts()->get()->pluck('id');
+                if ($pivotIds->isEmpty() && $original->acquirer_account_id) {
+                    $pivotIds = collect([(int) $original->acquirer_account_id]);
+                }
+                if ($pivotIds->isNotEmpty()) {
+                    $copy->acquirerAccounts()->sync(
+                        $pivotIds->filter()->unique()->values()->all()
+                    );
+                }
+
+                return $copy;
+            });
 
             $this->logInfo('Merchant account duplicated', [
                 'original_id' => $id,
-                'duplicate_id' => $duplicate->id
+                'duplicate_id' => $duplicate->id,
             ]);
 
             return response()->json([

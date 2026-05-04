@@ -791,7 +791,13 @@
                             });
                             if (refreshedSelected) {
                                 vm.selectedMerchant = refreshedSelected;
+                                vm.syncSelectionCheckboxes(refreshedSelected);
+                            } else {
+                                vm.selectedMerchant = null;
+                                vm.syncSelectionCheckboxes(null);
                             }
+                        } else {
+                            vm.syncSelectionCheckboxes(null);
                         }
                         vm.pagination = {
                             current_page: response.data.pagination.current_page,
@@ -867,14 +873,48 @@
                     vm.loadMerchants();
                 };
 
+                vm.syncSelectionCheckboxes = function(merchant) {
+                    var id = merchant && merchant.id != null ? String(merchant.id) : null;
+                    (vm.merchants || []).forEach(function(m) {
+                        m.selected = id !== null && String(m.id) === id;
+                    });
+                    vm.selectAll = (vm.merchants || []).length > 0
+                        && (vm.merchants || []).every(function(m) { return m.selected; });
+                };
+
                 vm.selectMerchant = function(merchant) {
                     vm.selectedMerchant = merchant;
+                    vm.syncSelectionCheckboxes(merchant);
+                };
+
+                /**
+                 * Checkbox column: drives Duplicate Merchant (single row at a time).
+                 */
+                vm.onMerchantCheckboxChange = function(merchant) {
+                    if (merchant.selected) {
+                        (vm.merchants || []).forEach(function(m) {
+                            m.selected = m === merchant;
+                        });
+                        vm.selectedMerchant = merchant;
+                    } else {
+                        (vm.merchants || []).forEach(function(m) {
+                            m.selected = false;
+                        });
+                        vm.selectedMerchant = null;
+                    }
+                    vm.selectAll = (vm.merchants || []).length > 0
+                        && (vm.merchants || []).every(function(m) { return m.selected; });
                 };
 
                 vm.toggleSelectAll = function() {
-                    vm.merchants.forEach(function(merchant) {
+                    (vm.merchants || []).forEach(function(merchant) {
                         merchant.selected = vm.selectAll;
                     });
+                    if (vm.selectAll && (vm.merchants || []).length) {
+                        vm.selectedMerchant = vm.merchants[0];
+                    } else {
+                        vm.selectedMerchant = null;
+                    }
                 };
 
                 vm.toggleColumn = function(key) {
@@ -1266,6 +1306,7 @@
 
                 vm.viewMerchant = function(merchant) {
                     vm.selectedMerchant = merchant;
+                    vm.syncSelectionCheckboxes(merchant);
                     var modal = new bootstrap.Modal(document.getElementById('viewMerchantModal'));
                     modal.show();
                 };

@@ -313,7 +313,7 @@
                             ng-click="amac.selectMerchant(merchant)" 
                             ng-class="{'table-active': amac.selectedMerchant && amac.selectedMerchant.id === merchant.id}">
                             <td>
-                                <input type="checkbox" ng-model="merchant.selected" ng-click="$event.stopPropagation()">
+                                <input type="checkbox" ng-model="merchant.selected" ng-change="amac.onMerchantCheckboxChange(merchant)" ng-click="$event.stopPropagation()">
                             </td>
                             <td ng-show="amac.visibleColumns.id.visible">@{{ merchant.id }}</td>
                             <td ng-show="amac.visibleColumns.merchant_unique_id.visible">
