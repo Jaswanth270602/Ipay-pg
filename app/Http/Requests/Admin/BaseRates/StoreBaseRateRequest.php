@@ -147,10 +147,10 @@ class StoreBaseRateRequest extends FormRequest
             $admin = (float) $this->input('admin_share_pct', 0);
             $reseller = (float) $this->input('reseller_share_pct', 0);
             $merchant = (float) $this->input('merchant_share_pct', 0);
-            if (abs(($admin + $reseller + $merchant) - 100.0) > 0.0001) {
-                $v->errors()->add('admin_share_pct', 'Total share must equal 100%.');
-                $v->errors()->add('reseller_share_pct', 'Total share must equal 100%.');
-                $v->errors()->add('merchant_share_pct', 'Total share must equal 100%.');
+            // Admin + merchant describe split of gross txn (must sum to 100%). Reseller % is separate (share of merchant fee/TDR).
+            if (abs(($admin + $merchant) - 100.0) > 0.0001) {
+                $v->errors()->add('admin_share_pct', 'Admin and merchant shares must sum to 100%.');
+                $v->errors()->add('merchant_share_pct', 'Admin and merchant shares must sum to 100%.');
             }
 
             $resellerId = $this->input('reseller_id');

@@ -16,6 +16,7 @@ class ResellerCommissionService
 {
     /**
      * Create commission row when a payment succeeds (idempotent per transaction).
+     * Reseller share % applies to the transaction merchant fee (`fee_amount`, pre-VAT / TDR), not gross amount.
      */
     public function recordForSuccessfulTransaction(Transaction $transaction): ?ResellerCommission
     {
@@ -47,8 +48,9 @@ class ResellerCommissionService
             return null;
         }
 
-        $baseAmount = (float) $transaction->amount;
-        if ($baseAmount <= 0) {
+        // Commission base = merchant fee before GST (`fee_amount` / TDR). Not gross txn, not GST.
+        $feeBase = (float) $transaction->fee_amount;
+        if ($feeBase <= 0) {
             return null;
         }
 
@@ -57,7 +59,7 @@ class ResellerCommissionService
             return null;
         }
 
-        $commission = $this->calculateCommissionAmount((float) $split->reseller_share_pct, $baseAmount);
+        $commission = $this->calculateCommissionAmount((float) $split->reseller_share_pct, $feeBase);
         if ($commission <= 0) {
             return null;
         }
@@ -83,13 +85,16 @@ class ResellerCommissionService
         }
     }
 
-    public function calculateCommissionAmount(float $resellerSharePct, float $transactionAmount): float
+    /**
+     * @param  float  $merchantFeeAmount  Merchant TDR / pre-GST fee amount for the transaction
+     */
+    public function calculateCommissionAmount(float $resellerSharePct, float $merchantFeeAmount): float
     {
-        if ($transactionAmount <= 0 || $resellerSharePct <= 0) {
+        if ($merchantFeeAmount <= 0 || $resellerSharePct <= 0) {
             return 0.0;
         }
 
-        return round($transactionAmount * ($resellerSharePct / 100), 2);
+        return round($merchantFeeAmount * ($resellerSharePct / 100), 2);
     }
 
     protected function resolveMerchantSplit(Merchant $merchant, string $paymentMethod): ?MerchantResellerSplit

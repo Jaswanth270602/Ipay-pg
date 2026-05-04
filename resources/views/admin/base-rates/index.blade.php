@@ -77,9 +77,9 @@
                             <th>Max Amount</th>
                             <th>Min Share</th>
                             <th>Max Share</th>
-                            <th>Admin %</th>
-                            <th>Reseller %</th>
-                            <th>Merchant %</th>
+                            <th>Admin % <small class="text-muted fw-normal">(of txn)</small></th>
+                            <th>Reseller % <small class="text-muted fw-normal">(of fee)</small></th>
+                            <th>Merchant % <small class="text-muted fw-normal">(of txn)</small></th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -686,18 +686,21 @@
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('max_share')">@{{ brc.firstError('max_share') }}</div>
                             </div>
                             <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
-                                <label class="form-label">Admin Share (%)</label>
+                                <label class="form-label">Admin Share (% of txn)</label>
                                 <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('admin_share_pct')}" ng-model="brc.rateForm.admin_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <small class="text-muted">With merchant share must total 100%.</small>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('admin_share_pct')">@{{ brc.firstError('admin_share_pct') }}</div>
                             </div>
                             <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
-                                <label class="form-label">Reseller Share (%)</label>
+                                <label class="form-label">Reseller Share (% of merchant fee)</label>
                                 <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('reseller_share_pct')}" ng-model="brc.rateForm.reseller_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <small class="text-muted">Taken from fee/TDR (pre-VAT), separate from admin + merchant split.</small>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('reseller_share_pct')">@{{ brc.firstError('reseller_share_pct') }}</div>
                             </div>
                             <div class="col-md-4" ng-if="brc.rateForm.rate_type === 'merchant'">
-                                <label class="form-label">Merchant Share (%)</label>
+                                <label class="form-label">Merchant Share (% of txn)</label>
                                 <input type="number" class="form-control" ng-class="{'is-invalid': brc.hasError('merchant_share_pct')}" ng-model="brc.rateForm.merchant_share_pct" ng-change="brc.validateShares()" ng-blur="brc.validateShares()" step="0.0001" min="0" max="100">
+                                <small class="text-muted">With admin share must total 100%.</small>
                                 <div class="invalid-feedback d-block" ng-if="brc.firstError('merchant_share_pct')">@{{ brc.firstError('merchant_share_pct') }}</div>
                             </div>
                             <div class="col-md-6">
@@ -1113,27 +1116,26 @@
                         }
                     }
 
-                    // Shares are required and must sum to 100
-                    req('admin_share_pct', 'Admin Share (%) is required.');
-                    req('reseller_share_pct', 'Reseller Share (%) is required.');
-                    req('merchant_share_pct', 'Merchant Share (%) is required.');
-                    num('admin_share_pct', 0, 100, 'Admin Share must be between 0–100.');
-                    num('reseller_share_pct', 0, 100, 'Reseller Share must be between 0–100.');
-                    num('merchant_share_pct', 0, 100, 'Merchant Share must be between 0–100.');
+                    if (vm.rateForm.rate_type === 'merchant') {
+                        req('admin_share_pct', 'Admin Share (%) is required.');
+                        req('reseller_share_pct', 'Reseller Share (%) is required.');
+                        req('merchant_share_pct', 'Merchant Share (%) is required.');
+                        num('admin_share_pct', 0, 100, 'Admin Share must be between 0–100.');
+                        num('reseller_share_pct', 0, 100, 'Reseller Share must be between 0–100.');
+                        num('merchant_share_pct', 0, 100, 'Merchant Share must be between 0–100.');
 
-                    var ad = parseFloat(vm.rateForm.admin_share_pct || 0);
-                    var rs = parseFloat(vm.rateForm.reseller_share_pct || 0);
-                    var mc = parseFloat(vm.rateForm.merchant_share_pct || 0);
-                    if (!isNaN(ad) && !isNaN(rs) && !isNaN(mc)) {
-                        if (Math.abs((ad + rs + mc) - 100) > 0.0001) {
-                            e.admin_share_pct = ['Total share must equal 100%.'];
-                            e.reseller_share_pct = ['Total share must equal 100%.'];
-                            e.merchant_share_pct = ['Total share must equal 100%.'];
+                        var ad = parseFloat(vm.rateForm.admin_share_pct || 0);
+                        var mc = parseFloat(vm.rateForm.merchant_share_pct || 0);
+                        if (!isNaN(ad) && !isNaN(mc)) {
+                            if (Math.abs((ad + mc) - 100) > 0.0001) {
+                                e.admin_share_pct = ['Admin and merchant shares must sum to 100%.'];
+                                e.merchant_share_pct = ['Admin and merchant shares must sum to 100%.'];
+                            }
                         }
-                    }
 
-                    if ((!vm.rateForm.reseller_id || vm.rateForm.reseller_id === '') && (parseFloat(vm.rateForm.reseller_share_pct || 0) > 0)) {
-                        e.reseller_id = ['Select a reseller or set Reseller Share to 0%.'];
+                        if ((!vm.rateForm.reseller_id || vm.rateForm.reseller_id === '') && (parseFloat(vm.rateForm.reseller_share_pct || 0) > 0)) {
+                            e.reseller_id = ['Select a reseller or set Reseller Share to 0%.'];
+                        }
                     }
 
                     // Effective To >= Effective From

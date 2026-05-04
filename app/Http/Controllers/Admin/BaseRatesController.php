@@ -398,8 +398,8 @@ class BaseRatesController extends Controller
         $reseller = (float) ($splitData['reseller_share_pct'] ?? 0);
         $merchant = (float) ($splitData['merchant_share_pct'] ?? 0);
 
-        if (abs(($admin + $reseller + $merchant) - 100.0) > 0.0001) {
-            throw new \InvalidArgumentException('Admin + Reseller + Merchant shares must sum up to 100%.');
+        if (abs(($admin + $merchant) - 100.0) > 0.0001) {
+            throw new \InvalidArgumentException('Admin and merchant shares must sum to 100%.');
         }
 
         if (empty($splitData['reseller_id']) && $reseller > 0) {
