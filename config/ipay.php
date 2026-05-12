@@ -74,6 +74,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Dashboard display currency (FX aggregation)
+    |--------------------------------------------------------------------------
+    |
+    | Admin and merchant dashboard monetary totals sum across mixed transaction
+    | currencies by converting each bucket to this ISO code (default KES) using
+    | open.er-api.com USD cross-rates. Optional manual_rates_to_usd merges
+    | overrides: currency code => units of that currency per 1 USD (same shape
+    | as the API "rates" object).
+    |
+    */
+    'dashboard_display' => [
+        'currency' => env('DASHBOARD_DISPLAY_CURRENCY', 'KES'),
+        'fx_cache_ttl' => (int) env('DASHBOARD_FX_CACHE_TTL', 3600),
+        'fx_http_timeout' => (int) env('DASHBOARD_FX_HTTP_TIMEOUT', 10),
+        'manual_rates_to_usd' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Native UPI (no third-party PG)
     |--------------------------------------------------------------------------
     |

@@ -226,8 +226,8 @@
                             <i class="bi bi-currency-dollar"></i>
                         </div>
                         <div class="flip-volume-metric">
-                            <h3 class="fw-bold mb-1">{{ $merchant->default_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
-                            <small class="text-muted">Gross</small>
+                            <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
+                            <small class="text-muted">Gross (converted to {{ $dashboard_display_currency }})</small>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show net volume" aria-label="Show net volume">
                             <i class="bi bi-arrow-down-up me-1"></i> Net volume
@@ -239,8 +239,8 @@
                             <i class="bi bi-wallet2"></i>
                         </div>
                         <div class="flip-volume-metric">
-                            <h3 class="fw-bold mb-1">{{ $merchant->default_currency }} {{ number_format($stats['net_volume'], 2) }}</h3>
-                            <small class="text-muted">After refunds &amp; settled payouts</small>
+                            <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['net_volume'], 2) }}</h3>
+                            <small class="text-muted">After refunds &amp; settled payouts ({{ $dashboard_display_currency }})</small>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show gross volume" aria-label="Show gross volume">
                             <i class="bi bi-arrow-down-up me-1"></i> Gross volume

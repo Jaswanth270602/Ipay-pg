@@ -166,9 +166,9 @@
         <div class="col-md-3">
             <div class="dashboard-card card-gtv">
                 <div class="card-icon">
-                    <i class="bi bi-currency-rupee"></i>
+                    <i class="bi bi-currency-exchange"></i>
                 </div>
-                <div class="card-value">₹@{{ (adc.stats.total_gtv || 0) | number:2 }}</div>
+                <div class="card-value">@{{ adc.stats.display_currency || 'KES' }} @{{ (adc.stats.total_gtv || 0) | number:2 }}</div>
                 <div class="card-label">Total GTV</div>
                 <div class="card-period">(@{{ adc.stats.days_label || 'Last 10 days' }})</div>
             </div>
@@ -190,7 +190,7 @@
                 <div class="card-icon">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </div>
-                <div class="card-value">₹@{{ (adc.stats.amount_refunded || 0) | number:2 }}</div>
+                <div class="card-value">@{{ adc.stats.display_currency || 'KES' }} @{{ (adc.stats.amount_refunded || 0) | number:2 }}</div>
                 <div class="card-label">Amount Refunded</div>
                 <div class="card-period">(@{{ adc.stats.days_label || 'Last 10 days' }})</div>
             </div>
@@ -201,7 +201,7 @@
                 <div class="card-icon">
                     <i class="bi bi-exclamation-triangle"></i>
                 </div>
-                <div class="card-value">₹@{{ (adc.stats.chargeback_amount || 0) | number:2 }}</div>
+                <div class="card-value">@{{ adc.stats.display_currency || 'KES' }} @{{ (adc.stats.chargeback_amount || 0) | number:2 }}</div>
                 <div class="card-label">ChargeBack Amount</div>
                 <div class="card-period">(@{{ adc.stats.days_label || 'Last 10 days' }})</div>
             </div>
@@ -292,7 +292,8 @@
                     successful_transactions: 0,
                     amount_refunded: 0,
                     chargeback_amount: 0,
-                    days_label: 'Last 10 days'
+                    days_label: 'Last 10 days',
+                    display_currency: 'KES'
                 };
                 
                 vm.charts = {
@@ -346,7 +347,7 @@
                                 data: {
                                     labels: labels,
                                     datasets: [{
-                                        label: 'GTV (₹)',
+                                        label: 'GTV (' + (vm.stats.display_currency || 'KES') + ')',
                                         data: vm.charts.gtv_and_count.gtv.map(function(item) { return item.value; }),
                                         borderColor: 'rgb(99, 102, 241)',
                                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -375,7 +376,7 @@
                                             position: 'left',
                                             title: {
                                                 display: true,
-                                                text: 'GTV (₹)'
+                                                text: 'GTV (' + (vm.stats.display_currency || 'KES') + ')'
                                             }
                                         },
                                         y1: {

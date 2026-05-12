@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DashboardDisplayCurrencyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly DashboardDisplayCurrencyService $dashboardDisplayCurrency
+    ) {}
+
     /**
      * Show the dashboard.
      */
@@ -34,14 +39,29 @@ class DashboardController extends Controller
                     $q->where('test_mode', $merchant->test_mode);
                 });
 
-            $totalVolume = (clone $transactionsQuery)->where('status', 'success')->sum('amount');
-            $totalRefundedVolume = (clone $refundsQuery)->where('status', 'completed')->sum('amount');
+            $usdRates = $this->dashboardDisplayCurrency->getUsdBasedRates();
+
+            $totalVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
+                (clone $transactionsQuery)->where('status', 'success'),
+                $usdRates
+            );
+
+            $refundSumQuery = (clone $refundsQuery)
+                ->where('refunds.status', 'completed')
+                ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id');
+
+            $totalRefundedVolume = $this->dashboardDisplayCurrency->sumRefundAmountsToDisplayCurrency(
+                $refundSumQuery,
+                $usdRates
+            );
 
             // Gross of captures already paid out via settlement (merchant should not count this as "still on platform")
-            $totalSettledVolume = (clone $transactionsQuery)
-                ->where('status', 'success')
-                ->where('settlement_status', 'settled')
-                ->sum('amount');
+            $totalSettledVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
+                (clone $transactionsQuery)
+                    ->where('status', 'success')
+                    ->where('settlement_status', 'settled'),
+                $usdRates
+            );
 
             // Net volume ≈ success gross − refunds − amounts already settled to bank (same mode as merchant toggle)
             $stats = [
@@ -63,6 +83,7 @@ class DashboardController extends Controller
                 'user' => $user,
                 'merchant' => $merchant,
                 'stats' => $stats,
+                'dashboard_display_currency' => $this->dashboardDisplayCurrency->displayCurrencyCode(),
             ]);
         }
 

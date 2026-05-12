@@ -8,6 +8,7 @@ use App\Models\Merchant;
 use App\Models\Transaction;
 use App\Models\Refund;
 use App\Models\Dispute;
+use App\Services\DashboardDisplayCurrencyService;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Carbon\Carbon;
 class AdminDashboardController extends Controller
 {
     use LogsConditionally;
+
+    public function __construct(
+        private readonly DashboardDisplayCurrencyService $displayCurrency
+    ) {}
 
     public function index(): View
     {
@@ -26,163 +31,179 @@ class AdminDashboardController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
-            // Get admin's viewing mode from session
             $adminViewMode = session('admin_view_mode', 'test');
             $isTestMode = $adminViewMode === 'test';
-            
+
             $this->logInfo('Admin dashboard data requested', [
                 'user_id' => auth()->id(),
-                'admin_view_mode' => $adminViewMode
+                'admin_view_mode' => $adminViewMode,
             ]);
-            
-            // Get date range (default to last 10 days)
+
             $startDate = $request->get('start_date', Carbon::now()->subDays(10)->format('Y-m-d'));
             $endDate = $request->get('end_date', Carbon::now()->format('Y-m-d'));
-            
+
             $startDateTime = Carbon::parse($startDate)->startOfDay();
             $endDateTime = Carbon::parse($endDate)->endOfDay();
-            
-            // Calculate days difference for "Last X days" label
+
             $daysDiff = $startDateTime->diffInDays($endDateTime) + 1;
-            
-            // Total GTV (Gross Transaction Value) - sum of successful transaction amounts
-            // Filter by admin's viewing mode (test/live)
-            $totalGTV = Transaction::where('status', 'success')
-                ->where('test_mode', $isTestMode)
-                ->whereBetween('created_at', [$startDateTime, $endDateTime])
-                ->sum('amount');
-            
-            // Successful Transactions count
-            // Filter by admin's viewing mode (test/live)
+
+            $usdRates = $this->displayCurrency->getUsdBasedRates();
+            $displayCode = $this->displayCurrency->displayCurrencyCode();
+
+            $totalGTV = $this->displayCurrency->sumTransactionAmountsToDisplayCurrency(
+                Transaction::query()
+                    ->where('status', 'success')
+                    ->where('test_mode', $isTestMode)
+                    ->whereBetween('created_at', [$startDateTime, $endDateTime]),
+                $usdRates
+            );
+
             $successfulTransactions = Transaction::where('status', 'success')
                 ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->count();
-            
-            // Amount Refunded - count completed refunds by completion timestamp when present
-            $amountRefunded = Refund::where('status', 'completed')
-                ->whereHas('transaction', function($q) use ($isTestMode) {
-                    $q->where('test_mode', $isTestMode);
-                })
+
+            $refundForSum = Refund::query()
+                ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id')
+                ->where('refunds.status', 'completed')
+                ->where('transactions.test_mode', $isTestMode)
                 ->where(function ($q) use ($startDateTime, $endDateTime) {
-                    $q->whereBetween('processed_at', [$startDateTime, $endDateTime])
-                      ->orWhere(function ($sub) use ($startDateTime, $endDateTime) {
-                          $sub->whereNull('processed_at')
-                              ->whereBetween('created_at', [$startDateTime, $endDateTime]);
-                      });
-                })
-                ->sum('amount');
-            
-            // ChargeBack Amount (from Disputes) - filter through transaction relationship
-            $chargebackAmount = Dispute::whereHas('transaction', function($q) use ($isTestMode) {
-                    $q->where('test_mode', $isTestMode);
-                })
-                ->whereBetween('created_at', [$startDateTime, $endDateTime])
-                ->sum('amount');
-            
-            // Chart Data: Gross Transaction Value and Transaction Count (Last 10 days)
+                    $q->whereBetween('refunds.processed_at', [$startDateTime, $endDateTime])
+                        ->orWhere(function ($sub) use ($startDateTime, $endDateTime) {
+                            $sub->whereNull('refunds.processed_at')
+                                ->whereBetween('refunds.created_at', [$startDateTime, $endDateTime]);
+                        });
+                });
+
+            $amountRefunded = $this->displayCurrency->sumRefundAmountsToDisplayCurrency($refundForSum, $usdRates);
+
+            $disputeForSum = Dispute::query()
+                ->join('transactions', 'disputes.transaction_id', '=', 'transactions.id')
+                ->where('transactions.test_mode', $isTestMode)
+                ->whereBetween('disputes.created_at', [$startDateTime, $endDateTime]);
+
+            $chargebackAmount = $this->displayCurrency->sumDisputeAmountsToDisplayCurrency($disputeForSum, $usdRates);
+
+            $gtvRows = $this->displayCurrency->successfulTxnVolumeRowsByDayAndCurrency(
+                Transaction::query()
+                    ->where('status', 'success')
+                    ->where('test_mode', $isTestMode)
+                    ->whereBetween('created_at', [$startDateTime, $endDateTime])
+            );
+
+            $gtvByDate = $gtvRows->groupBy(function ($r) {
+                $d = $r->agg_date;
+                if ($d instanceof \DateTimeInterface) {
+                    return $d->format('Y-m-d');
+                }
+
+                return substr((string) $d, 0, 10);
+            })->map(fn ($group) => $this->displayCurrency->sumConvertedCurrencyGroups($group, 'agg_total', 'agg_currency', $usdRates));
+
             $gtvChartData = [];
             $transactionCountChartData = [];
             $currentDate = $startDateTime->copy();
-            
+
             while ($currentDate->lte($endDateTime)) {
                 $dayStart = $currentDate->copy()->startOfDay();
                 $dayEnd = $currentDate->copy()->endOfDay();
-                
-                $dayGTV = Transaction::where('status', 'success')
-                    ->where('test_mode', $isTestMode)
-                    ->whereBetween('created_at', [$dayStart, $dayEnd])
-                    ->sum('amount');
-                
+
+                $dayKey = $currentDate->format('Y-m-d');
+                $dayGTV = (float) ($gtvByDate->get($dayKey) ?? 0);
+
                 $dayCount = Transaction::where('status', 'success')
                     ->where('test_mode', $isTestMode)
                     ->whereBetween('created_at', [$dayStart, $dayEnd])
                     ->count();
-                
+
                 $gtvChartData[] = [
-                    'date' => $currentDate->format('Y-m-d'),
-                    'value' => (float) $dayGTV
+                    'date' => $dayKey,
+                    'value' => $dayGTV,
                 ];
-                
+
                 $transactionCountChartData[] = [
-                    'date' => $currentDate->format('Y-m-d'),
-                    'value' => $dayCount
+                    'date' => $dayKey,
+                    'value' => $dayCount,
                 ];
-                
+
                 $currentDate->addDay();
             }
-            
-            // Payment Mode Distribution - filter by admin's viewing mode
-            $paymentModeDistribution = Transaction::where('status', 'success')
-                ->where('test_mode', $isTestMode)
-                ->whereBetween('created_at', [$startDateTime, $endDateTime])
-                ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total_amount')
-                ->groupBy('payment_method')
-                ->get()
-                ->map(function($item) {
+
+            $pmRows = $this->displayCurrency->successfulTxnVolumeRowsByPaymentMethodAndCurrency(
+                Transaction::where('status', 'success')
+                    ->where('test_mode', $isTestMode)
+                    ->whereBetween('created_at', [$startDateTime, $endDateTime])
+            );
+
+            $paymentModeDistribution = $pmRows->groupBy(fn ($r) => $r->payment_method ?: 'Unknown')
+                ->map(function ($group) use ($usdRates) {
+                    $mode = $group->first()->payment_method ?: 'Unknown';
+                    $amount = $this->displayCurrency->sumConvertedCurrencyGroups($group, 'agg_total', 'agg_currency', $usdRates);
+                    $count = (int) $group->sum(fn ($row) => (int) $row->cnt);
+
                     return [
-                        'mode' => $item->payment_method ?: 'Unknown',
-                        'count' => $item->count,
-                        'amount' => (float) $item->total_amount
+                        'mode' => $mode,
+                        'count' => $count,
+                        'amount' => $amount,
                     ];
-                });
-            
-            // Device Distribution (from user_agent) - filter by admin's viewing mode
+                })
+                ->values();
+
             $deviceDistribution = Transaction::where('status', 'success')
                 ->where('test_mode', $isTestMode)
                 ->whereBetween('created_at', [$startDateTime, $endDateTime])
                 ->whereNotNull('user_agent')
                 ->get()
-                ->map(function($transaction) {
+                ->map(function ($transaction) {
                     $userAgent = strtolower($transaction->user_agent);
                     if (strpos($userAgent, 'mobile') !== false || strpos($userAgent, 'android') !== false || strpos($userAgent, 'iphone') !== false) {
                         return 'Mobile';
-                    } elseif (strpos($userAgent, 'tablet') !== false || strpos($userAgent, 'ipad') !== false) {
-                        return 'Tablet';
-                    } else {
-                        return 'Desktop';
                     }
+                    if (strpos($userAgent, 'tablet') !== false || strpos($userAgent, 'ipad') !== false) {
+                        return 'Tablet';
+                    }
+
+                    return 'Desktop';
                 })
-                ->groupBy(function($device) {
-                    return $device;
-                })
-                ->map(function($group) {
-                    return $group->count();
-                })
-                ->map(function($count, $device) {
+                ->groupBy(fn ($device) => $device)
+                ->map(fn ($group) => $group->count())
+                ->map(function ($count, $device) {
                     return [
                         'device' => $device,
-                        'count' => $count
+                        'count' => $count,
                     ];
                 })
                 ->values();
-            
-            // If no device data, return empty array
+
             if ($deviceDistribution->isEmpty()) {
                 $deviceDistribution = collect([
                     ['device' => 'Desktop', 'count' => 0],
                     ['device' => 'Mobile', 'count' => 0],
-                    ['device' => 'Tablet', 'count' => 0]
+                    ['device' => 'Tablet', 'count' => 0],
                 ]);
             }
-            
+
             $stats = [
                 'total_merchants' => Merchant::count(),
                 'active_merchants' => Merchant::where('status', 'active')->count(),
                 'total_transactions' => Transaction::where('test_mode', $isTestMode)->count(),
-                'total_volume' => Transaction::where('status', 'success')
-                    ->where('test_mode', $isTestMode)
-                    ->sum('amount'),
+                'total_volume' => $this->displayCurrency->sumTransactionAmountsToDisplayCurrency(
+                    Transaction::query()
+                        ->where('status', 'success')
+                        ->where('test_mode', $isTestMode),
+                    $usdRates
+                ),
                 'total_gtv' => $totalGTV,
                 'successful_transactions' => $successfulTransactions,
                 'amount_refunded' => $amountRefunded,
                 'chargeback_amount' => $chargebackAmount,
                 'days_label' => "Last {$daysDiff} days",
+                'display_currency' => $displayCode,
             ];
 
             $this->logInfo('Admin dashboard data retrieved successfully', [
                 'stats' => $stats,
-                'date_range' => [$startDate, $endDate]
+                'date_range' => [$startDate, $endDate],
             ]);
 
             return response()->json([
@@ -192,21 +213,21 @@ class AdminDashboardController extends Controller
                     'charts' => [
                         'gtv_and_count' => [
                             'gtv' => $gtvChartData,
-                            'count' => $transactionCountChartData
+                            'count' => $transactionCountChartData,
                         ],
                         'payment_mode_distribution' => $paymentModeDistribution,
-                        'device_distribution' => $deviceDistribution
+                        'device_distribution' => $deviceDistribution,
                     ],
                     'date_range' => [
                         'start' => $startDate,
-                        'end' => $endDate
-                    ]
+                        'end' => $endDate,
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {
             $this->logError('Error fetching admin dashboard data', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
