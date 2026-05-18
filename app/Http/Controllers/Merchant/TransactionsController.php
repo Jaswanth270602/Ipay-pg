@@ -241,6 +241,7 @@ class TransactionsController extends Controller
                     // Internal PSP/routing diagnostics — admin-only (see admin transactions API)
                     'failure_reason' => null,
                     'payment_mode' => $transaction->payment_method ?? '-',
+                    'payment_environment' => $transaction->test_mode ? 'TEST' : 'LIVE',
                     'payment_channel' => $gatewayResponse['channel'] ?? '-',
                     'merc_approved' => $transaction->status === 'success' ? 'Yes' : 'No',
                     'currency_code' => $transaction->currency ?? 'INR',

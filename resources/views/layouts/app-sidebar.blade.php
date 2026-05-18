@@ -907,6 +907,10 @@
                 <div class="mode-badge {{ session('admin_view_mode', 'test') === 'test' ? 'bg-warning text-dark' : 'bg-success' }}" id="adminModeBadge">
                     {{ session('admin_view_mode', 'test') === 'test' ? 'TEST MODE' : 'LIVE MODE' }}
                 </div>
+            @elseif(auth()->user()->isReseller())
+                <div class="mode-badge {{ session('reseller_view_mode', 'test') === 'test' ? 'bg-warning text-dark' : 'bg-success' }}" id="resellerModeBadge">
+                    {{ session('reseller_view_mode', 'test') === 'test' ? 'TEST MODE' : 'LIVE MODE' }}
+                </div>
             @endif
         </div>
        
@@ -1407,6 +1411,15 @@
                     <i class="bi bi-check-circle"></i> Live
                 </button>
             </div>
+            @elseif(auth()->user()->isReseller())
+            <div class="mode-toggle">
+                <button class="mode-toggle-btn {{ session('reseller_view_mode', 'test') === 'test' ? 'active test' : '' }}" onclick="switchResellerMode('test')">
+                    <i class="bi bi-flask"></i> Test
+                </button>
+                <button class="mode-toggle-btn {{ session('reseller_view_mode', 'test') === 'live' ? 'active live' : '' }}" onclick="switchResellerMode('live')">
+                    <i class="bi bi-check-circle"></i> Live
+                </button>
+            </div>
             @endif
 
             <!-- Notifications -->
@@ -1667,6 +1680,42 @@ function switchAdminMode(mode) {
             showToast('Failed to switch admin viewing mode', 'error');
         } else if (typeof ipayAlert === 'function') {
             ipayAlert('Failed to switch admin viewing mode', 'danger');
+        }
+        console.error('Error:', error);
+    });
+}
+
+function switchResellerMode(mode) {
+    const overlay = document.createElement('div');
+    overlay.className = 'loader-overlay';
+    overlay.innerHTML = '<div class="spinner-violet"></div>';
+    document.body.appendChild(overlay);
+
+    fetch("{{ route('reseller.settings.switch-mode') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+        },
+        body: JSON.stringify({mode})
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.body.removeChild(overlay);
+        if (data.success) {
+            location.reload();
+        } else if (typeof showToast === 'function') {
+            showToast('Failed to switch reseller viewing mode', 'error');
+        } else if (typeof ipayAlert === 'function') {
+            ipayAlert('Failed to switch reseller viewing mode', 'danger');
+        }
+    })
+    .catch(error => {
+        document.body.removeChild(overlay);
+        if (typeof showToast === 'function') {
+            showToast('Failed to switch reseller viewing mode', 'error');
+        } else if (typeof ipayAlert === 'function') {
+            ipayAlert('Failed to switch reseller viewing mode', 'danger');
         }
         console.error('Error:', error);
     });

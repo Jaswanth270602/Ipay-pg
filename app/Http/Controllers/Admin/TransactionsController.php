@@ -161,6 +161,7 @@ class TransactionsController extends Controller
                     'payment_status' => $transaction->status,
                     'failure_reason' => $transaction->failure_reason ?? null,
                     'payment_mode' => $transaction->payment_method ?? '-',
+                    'payment_environment' => $transaction->test_mode ? 'TEST' : 'LIVE',
                     'payment_channel' => $gatewayResponse['channel'] ?? '-',
                     'merc_approved' => $transaction->status === 'success' ? 'Yes' : 'No',
                     'currency_code' => $transaction->currency ?? 'INR',

@@ -23,8 +23,7 @@ class AdminSettingsController extends Controller
             ], 400);
         }
         
-        // Store admin's viewing mode in session
-        session(['admin_view_mode' => $mode]);
+        \App\Support\PaymentViewMode::setSessionMode('admin', $mode);
         
         return response()->json([
             'success' => true,
@@ -38,7 +37,7 @@ class AdminSettingsController extends Controller
      */
     public function getMode(): JsonResponse
     {
-        $mode = session('admin_view_mode', 'test'); // Default to test
+        $mode = \App\Support\PaymentViewMode::isTestMode() ? 'test' : 'live';
         
         return response()->json([
             'success' => true,

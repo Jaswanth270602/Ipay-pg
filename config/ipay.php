@@ -67,27 +67,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | FX base currency (internal normalization for snapshots & reporting)
+    |--------------------------------------------------------------------------
+    |
+    | All payment snapshots store amount_base in this currency using USD-based
+    | cross-rates from open.er-api.com (units of each currency per 1 USD).
+    |
+    */
+    'fx' => [
+        'base_currency' => env('IPAY_FX_BASE_CURRENCY', 'USD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Supported currencies (payment links, refunds, bulk CSV)
     |--------------------------------------------------------------------------
     */
-    'supported_currencies' => ['INR', 'USD', 'EUR', 'GBP'],
+    'supported_currencies' => ['INR', 'USD', 'EUR', 'GBP', 'KES', 'JPY', 'AUD', 'CAD'],
 
     /*
     |--------------------------------------------------------------------------
     | Dashboard display currency (FX aggregation)
     |--------------------------------------------------------------------------
     |
-    | Admin and merchant dashboard monetary totals sum across mixed transaction
-    | currencies by converting each bucket to this ISO code (default KES) using
-    | open.er-api.com USD cross-rates. Optional manual_rates_to_usd merges
-    | overrides: currency code => units of that currency per 1 USD (same shape
-    | as the API "rates" object).
+    | Dashboards expose a currency dropdown (supported_currencies). Totals use
+    | either historical snapshots (default) or live cross-rates (fx_mode=live).
+    | Optional manual_rates_to_usd merges overrides: currency code => units of
+    | that currency per 1 USD (same shape as the API "rates" object).
     |
     */
     'dashboard_display' => [
         'currency' => env('DASHBOARD_DISPLAY_CURRENCY', 'KES'),
+        'default_fx_mode' => env('DASHBOARD_FX_MODE', 'historical'),
+        'supported_currencies' => ['USD', 'INR', 'KES', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'],
         'fx_cache_ttl' => (int) env('DASHBOARD_FX_CACHE_TTL', 3600),
         'fx_http_timeout' => (int) env('DASHBOARD_FX_HTTP_TIMEOUT', 10),
+        'metrics_cache_ttl' => (int) env('DASHBOARD_METRICS_CACHE_TTL', 300),
         'manual_rates_to_usd' => [],
     ],
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reseller;
 use App\Http\Controllers\Controller;
 use App\Models\ResellerCommission;
 use App\Models\Transaction;
+use App\Support\PaymentViewMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -55,6 +56,7 @@ class TransactionsController extends Controller
         $query = Transaction::query()
             ->with(['merchant', 'order.paymentLink'])
             ->whereIn('merchant_id', $merchantIds)
+            ->where('test_mode', PaymentViewMode::isTestMode())
             ->latest();
 
         if ($request->filled('merchant_id')) {
@@ -114,6 +116,7 @@ class TransactionsController extends Controller
                 'amount_paid_by_customer' => number_format((float) $transaction->amount, 2),
                 'payment_status' => $transaction->status,
                 'payment_mode' => $transaction->payment_method ?? '-',
+                'payment_environment' => $transaction->test_mode ? 'TEST' : 'LIVE',
                 'payment_channel' => $gatewayResponse['channel'] ?? '-',
                 'currency_code' => $transaction->currency ?? 'INR',
                 'card_holder_name' => $paymentDetails['card_holder_name'] ?? $paymentDetails['card_holder'] ?? '-',

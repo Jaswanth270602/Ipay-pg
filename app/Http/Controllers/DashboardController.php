@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\DashboardDisplayCurrencyService;
+use App\Services\DashboardMetricsCacheService;
+use App\Support\DashboardFxContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -10,7 +12,8 @@ use Illuminate\View\View;
 class DashboardController extends Controller
 {
     public function __construct(
-        private readonly DashboardDisplayCurrencyService $dashboardDisplayCurrency
+        private readonly DashboardDisplayCurrencyService $dashboardDisplayCurrency,
+        private readonly DashboardMetricsCacheService $metricsCache,
     ) {}
 
     /**
@@ -39,51 +42,63 @@ class DashboardController extends Controller
                     $q->where('test_mode', $merchant->test_mode);
                 });
 
-            $usdRates = $this->dashboardDisplayCurrency->getUsdBasedRates();
+            $fxCtx = DashboardFxContext::fromRequest($request);
 
-            $totalVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
-                (clone $transactionsQuery)->where('status', 'success'),
-                $usdRates
-            );
+            $stats = $this->metricsCache->remember('merchant', [
+                'merchant_id' => $merchant->id,
+                'test' => $merchant->test_mode ? 1 : 0,
+                'currency' => $fxCtx->displayCurrency,
+                'fx_mode' => $fxCtx->mode,
+            ], function () use ($merchant, $transactionsQuery, $refundsQuery, $fxCtx) {
+                $usdRates = $this->dashboardDisplayCurrency->getUsdBasedRates();
 
-            $refundSumQuery = (clone $refundsQuery)
-                ->where('refunds.status', 'completed')
-                ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id');
+                $totalVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
+                    (clone $transactionsQuery)->where('status', 'success'),
+                    $usdRates,
+                    $fxCtx
+                );
 
-            $totalRefundedVolume = $this->dashboardDisplayCurrency->sumRefundAmountsToDisplayCurrency(
-                $refundSumQuery,
-                $usdRates
-            );
+                $refundSumQuery = (clone $refundsQuery)
+                    ->where('refunds.status', 'completed')
+                    ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id');
 
-            // Gross of captures already paid out via settlement (merchant should not count this as "still on platform")
-            $totalSettledVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
-                (clone $transactionsQuery)
-                    ->where('status', 'success')
-                    ->where('settlement_status', 'settled'),
-                $usdRates
-            );
+                $totalRefundedVolume = $this->dashboardDisplayCurrency->sumRefundAmountsToDisplayCurrency(
+                    $refundSumQuery,
+                    $usdRates,
+                    $fxCtx
+                );
 
-            // Net volume ≈ success gross − refunds − amounts already settled to bank (same mode as merchant toggle)
-            $stats = [
-                'total_transactions' => $transactionsQuery->count(),
-                'successful_transactions' => (clone $transactionsQuery)->where('status', 'success')->count(),
-                'total_volume' => $totalVolume,
-                'total_refunded_volume' => $totalRefundedVolume,
-                'total_settled_volume' => $totalSettledVolume,
-                'net_volume' => max(0, (float) $totalVolume - (float) $totalRefundedVolume - (float) $totalSettledVolume),
-                'pending_refunds' => $refundsQuery->whereIn('status', [
-                    'pending',
-                    'pending_approval',
-                    'pending_processing',
-                    'processing',
-                ])->count(),
-            ];
+                $totalSettledVolume = $this->dashboardDisplayCurrency->sumTransactionAmountsToDisplayCurrency(
+                    (clone $transactionsQuery)
+                        ->where('status', 'success')
+                        ->where('settlement_status', 'settled'),
+                    $usdRates,
+                    $fxCtx
+                );
+
+                return [
+                    'total_transactions' => $transactionsQuery->count(),
+                    'successful_transactions' => (clone $transactionsQuery)->where('status', 'success')->count(),
+                    'total_volume' => $totalVolume,
+                    'total_refunded_volume' => $totalRefundedVolume,
+                    'total_settled_volume' => $totalSettledVolume,
+                    'net_volume' => max(0, (float) $totalVolume - (float) $totalRefundedVolume - (float) $totalSettledVolume),
+                    'pending_refunds' => $refundsQuery->whereIn('status', [
+                        'pending',
+                        'pending_approval',
+                        'pending_processing',
+                        'processing',
+                    ])->count(),
+                ];
+            });
 
             return view('merchant.dashboard', [
                 'user' => $user,
                 'merchant' => $merchant,
                 'stats' => $stats,
-                'dashboard_display_currency' => $this->dashboardDisplayCurrency->displayCurrencyCode(),
+                'dashboard_display_currency' => $fxCtx->displayCurrency,
+                'dashboard_fx_mode' => $fxCtx->mode,
+                'fx_options' => $this->dashboardDisplayCurrency->fxOptionsPayload(),
             ]);
         }
 

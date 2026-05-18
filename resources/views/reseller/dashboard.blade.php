@@ -39,6 +39,34 @@
         flex: 1 1 auto;
         min-height: 2.75rem;
     }
+    .dashboard-fx-loader {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.92);
+        z-index: 9998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .dashboard-fx-loader-inner { text-align: center; }
+    .dashboard-fx-spinner {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 16px;
+        border: 7px solid #fecdd3;
+        border-top-color: #E10600;
+        border-right-color: #ec4899;
+        border-radius: 50%;
+        animation: dashboard-fx-spin 0.7s linear infinite;
+    }
+    @keyframes dashboard-fx-spin { to { transform: rotate(360deg); } }
+    .dashboard-fx-loader-text { font-weight: 600; color: #E10600; }
+    .dashboard-metrics-body.is-loading {
+        opacity: 0.4;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+    }
+
     .reseller-dashboard-metrics .metric-tile-caption {
         font-size: 0.75rem;
         line-height: 1.35;
@@ -57,13 +85,28 @@
 
 @section('content')
 <div ng-app="ipayApp" ng-controller="ResellerDashboardController as rdc">
+    <div ng-show="rdc.loading" class="dashboard-fx-loader" aria-live="polite" aria-busy="true">
+        <div class="dashboard-fx-loader-inner">
+            <div class="dashboard-fx-spinner" role="status" aria-label="Loading"></div>
+            <p class="dashboard-fx-loader-text mb-0">Updating dashboard…</p>
+        </div>
+    </div>
+
+    <div class="dashboard-metrics-body" ng-class="{'is-loading': rdc.loading}">
     <div class="row g-4">
         <div class="col-md-12 d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
                 <h2>Welcome, {{ $user->name }}</h2>
                 <p class="text-muted mb-0">Overview of your reseller account.</p>
             </div>
-            <div class="d-flex align-items-end gap-2">
+            <div class="d-flex align-items-end gap-2 flex-wrap">
+                <select class="form-select form-select-sm" ng-model="rdc.displayCurrency" ng-change="rdc.applyFilters()" style="width: 100px;" title="Display currency">
+                    <option ng-repeat="c in rdc.currencyOptions" ng-value="c">@{{ c }}</option>
+                </select>
+                <select class="form-select form-select-sm" ng-model="rdc.fxMode" ng-change="rdc.applyFilters()" style="width: 170px;" title="FX mode">
+                    <option value="historical">Historical rate</option>
+                    <option value="live">Live current rate</option>
+                </select>
                 <select class="form-select form-select-sm" ng-model="rdc.reportFormat" style="width: 110px;">
                     <option value="csv">CSV</option>
                     <option value="xlsx">Excel</option>
@@ -79,7 +122,7 @@
                 <div class="col-md-3 d-flex" ng-repeat="card in rdc.cards track by card.key">
                     <div class="stat-card metric-tile w-100">
                         <div class="metric-tile-label">@{{ card.label }}</div>
-                        <div class="metric-tile-value">@{{ card.currency ? ('INR ' + rdc.money(card.value)) : card.value }}</div>
+                        <div class="metric-tile-value">@{{ card.currency ? ((rdc.displayCurrency || 'KES') + ' ' + rdc.money(card.value)) : card.value }}</div>
                         <span class="metric-tile-caption">@{{ card.caption }}</span>
                     </div>
                 </div>
@@ -279,6 +322,7 @@
             </div>
         </div>
     </div>
+    </div>
 
     <div class="modal fade" id="resellerDashTxnModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -316,9 +360,12 @@
         }
         try {
             var app = angular.module('ipayApp');
-            app.controller('ResellerDashboardController', ['$http', '$window', function ($http, $window) {
+            app.controller('ResellerDashboardController', ['$http', '$window', '$timeout', function ($http, $window, $timeout) {
                 var vm = this;
                 vm.loading = false;
+                vm.displayCurrency = @json($dashboard_display_currency ?? 'KES');
+                vm.fxMode = @json($dashboard_fx_mode ?? 'historical');
+                vm.currencyOptions = @json($fx_options['supported_currencies'] ?? ['USD', 'INR', 'KES']);
                 vm.reportFormat = 'csv';
                 vm.rows = [];
                 vm.cards = [];
@@ -355,6 +402,7 @@
 
                 vm.load = function () {
                     vm.loading = true;
+                    $timeout(function () {
                     var params = {
                         page: vm.pagination.current_page,
                         per_page: vm.pagination.per_page,
@@ -363,16 +411,25 @@
                     if (vm.filters.merchant_id) { params.merchant_id = vm.filters.merchant_id; }
                     if (vm.filters.date_from) { params.date_from = vm.filters.date_from; }
                     if (vm.filters.date_to) { params.date_to = vm.filters.date_to; }
+                    params.display_currency = vm.displayCurrency;
+                    params.fx_mode = vm.fxMode;
 
                     $http.get("{{ route('reseller.merchant-summary') }}", { params: params }).then(function (res) {
                         vm.rows = res.data.data || [];
                         vm.pagination = res.data.pagination || vm.pagination;
+                        if (res.data.fx_options && res.data.fx_options.supported_currencies) {
+                            vm.currencyOptions = res.data.fx_options.supported_currencies;
+                        }
+                        if (res.data.summary && res.data.summary.display_currency) {
+                            vm.displayCurrency = res.data.summary.display_currency;
+                        }
                         vm.cards = vm.cardDataFromSummary(res.data.summary || {});
                         vm.loading = false;
                     }, function () {
                         vm.loading = false;
                         alert('Failed to load merchant performance');
                     });
+                    }, 0);
                 };
 
                 vm.loadRecent = function () {
@@ -494,3 +551,4 @@
 })();
 </script>
 @endpush
+

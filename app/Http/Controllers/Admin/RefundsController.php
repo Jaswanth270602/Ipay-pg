@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\FileLifecycleService;
 use App\Traits\LogsConditionally;
 use App\Models\Refund;
+use App\Support\PaymentViewMode;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -24,9 +25,8 @@ class RefundsController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
-            // Get admin's viewing mode from session
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
+            $adminViewMode = $isTestMode ? 'test' : 'live';
 
             $this->logInfo('Admin refunds data requested', [
                 'user_id' => auth()->id(),
@@ -106,6 +106,7 @@ class RefundsController extends Controller
                     'payer_name' => $transaction->payment_details['customer_name'] ?? '-',
                     'payer_email' => $transaction->payment_details['customer_email'] ?? '-',
                     'payer_phone' => $transaction->payment_details['customer_phone'] ?? '-',
+                    'payment_environment' => ($transaction && $transaction->test_mode) ? 'TEST' : 'LIVE',
                     'refund_status' => $refund->status,
                     'refund_description' => $refund->reason ?? '-',
                     'refund_amount' => number_format($refund->amount, 2),
@@ -146,8 +147,7 @@ class RefundsController extends Controller
     public function export(Request $request, FileLifecycleService $fileLifecycleService): BinaryFileResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
 
             $query = Refund::with(['merchant', 'transaction'])
                 ->whereHas('transaction', function($q) use ($isTestMode) {

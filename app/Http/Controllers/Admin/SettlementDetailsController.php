@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Support\PaymentViewMode;
 use Illuminate\Support\Facades\Validator;
 
 class SettlementDetailsController extends Controller
@@ -32,12 +33,14 @@ class SettlementDetailsController extends Controller
                 ->leftJoin('transactions', 'settlement_details.transaction_id', '=', 'transactions.id')
                 ->select('settlement_details.*', 'merchants.name as merchant_name', 'merchants.id as merchant_id_val', 'transactions.order_id as transaction_order_id', 'transactions.txn_id as transaction_txn_id');
 
+            $isTestMode = PaymentViewMode::isTestMode();
             $mode = $request->get('mode');
             if ($mode === 'test') {
-                $query->where('settlement_details.test_mode', true);
+                $isTestMode = true;
             } elseif ($mode === 'live') {
-                $query->where('settlement_details.test_mode', false);
+                $isTestMode = false;
             }
+            $query->where('settlement_details.test_mode', $isTestMode);
 
             // Filters
             if ($request->has('filter_merchant_id') && $request->get('filter_merchant_id')) {

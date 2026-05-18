@@ -187,6 +187,28 @@
         background: #ffe4e0 !important; /* light brownish red */
         color: #7c2d12 !important;
     }
+
+    .dashboard-fx-loader {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.92);
+        z-index: 9998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .dashboard-fx-spinner {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 16px;
+        border: 7px solid #fecdd3;
+        border-top-color: #E10600;
+        border-right-color: #ec4899;
+        border-radius: 50%;
+        animation: dashboard-fx-spin 0.7s linear infinite;
+    }
+    @keyframes dashboard-fx-spin { to { transform: rotate(360deg); } }
+    .dashboard-fx-loader-text { font-weight: 600; color: #E10600; text-align: center; }
 </style>
 @endpush
 
@@ -198,6 +220,40 @@
             <p class="text-muted">{{ $merchant->name }} - <span class="badge {{ $merchant->test_mode ? 'bg-warning' : 'bg-success' }}">{{ $merchant->test_mode ? 'TEST MODE' : 'LIVE MODE' }}</span></p>
         </div>
     </div>
+
+    <div id="merchantDashboardFxLoader" class="dashboard-fx-loader" style="display:none;" aria-live="polite">
+        <div>
+            <div class="dashboard-fx-spinner" role="status"></div>
+            <p class="dashboard-fx-loader-text mb-0">Updating dashboard…</p>
+        </div>
+    </div>
+
+    <form method="GET" action="{{ route('dashboard') }}" class="row g-2 align-items-end mb-3" id="merchantFxFilterForm" onsubmit="document.getElementById('merchantDashboardFxLoader').style.display='flex';">
+        <div class="col-auto">
+            <label class="form-label small mb-1">Display currency</label>
+            <select name="display_currency" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach(($fx_options['supported_currencies'] ?? ['USD','INR','KES']) as $code)
+                <option value="{{ $code }}" @selected(($dashboard_display_currency ?? 'KES') === $code)>{{ $code }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-1">Conversion</label>
+            <select name="fx_mode" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="historical" @selected(($dashboard_fx_mode ?? 'historical') === 'historical')>Historical rate</option>
+                <option value="live" @selected(($dashboard_fx_mode ?? 'historical') === 'live')>Live current rate</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <small class="text-muted d-block">
+                @if(($dashboard_fx_mode ?? 'historical') === 'historical')
+                    Volume totals use FX rates captured when each payment succeeded.
+                @elseif(($dashboard_fx_mode ?? '') === 'live')
+                    Volume totals use today's live exchange rates.
+                @endif
+            </small>
+        </div>
+    </form>
 
     <!-- Stats Cards -->
     <div class="row g-4 mb-4 dashboard-stats-row align-items-stretch">

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\DashboardFxContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
@@ -18,7 +19,22 @@ class DashboardDisplayCurrencyService
     /**
      * Sum transaction `amount` values grouped by currency, converted to the display currency (default KES).
      */
-    public function sumTransactionAmountsToDisplayCurrency(Builder|Relation $transactionQuery, ?array $usdRates = null): float
+    public function sumTransactionAmountsToDisplayCurrency(
+        Builder|Relation $transactionQuery,
+        ?array $usdRates = null,
+        ?DashboardFxContext $ctx = null
+    ): float {
+        $ctx ??= new DashboardFxContext($this->displayCurrencyCode());
+        $usdRates ??= $this->getUsdBasedRates();
+
+        if ($ctx->isLive()) {
+            return $this->sumLiveTransactionAmounts($transactionQuery, $usdRates, $ctx);
+        }
+
+        return $this->sumHistoricalTransactionAmounts($transactionQuery, $usdRates, $ctx);
+    }
+
+    private function sumLiveTransactionAmounts(Builder|Relation $transactionQuery, array $usdRates, DashboardFxContext $ctx): float
     {
         $default = (string) config('ipay.default_currency', 'USD');
         $sub = (clone $transactionQuery)->selectRaw(
@@ -27,7 +43,34 @@ class DashboardDisplayCurrencyService
         );
         $rows = $this->aggregateCurrencySub($sub);
 
-        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates);
+        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates, $ctx->displayCurrency);
+    }
+
+    private function sumHistoricalTransactionAmounts(Builder|Relation $transactionQuery, array $usdRates, DashboardFxContext $ctx): float
+    {
+        $sum = 0.0;
+
+        foreach (
+            (clone $transactionQuery)
+                ->whereNotNull('transactions.amount_base')
+                ->select(['transactions.id', 'transactions.amount_base', 'transactions.fx_rates_snapshot'])
+                ->orderBy('transactions.id')
+                ->lazyById(500, 'transactions.id', 'id') as $row
+        ) {
+            $sum += $this->amountBaseToDisplay(
+                (float) $row->amount_base,
+                $row->fx_rates_snapshot,
+                $ctx->displayCurrency,
+                $usdRates
+            );
+        }
+
+        $legacyQuery = (clone $transactionQuery)->whereNull('transactions.amount_base');
+        if ($legacyQuery->exists()) {
+            $sum += $this->sumLiveTransactionAmounts($legacyQuery, $usdRates, $ctx);
+        }
+
+        return round($sum, 2);
     }
 
     /**
@@ -35,7 +78,22 @@ class DashboardDisplayCurrencyService
      *
      * @param  Builder|Relation  $refundQuery  Eloquent builder or relation (e.g. merchant refunds); must use `refunds` / `transactions` tables when joining
      */
-    public function sumRefundAmountsToDisplayCurrency(Builder|Relation $refundQuery, ?array $usdRates = null): float
+    public function sumRefundAmountsToDisplayCurrency(
+        Builder|Relation $refundQuery,
+        ?array $usdRates = null,
+        ?DashboardFxContext $ctx = null
+    ): float {
+        $ctx ??= new DashboardFxContext($this->displayCurrencyCode());
+        $usdRates ??= $this->getUsdBasedRates();
+
+        if ($ctx->isLive()) {
+            return $this->sumLiveRefundAmounts($refundQuery, $usdRates, $ctx);
+        }
+
+        return $this->sumHistoricalRefundAmounts($refundQuery, $usdRates, $ctx);
+    }
+
+    private function sumLiveRefundAmounts(Builder|Relation $refundQuery, array $usdRates, DashboardFxContext $ctx): float
     {
         $default = (string) config('ipay.default_currency', 'USD');
         $sub = (clone $refundQuery)->selectRaw(
@@ -44,7 +102,34 @@ class DashboardDisplayCurrencyService
         );
         $rows = $this->aggregateCurrencySub($sub);
 
-        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates);
+        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates, $ctx->displayCurrency);
+    }
+
+    private function sumHistoricalRefundAmounts(Builder|Relation $refundQuery, array $usdRates, DashboardFxContext $ctx): float
+    {
+        $sum = 0.0;
+
+        foreach (
+            (clone $refundQuery)
+                ->whereNotNull('refunds.amount_base')
+                ->select(['refunds.id', 'refunds.amount_base', 'refunds.fx_rates_snapshot'])
+                ->orderBy('refunds.id')
+                ->lazyById(500, 'refunds.id', 'id') as $row
+        ) {
+            $sum += $this->amountBaseToDisplay(
+                (float) $row->amount_base,
+                $row->fx_rates_snapshot,
+                $ctx->displayCurrency,
+                $usdRates
+            );
+        }
+
+        $legacyQuery = (clone $refundQuery)->whereNull('refunds.amount_base');
+        if ($legacyQuery->exists()) {
+            $sum += $this->sumLiveRefundAmounts($legacyQuery, $usdRates, $ctx);
+        }
+
+        return round($sum, 2);
     }
 
     /**
@@ -52,8 +137,14 @@ class DashboardDisplayCurrencyService
      *
      * @param  Builder|Relation  $disputeQuery
      */
-    public function sumDisputeAmountsToDisplayCurrency(Builder|Relation $disputeQuery, ?array $usdRates = null): float
-    {
+    public function sumDisputeAmountsToDisplayCurrency(
+        Builder|Relation $disputeQuery,
+        ?array $usdRates = null,
+        ?DashboardFxContext $ctx = null
+    ): float {
+        $ctx ??= new DashboardFxContext($this->displayCurrencyCode());
+        $usdRates ??= $this->getUsdBasedRates();
+
         $default = (string) config('ipay.default_currency', 'USD');
         $sub = (clone $disputeQuery)->selectRaw(
             '`disputes`.`amount` as sub_amount, COALESCE(NULLIF(TRIM(`disputes`.`currency`), ""), NULLIF(TRIM(`transactions`.`currency`), ""), ?) as agg_currency',
@@ -61,7 +152,7 @@ class DashboardDisplayCurrencyService
         );
         $rows = $this->aggregateCurrencySub($sub);
 
-        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates);
+        return $this->sumConvertedCurrencyGroups($rows, 'agg_total', 'agg_currency', $usdRates, $ctx->displayCurrency);
     }
 
     /**
@@ -69,8 +160,16 @@ class DashboardDisplayCurrencyService
      *
      * @return Collection<int, object>
      */
-    public function successfulTxnVolumeRowsByDayAndCurrency(Builder|Relation $transactionQuery): Collection
-    {
+    public function successfulTxnVolumeRowsByDayAndCurrency(
+        Builder|Relation $transactionQuery,
+        ?DashboardFxContext $ctx = null
+    ): Collection {
+        $ctx ??= new DashboardFxContext($this->displayCurrencyCode());
+
+        if ($ctx->isHistorical()) {
+            return $this->historicalTxnVolumeRowsByDay($transactionQuery, $ctx);
+        }
+
         $default = (string) config('ipay.default_currency', 'USD');
         $sub = (clone $transactionQuery)->selectRaw(
             'DATE(`transactions`.`created_at`) as agg_date, `transactions`.`amount` as sub_amount, COALESCE(NULLIF(TRIM(`transactions`.`currency`), ""), ?) as agg_currency',
@@ -82,6 +181,56 @@ class DashboardDisplayCurrencyService
             ->selectRaw('agg_date, agg_currency, SUM(sub_amount) as agg_total')
             ->groupByRaw('agg_date, agg_currency')
             ->get();
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function historicalTxnVolumeRowsByDay(Builder|Relation $transactionQuery, DashboardFxContext $ctx): Collection
+    {
+        $usdRates = $this->getUsdBasedRates();
+        $byDate = [];
+
+        foreach (
+            (clone $transactionQuery)
+                ->whereNotNull('transactions.amount_base')
+                ->select(['transactions.id', 'transactions.created_at', 'transactions.amount_base', 'transactions.fx_rates_snapshot'])
+                ->orderBy('transactions.id')
+                ->lazyById(500, 'transactions.id', 'id') as $row
+        ) {
+            $day = $row->created_at?->format('Y-m-d') ?? substr((string) $row->created_at, 0, 10);
+            $converted = $this->amountBaseToDisplay(
+                (float) $row->amount_base,
+                $row->fx_rates_snapshot,
+                $ctx->displayCurrency,
+                $usdRates
+            );
+            $byDate[$day] = ($byDate[$day] ?? 0) + $converted;
+        }
+
+        $legacyQuery = (clone $transactionQuery)->whereNull('transactions.amount_base');
+        $legacyRows = $this->successfulTxnVolumeRowsByDayAndCurrency($legacyQuery, new DashboardFxContext($ctx->displayCurrency, DashboardFxContext::MODE_LIVE));
+        foreach ($legacyRows as $row) {
+            $day = $row->agg_date instanceof \DateTimeInterface
+                ? $row->agg_date->format('Y-m-d')
+                : substr((string) $row->agg_date, 0, 10);
+            $converted = $this->sumConvertedCurrencyGroups(
+                collect([$row]),
+                'agg_total',
+                'agg_currency',
+                $usdRates,
+                $ctx->displayCurrency
+            );
+            $byDate[$day] = ($byDate[$day] ?? 0) + $converted;
+        }
+
+        return collect($byDate)->map(function ($total, $date) use ($ctx) {
+            return (object) [
+                'agg_date' => $date,
+                'agg_currency' => $ctx->displayCurrency,
+                'agg_total' => $total,
+            ];
+        })->values();
     }
 
     /**
@@ -122,10 +271,15 @@ class DashboardDisplayCurrencyService
     /**
      * @param  Collection<int, object>  $rows
      */
-    public function sumConvertedCurrencyGroups(Collection $rows, string $totalKey = 'agg_total', string $currencyKey = 'agg_currency', ?array $usdRates = null): float
-    {
+    public function sumConvertedCurrencyGroups(
+        Collection $rows,
+        string $totalKey = 'agg_total',
+        string $currencyKey = 'agg_currency',
+        ?array $usdRates = null,
+        ?string $targetCurrency = null
+    ): float {
         $rates = $usdRates ?? $this->getUsdBasedRates();
-        $target = strtoupper((string) config('ipay.dashboard_display.currency', 'KES'));
+        $target = strtoupper($targetCurrency ?? (string) config('ipay.dashboard_display.currency', 'KES'));
         $sum = 0.0;
 
         foreach ($rows as $row) {
@@ -139,6 +293,96 @@ class DashboardDisplayCurrencyService
         }
 
         return round($sum, 2);
+    }
+
+    /**
+     * Convert a normalized base amount (USD) to display currency using the snapshot rate at payment time.
+     *
+     * @param  array<string, float>|null  $snapshot
+     * @param  array<string, float>  $liveRates
+     */
+    public function amountBaseToDisplay(float $amountBase, array|string|null $snapshot, string $displayCurrency, array $liveRates): float
+    {
+        if ($amountBase == 0.0) {
+            return 0.0;
+        }
+
+        $snapshot = $this->normalizeRatesSnapshot($snapshot);
+
+        $target = strtoupper($displayCurrency);
+        $base = strtoupper((string) config('ipay.fx.base_currency', 'USD'));
+
+        if ($target === $base) {
+            return $amountBase;
+        }
+
+        $rate = null;
+        if ($snapshot !== null && isset($snapshot[$target])) {
+            $rate = (float) $snapshot[$target];
+        }
+        if (($rate === null || $rate <= 0) && isset($liveRates[$target])) {
+            $rate = (float) $liveRates[$target];
+        }
+
+        if ($rate === null || $rate <= 0) {
+            Log::warning('Dashboard FX missing historical/display rate', ['target' => $target]);
+
+            return 0.0;
+        }
+
+        return $amountBase * $rate;
+    }
+
+    /**
+     * @return array<string, float>|null
+     */
+    private function normalizeRatesSnapshot(array|string|null $snapshot): ?array
+    {
+        if ($snapshot === null) {
+            return null;
+        }
+
+        if (is_string($snapshot)) {
+            $decoded = json_decode($snapshot, true);
+
+            return is_array($decoded) ? $this->normalizeRatesSnapshot($decoded) : null;
+        }
+
+        if (! is_array($snapshot)) {
+            return null;
+        }
+
+        $normalized = [];
+        foreach ($snapshot as $code => $rate) {
+            $normalized[strtoupper((string) $code)] = (float) $rate;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function fxOptionsPayload(): array
+    {
+        return [
+            'supported_currencies' => $this->supportedDisplayCurrencies(),
+            'default_display_currency' => $this->displayCurrencyCode(),
+            'default_fx_mode' => (string) config('ipay.dashboard_display.default_fx_mode', DashboardFxContext::MODE_HISTORICAL),
+            'fx_modes' => [
+                ['id' => DashboardFxContext::MODE_HISTORICAL, 'label' => 'Historical rate (at payment time)'],
+                ['id' => DashboardFxContext::MODE_LIVE, 'label' => 'Live current rate'],
+            ],
+            'fx_base_currency' => strtoupper((string) config('ipay.fx.base_currency', 'USD')),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function supportedDisplayCurrencies(): array
+    {
+        return array_values(config('ipay.dashboard_display.supported_currencies', ['USD', 'INR', 'KES']));
     }
 
     /**

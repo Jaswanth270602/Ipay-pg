@@ -29,6 +29,8 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\CreateSettlementEntry::class,
             \App\Listeners\CreatePaymentNotifications::class,
             \App\Listeners\SnapshotTransactionRates::class,
+            \App\Listeners\CaptureFxSnapshotOnPaymentSuccess::class,
+            \App\Listeners\InvalidateDashboardMetricsCache::class.'@handlePaymentSuccess',
             \App\Listeners\RecordResellerCommission::class,
             \App\Listeners\ApplyBillingOnPaymentSuccess::class,
         ],
@@ -53,6 +55,8 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\SendRefundWebhook::class,
             \App\Listeners\AdjustSettlement::class,
             \App\Listeners\AdjustResellerCommissionOnRefund::class,
+            \App\Listeners\CaptureFxSnapshotOnRefundCreated::class,
+            \App\Listeners\InvalidateDashboardMetricsCache::class.'@handleRefundCreated',
             \App\Listeners\ApplyBillingOnRefundCreated::class,
         ],
         \App\Events\SubscriptionCreated::class => [

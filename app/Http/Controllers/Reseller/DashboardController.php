@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\Refund;
 use App\Models\Transaction;
+use App\Services\DashboardDisplayCurrencyService;
+use App\Services\DashboardMetricsCacheService;
 use App\Services\FileLifecycleService;
+use App\Support\DashboardFxContext;
+use App\Support\PaymentViewMode;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -16,12 +20,28 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly DashboardDisplayCurrencyService $displayCurrency,
+        private readonly DashboardMetricsCacheService $metricsCache,
+    ) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
         $reseller = $user->reseller;
+        $fxCtx = DashboardFxContext::fromRequest($request);
 
-        $stats = $this->buildDashboardStats($reseller?->id);
+        $stats = $reseller
+            ? $this->metricsCache->remember('reseller_summary', [
+                'reseller_id' => $reseller->id,
+                'test' => PaymentViewMode::cacheTestFlag(),
+                'merchant_id' => 0,
+                'from' => '',
+                'to' => '',
+                'currency' => $fxCtx->displayCurrency,
+                'fx_mode' => $fxCtx->mode,
+            ], fn () => $this->buildDashboardStats($reseller->id, null, null, null, $fxCtx))
+            : $this->buildDashboardStats(null, null, null, null, $fxCtx);
 
         if ($reseller) {
             $merchantOptions = $reseller->merchants()->orderBy('name')->get(['id', 'name']);
@@ -34,6 +54,9 @@ class DashboardController extends Controller
             'reseller' => $reseller,
             'stats' => $stats,
             'merchantOptions' => $merchantOptions,
+            'dashboard_display_currency' => $fxCtx->displayCurrency,
+            'dashboard_fx_mode' => $fxCtx->mode,
+            'fx_options' => $this->displayCurrency->fxOptionsPayload(),
         ]);
     }
 
@@ -45,21 +68,61 @@ class DashboardController extends Controller
         }
 
         [$from, $to] = $this->resolveDateRange($request);
+        $fxCtx = DashboardFxContext::fromRequest($request);
         $search = trim((string) $request->get('search', ''));
         $merchantId = (int) $request->get('merchant_id', 0);
         $perPage = min(max((int) $request->get('per_page', 10), 1), 100);
+        $page = max(1, (int) $request->get('page', 1));
+
+        $fromKey = $from?->format('Y-m-d') ?? '';
+        $toKey = $to?->format('Y-m-d') ?? '';
+
+        if ($merchantId > 0 && ! $reseller->merchants()->where('merchants.id', $merchantId)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
+        }
+
+        $cached = $this->metricsCache->remember('reseller_merchant_summary', [
+            'reseller_id' => $reseller->id,
+            'test' => PaymentViewMode::cacheTestFlag(),
+            'merchant_id' => $merchantId,
+            'from' => $fromKey,
+            'to' => $toKey,
+            'currency' => $fxCtx->displayCurrency,
+            'fx_mode' => $fxCtx->mode,
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $search,
+        ], function () use ($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page) {
+            return $this->buildMerchantSummaryPayload($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page);
+        });
+
+        return response()->json(array_merge(['success' => true, 'fx_options' => $this->displayCurrency->fxOptionsPayload()], $cached));
+    }
+
+    /**
+     * @return array{summary: array, data: array, pagination: array}
+     */
+    protected function buildMerchantSummaryPayload(
+        $reseller,
+        Request $request,
+        ?Carbon $from,
+        ?Carbon $to,
+        DashboardFxContext $fxCtx,
+        string $search,
+        int $merchantId,
+        int $perPage,
+        int $page
+    ): array {
+        $usdRates = $this->displayCurrency->getUsdBasedRates();
+        $isTestMode = PaymentViewMode::isTestMode();
 
         $merchantIds = $reseller->merchants()->pluck('id');
         if ($merchantId > 0) {
-            if (! $merchantIds->contains($merchantId)) {
-                return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
-            }
             $merchantIds = collect([$merchantId]);
         }
         if ($merchantIds->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'summary' => $this->buildDashboardStats($reseller->id, $from, $to, $merchantId > 0 ? $merchantId : null),
+            return [
+                'summary' => $this->buildDashboardStats($reseller->id, $from, $to, $merchantId > 0 ? $merchantId : null, $fxCtx),
                 'data' => [],
                 'pagination' => [
                     'current_page' => 1,
@@ -69,20 +132,23 @@ class DashboardController extends Controller
                     'from' => null,
                     'to' => null,
                 ],
-            ]);
+            ];
         }
 
         $txAgg = DB::table('transactions')
             ->selectRaw('merchant_id, COUNT(*) as total_transactions, SUM(amount) as gross_volume')
             ->where('status', 'success')
+            ->where('test_mode', $isTestMode)
             ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
             ->groupBy('merchant_id');
 
         $refundAgg = DB::table('refunds')
-            ->selectRaw('merchant_id, SUM(amount) as refund_amount')
-            ->where('status', 'completed')
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->groupBy('merchant_id');
+            ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id')
+            ->selectRaw('refunds.merchant_id, SUM(refunds.amount) as refund_amount')
+            ->where('refunds.status', 'completed')
+            ->where('transactions.test_mode', $isTestMode)
+            ->when($from && $to, fn ($q) => $q->whereBetween('refunds.created_at', [$from, $to]))
+            ->groupBy('refunds.merchant_id');
 
         $commissionAgg = DB::table('reseller_commissions')
             ->selectRaw("
@@ -115,24 +181,39 @@ class DashboardController extends Controller
             ")
             ->orderBy('merchants.name');
 
-        $rows = $query->paginate($perPage);
-        $data = collect($rows->items())->map(function ($r) {
+        $rows = $query->paginate($perPage, ['*'], 'page', $page);
+        $data = collect($rows->items())->map(function ($r) use ($from, $to, $fxCtx, $usdRates) {
+            $mid = (int) $r->id;
+            $txQuery = Transaction::query()
+                ->where('merchant_id', $mid)
+                ->where('status', 'success')
+                ->where('test_mode', $isTestMode)
+                ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]));
+            $grossVolume = $this->displayCurrency->sumTransactionAmountsToDisplayCurrency($txQuery, $usdRates, $fxCtx);
+
+            $refundQuery = Refund::query()
+                ->where('refunds.merchant_id', $mid)
+                ->where('refunds.status', 'completed')
+                ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id')
+                ->where('transactions.test_mode', $isTestMode)
+                ->when($from && $to, fn ($q) => $q->whereBetween('refunds.created_at', [$from, $to]));
+            $refundAmount = $this->displayCurrency->sumRefundAmountsToDisplayCurrency($refundQuery, $usdRates, $fxCtx);
+
             return [
-                'merchant_id' => (int) $r->id,
+                'merchant_id' => $mid,
                 'merchant_name' => (string) $r->merchant_name,
                 'total_transactions' => (int) $r->total_transactions,
-                'gross_volume' => round((float) $r->gross_volume, 2),
-                'refund_amount' => round((float) $r->refund_amount, 2),
-                'net_volume' => round((float) $r->net_volume, 2),
+                'gross_volume' => $grossVolume,
+                'refund_amount' => $refundAmount,
+                'net_volume' => round(max(0, $grossVolume - $refundAmount), 2),
                 'commission_earned' => round((float) $r->commission_earned, 2),
                 'pending_commission' => round((float) $r->pending_commission, 2),
                 'paid_commission' => round((float) $r->paid_commission, 2),
             ];
         });
 
-        return response()->json([
-            'success' => true,
-            'summary' => $this->buildDashboardStats($reseller->id, $from, $to, $merchantId > 0 ? $merchantId : null),
+        return [
+            'summary' => $this->buildDashboardStats($reseller->id, $from, $to, $merchantId > 0 ? $merchantId : null, $fxCtx),
             'data' => $data->values()->all(),
             'pagination' => [
                 'current_page' => $rows->currentPage(),
@@ -142,7 +223,7 @@ class DashboardController extends Controller
                 'from' => $rows->firstItem(),
                 'to' => $rows->lastItem(),
             ],
-        ]);
+        ];
     }
 
     public function merchantTransactionsView(Request $request): View
@@ -170,8 +251,11 @@ class DashboardController extends Controller
         $status = trim((string) $request->get('status', ''));
         [$from, $to] = $this->resolveDateRange($request);
 
+        $isTestMode = PaymentViewMode::isTestMode();
+
         $query = Transaction::query()
             ->where('transactions.merchant_id', $merchantId)
+            ->where('transactions.test_mode', $isTestMode)
             ->leftJoin('orders', 'transactions.order_id', '=', 'orders.id')
             ->leftJoin('reseller_commissions as rc', function ($join) use ($reseller) {
                 $join->on('transactions.id', '=', 'rc.transaction_id')
@@ -238,15 +322,21 @@ class DashboardController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
         }
 
+        $isTestMode = PaymentViewMode::isTestMode();
+
         $refundByTxn = DB::table('refunds')
-            ->selectRaw('transaction_id, SUM(amount) as refund_amount')
-            ->where('status', 'completed')
-            ->groupBy('transaction_id');
+            ->join('transactions as rt', 'refunds.transaction_id', '=', 'rt.id')
+            ->selectRaw('refunds.transaction_id, SUM(refunds.amount) as refund_amount')
+            ->where('refunds.status', 'completed')
+            ->where('rt.test_mode', $isTestMode)
+            ->groupBy('refunds.transaction_id');
 
         $commissionByTxn = DB::table('reseller_commissions')
-            ->selectRaw('transaction_id, SUM(GREATEST(0, commission_amount - reversed_amount)) as commission')
-            ->where('reseller_id', $reseller->id)
-            ->groupBy('transaction_id');
+            ->join('transactions as ct', 'reseller_commissions.transaction_id', '=', 'ct.id')
+            ->selectRaw('reseller_commissions.transaction_id, SUM(GREATEST(0, reseller_commissions.commission_amount - reseller_commissions.reversed_amount)) as commission')
+            ->where('reseller_commissions.reseller_id', $reseller->id)
+            ->where('ct.test_mode', $isTestMode)
+            ->groupBy('reseller_commissions.transaction_id');
 
         $rows = DB::table('transactions')
             ->leftJoin('merchants', 'transactions.merchant_id', '=', 'merchants.id')
@@ -254,6 +344,7 @@ class DashboardController extends Controller
             ->leftJoinSub($refundByTxn, 'rf', fn ($j) => $j->on('transactions.id', '=', 'rf.transaction_id'))
             ->leftJoinSub($commissionByTxn, 'cm', fn ($j) => $j->on('transactions.id', '=', 'cm.transaction_id'))
             ->whereIn('transactions.merchant_id', $allowedMerchantIds)
+            ->where('transactions.test_mode', $isTestMode)
             ->when($merchantId > 0, fn ($q) => $q->where('transactions.merchant_id', $merchantId))
             ->when($from && $to, fn ($q) => $q->whereBetween('transactions.created_at', [$from, $to]))
             ->orderByDesc('transactions.created_at')
@@ -310,8 +401,16 @@ class DashboardController extends Controller
         return $fileLifecycleService->downloadAndDelete($relativePath, $filename, $headers);
     }
 
-    protected function buildDashboardStats(?int $resellerId, ?Carbon $from = null, ?Carbon $to = null, ?int $merchantId = null): array
-    {
+    protected function buildDashboardStats(
+        ?int $resellerId,
+        ?Carbon $from = null,
+        ?Carbon $to = null,
+        ?int $merchantId = null,
+        ?DashboardFxContext $fxCtx = null
+    ): array {
+        $fxCtx ??= new DashboardFxContext($this->displayCurrency->displayCurrencyCode());
+        $usdRates = $this->displayCurrency->getUsdBasedRates();
+
         $stats = [
             'total_merchants' => 0,
             'total_transactions' => 0,
@@ -322,6 +421,8 @@ class DashboardController extends Controller
             'net_earnings' => 0.0,
             'pending_earnings' => 0.0,
             'paid_earnings' => 0.0,
+            'display_currency' => $fxCtx->displayCurrency,
+            'fx_mode' => $fxCtx->mode,
         ];
         if (! $resellerId) {
             return $stats;
@@ -339,45 +440,42 @@ class DashboardController extends Controller
 
         $stats['total_merchants'] = (int) $merchantIds->count();
 
+        $isTestMode = PaymentViewMode::isTestMode();
+
         $successTx = Transaction::query()
             ->whereIn('merchant_id', $merchantIds)
             ->where('status', 'success')
+            ->where('test_mode', $isTestMode)
             ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]));
         $stats['total_transactions'] = (int) (clone $successTx)->count();
-        $stats['gross_volume'] = round((float) (clone $successTx)->sum('amount'), 2);
+        $stats['gross_volume'] = $this->displayCurrency->sumTransactionAmountsToDisplayCurrency(clone $successTx, $usdRates, $fxCtx);
 
         $refunds = Refund::query()
-            ->whereIn('merchant_id', $merchantIds)
-            ->where('status', 'completed')
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]));
-        $stats['total_refunds'] = round((float) (clone $refunds)->sum('amount'), 2);
+            ->whereIn('refunds.merchant_id', $merchantIds)
+            ->where('refunds.status', 'completed')
+            ->join('transactions', 'refunds.transaction_id', '=', 'transactions.id')
+            ->where('transactions.test_mode', $isTestMode)
+            ->when($from && $to, fn ($q) => $q->whereBetween('refunds.created_at', [$from, $to]));
+        $stats['total_refunds'] = $this->displayCurrency->sumRefundAmountsToDisplayCurrency(clone $refunds, $usdRates, $fxCtx);
         $stats['net_volume'] = round(max(0, $stats['gross_volume'] - $stats['total_refunds']), 2);
 
-        $gross = (float) DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->sum('commission_amount');
-        $netExpr = 'SUM(GREATEST(0, commission_amount - reversed_amount))';
-        $net = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->selectRaw($netExpr . ' as n')
+        $commissionBase = DB::table('reseller_commissions')
+            ->join('transactions', 'reseller_commissions.transaction_id', '=', 'transactions.id')
+            ->where('reseller_commissions.reseller_id', $resellerId)
+            ->where('transactions.test_mode', $isTestMode)
+            ->when($merchantId, fn ($q) => $q->where('reseller_commissions.merchant_id', $merchantId))
+            ->when($from && $to, fn ($q) => $q->whereBetween('reseller_commissions.created_at', [$from, $to]));
+
+        $gross = (float) (clone $commissionBase)->sum('reseller_commissions.commission_amount');
+        $netExpr = 'SUM(GREATEST(0, reseller_commissions.commission_amount - reseller_commissions.reversed_amount))';
+        $net = (float) ((clone $commissionBase)->selectRaw($netExpr.' as n')->value('n') ?? 0);
+        $pending = (float) ((clone $commissionBase)
+            ->whereIn('reseller_commissions.status', ['pending', 'partially_reversed'])
+            ->selectRaw($netExpr.' as n')
             ->value('n') ?? 0);
-        $pending = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->whereIn('status', ['pending', 'partially_reversed'])
-            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->selectRaw($netExpr . ' as n')
-            ->value('n') ?? 0);
-        $paid = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->where('status', 'paid')
-            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
-            ->when($from && $to, fn ($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->selectRaw($netExpr . ' as n')
+        $paid = (float) ((clone $commissionBase)
+            ->where('reseller_commissions.status', 'paid')
+            ->selectRaw($netExpr.' as n')
             ->value('n') ?? 0);
 
         $stats['gross_earnings'] = round($gross, 2);

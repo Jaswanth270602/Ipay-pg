@@ -47,7 +47,7 @@ class ResellerCommission extends Model
     /**
      * @return array{total_earnings: float, pending_earnings: float, paid_earnings: float}
      */
-    public static function netTotalsForReseller(?int $resellerId): array
+    public static function netTotalsForReseller(?int $resellerId, ?bool $testMode = null): array
     {
         if (! $resellerId) {
             return [
@@ -57,22 +57,23 @@ class ResellerCommission extends Model
             ];
         }
 
-        $net = 'SUM(GREATEST(0, commission_amount - reversed_amount))';
+        $testMode ??= \App\Support\PaymentViewMode::isTestMode();
+        $net = 'SUM(GREATEST(0, reseller_commissions.commission_amount - reseller_commissions.reversed_amount))';
 
-        $total = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
+        $base = DB::table('reseller_commissions')
+            ->join('transactions', 'reseller_commissions.transaction_id', '=', 'transactions.id')
+            ->where('reseller_commissions.reseller_id', $resellerId)
+            ->where('transactions.test_mode', $testMode);
+
+        $total = (float) ((clone $base)->selectRaw("{$net} as n")->value('n') ?? 0);
+
+        $pending = (float) ((clone $base)
+            ->whereIn('reseller_commissions.status', ['pending', 'partially_reversed'])
             ->selectRaw("{$net} as n")
             ->value('n') ?? 0);
 
-        $pending = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->whereIn('status', ['pending', 'partially_reversed'])
-            ->selectRaw("{$net} as n")
-            ->value('n') ?? 0);
-
-        $paid = (float) (DB::table('reseller_commissions')
-            ->where('reseller_id', $resellerId)
-            ->where('status', 'paid')
+        $paid = (float) ((clone $base)
+            ->where('reseller_commissions.status', 'paid')
             ->selectRaw("{$net} as n")
             ->value('n') ?? 0);
 

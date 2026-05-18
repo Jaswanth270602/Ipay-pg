@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
 use App\Models\Transaction;
+use App\Support\PaymentViewMode;
 use App\Models\SplitTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +27,10 @@ class SplitTransactionsController extends Controller
         try {
             $perPage = min($request->get('per_page', 5), 50);
             
-            $query = Transaction::with('merchant')->whereNotNull('order_id')->latest();
+            $query = Transaction::with('merchant')
+                ->whereNotNull('order_id')
+                ->where('test_mode', PaymentViewMode::isTestMode())
+                ->latest();
 
             // Date range filter
             if ($request->has('date_range') && $request->get('date_range')) {
@@ -118,7 +122,9 @@ class SplitTransactionsController extends Controller
     public function getSplitDetails(Request $request, $transactionId): JsonResponse
     {
         try {
-            $transaction = Transaction::with(['merchant', 'order'])->findOrFail($transactionId);
+            $transaction = Transaction::with(['merchant', 'order'])
+                ->where('test_mode', PaymentViewMode::isTestMode())
+                ->findOrFail($transactionId);
             
             // Check if split_transactions table exists and has data
             $splitTransactions = [];

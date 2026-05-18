@@ -134,6 +134,47 @@
         margin-bottom: 16px;
         opacity: 0.5;
     }
+
+    .dashboard-fx-loader {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.92);
+        z-index: 9998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dashboard-fx-loader-inner {
+        text-align: center;
+    }
+
+    .dashboard-fx-spinner {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 16px;
+        border: 7px solid #fecdd3;
+        border-top-color: #E10600;
+        border-right-color: #ec4899;
+        border-radius: 50%;
+        animation: dashboard-fx-spin 0.7s linear infinite;
+    }
+
+    @keyframes dashboard-fx-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .dashboard-fx-loader-text {
+        font-weight: 600;
+        color: #E10600;
+        letter-spacing: 0.02em;
+    }
+
+    .dashboard-metrics-body.is-loading {
+        opacity: 0.4;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+    }
 </style>
 @endpush
 
@@ -152,15 +193,32 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label mb-2">Select date range:</label>
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
                     <input type="date" class="form-control form-control-sm" ng-model="adc.dateRange.start" ng-change="adc.loadData()" style="max-width: 150px;">
                     <span>-</span>
                     <input type="date" class="form-control form-control-sm" ng-model="adc.dateRange.end" ng-change="adc.loadData()" style="max-width: 150px;">
+                    <select class="form-select form-select-sm" ng-model="adc.displayCurrency" ng-change="adc.loadData()" style="max-width: 100px;" title="Display currency">
+                        <option ng-repeat="c in adc.currencyOptions" ng-value="c">@{{ c }}</option>
+                    </select>
+                    <select class="form-select form-select-sm" ng-model="adc.fxMode" ng-change="adc.loadData()" style="max-width: 180px;" title="FX conversion mode">
+                        <option value="historical">Historical rate</option>
+                        <option value="live">Live current rate</option>
+                    </select>
                 </div>
+                <small class="text-muted d-block mt-1" ng-if="adc.fxMode === 'historical'">Totals use exchange rates captured at payment time.</small>
+                <small class="text-muted d-block mt-1" ng-if="adc.fxMode === 'live'">Totals use today's live exchange rates.</small>
             </div>
         </div>
     </div>
 
+    <div ng-show="adc.loading" class="dashboard-fx-loader" aria-live="polite" aria-busy="true">
+        <div class="dashboard-fx-loader-inner">
+            <div class="dashboard-fx-spinner" role="status" aria-label="Loading"></div>
+            <p class="dashboard-fx-loader-text mb-0">Updating dashboard…</p>
+        </div>
+    </div>
+
+    <div class="dashboard-metrics-body" ng-class="{'is-loading': adc.loading}">
     <!-- Stats Cards -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
@@ -213,10 +271,6 @@
         <div class="col-md-12">
             <div class="chart-card">
                 <h6>Gross Transaction Value and Transaction Count (@{{ adc.stats.days_label || 'Last 10 days' }})</h6>
-                <div ng-show="adc.loading" class="text-center py-4">
-                    <div class="spinner-violet mx-auto"></div>
-                    <p class="text-muted mt-2">Loading chart data...</p>
-                </div>
                 <div ng-hide="adc.loading">
                     <canvas id="gtvChart" ng-if="adc.charts.gtv_and_count"></canvas>
                     <div ng-if="!adc.charts.gtv_and_count" class="no-data-message">
@@ -230,9 +284,6 @@
         <div class="col-md-6">
             <div class="chart-card">
                 <h6>Payments Mode Distribution (@{{ adc.stats.days_label || 'Last 10 days' }})</h6>
-                <div ng-show="adc.loading" class="text-center py-4">
-                    <div class="spinner-violet mx-auto"></div>
-                </div>
                 <div ng-hide="adc.loading">
                     <canvas id="paymentModeChart" ng-if="adc.charts.payment_mode_distribution && adc.charts.payment_mode_distribution.length > 0"></canvas>
                     <div ng-if="!adc.charts.payment_mode_distribution || adc.charts.payment_mode_distribution.length === 0" class="no-data-message">
@@ -246,9 +297,6 @@
         <div class="col-md-6">
             <div class="chart-card">
                 <h6>Device Distribution (@{{ adc.stats.days_label || 'Last 10 days' }})</h6>
-                <div ng-show="adc.loading" class="text-center py-4">
-                    <div class="spinner-violet mx-auto"></div>
-                </div>
                 <div ng-hide="adc.loading">
                     <canvas id="deviceChart" ng-if="adc.charts.device_distribution && adc.charts.device_distribution.length > 0"></canvas>
                     <div ng-if="!adc.charts.device_distribution || adc.charts.device_distribution.length === 0" class="no-data-message">
@@ -258,6 +306,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 </div>
 @endsection
@@ -287,13 +336,18 @@
                     end: endDate.toISOString().split('T')[0]
                 };
                 
+                vm.displayCurrency = 'KES';
+                vm.fxMode = 'historical';
+                vm.currencyOptions = ['USD', 'INR', 'KES', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
+
                 vm.stats = {
                     total_gtv: 0,
                     successful_transactions: 0,
                     amount_refunded: 0,
                     chargeback_amount: 0,
                     days_label: 'Last 10 days',
-                    display_currency: 'KES'
+                    display_currency: 'KES',
+                    fx_mode: 'historical'
                 };
                 
                 vm.charts = {
@@ -309,15 +363,23 @@
 
                 vm.loadData = function() {
                     vm.loading = true;
-                    
+
                     var params = {
                         start_date: vm.dateRange.start,
-                        end_date: vm.dateRange.end
+                        end_date: vm.dateRange.end,
+                        display_currency: vm.displayCurrency,
+                        fx_mode: vm.fxMode
                     };
-                    
+
+                    $timeout(function() {
                     $http.get('/admin/dashboard/data', { params: params }).then(function(response) {
                         if (response.data && response.data.success) {
+                            if (response.data.data.fx_options && response.data.data.fx_options.supported_currencies) {
+                                vm.currencyOptions = response.data.data.fx_options.supported_currencies;
+                            }
                             vm.stats = response.data.data.stats || vm.stats;
+                            vm.displayCurrency = vm.stats.display_currency || vm.displayCurrency;
+                            vm.fxMode = vm.stats.fx_mode || vm.fxMode;
                             vm.charts = response.data.data.charts || vm.charts;
                             
                             $timeout(function() {
@@ -328,7 +390,14 @@
                     }, function(error) {
                         vm.loading = false;
                         console.error('Error loading dashboard data:', error);
+                        var msg = (error.data && error.data.message) ? error.data.message : 'Failed to load dashboard data';
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        } else {
+                            alert(msg);
+                        }
                     });
+                    }, 0);
                 };
 
                 vm.renderCharts = function() {

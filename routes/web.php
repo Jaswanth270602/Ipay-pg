@@ -315,6 +315,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('reseller.earnings.index');
         Route::get('/earnings/data', [ResellerEarningsController::class, 'getData'])
             ->name('reseller.earnings.data');
+        Route::post('/settings/switch-mode', [\App\Http\Controllers\Reseller\ViewModeController::class, 'switchMode'])
+            ->name('reseller.settings.switch-mode');
+        Route::get('/settings/mode', [\App\Http\Controllers\Reseller\ViewModeController::class, 'getMode'])
+            ->name('reseller.settings.mode');
     });
 
     // Admin routes

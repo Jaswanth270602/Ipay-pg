@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Reseller;
 
 use App\Http\Controllers\Controller;
 use App\Models\ResellerCommission;
+use App\Support\PaymentViewMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,7 +18,7 @@ class EarningsController extends Controller
             ? $reseller->merchants()->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        $totals = ResellerCommission::netTotalsForReseller($reseller?->id);
+        $totals = ResellerCommission::netTotalsForReseller($reseller?->id, PaymentViewMode::isTestMode());
 
         return view('reseller.earnings', [
             'user' => $request->user(),
@@ -40,10 +41,11 @@ class EarningsController extends Controller
         $merchantIds = $reseller->merchants()->pluck('id');
         $perPage = min((int) $request->get('per_page', 10), 50);
 
-        $query = ResellerCommission::query()
-            ->with(['merchant', 'transaction'])
-            ->where('reseller_id', $reseller->id)
-            ->latest();
+        $query = PaymentViewMode::scopeResellerCommissions(
+            ResellerCommission::query()
+                ->with(['merchant', 'transaction'])
+                ->where('reseller_id', $reseller->id)
+        )->latest();
 
         if ($merchantIds->isNotEmpty() && $request->filled('merchant_id')) {
             $mid = (int) $request->get('merchant_id');
@@ -89,7 +91,7 @@ class EarningsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data->values()->all(),
-            'totals' => ResellerCommission::netTotalsForReseller($reseller->id),
+            'totals' => ResellerCommission::netTotalsForReseller($reseller->id, PaymentViewMode::isTestMode()),
             'pagination' => [
                 'current_page' => $page,
                 'per_page' => $perPage,
