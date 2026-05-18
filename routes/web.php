@@ -242,6 +242,14 @@ Route::middleware(['auth'])->group(function () {
         // Reports
         Route::get('/reports', [ReportsController::class, 'index'])
             ->name('merchant.reports.index');
+        Route::get('/reports/transactions', [ReportsController::class, 'transactions'])
+            ->name('merchant.reports.transactions');
+        Route::get('/reports/analytics', [\App\Http\Controllers\Merchant\PaymentAnalyticsController::class, 'index'])
+            ->name('merchant.reports.analytics');
+        Route::get('/reports/analytics/data', [\App\Http\Controllers\Merchant\PaymentAnalyticsController::class, 'getData'])
+            ->name('merchant.reports.analytics.data');
+        Route::get('/reports/analytics/export', [\App\Http\Controllers\Merchant\PaymentAnalyticsController::class, 'export'])
+            ->name('merchant.reports.analytics.export');
         Route::get('/reports/data', [ReportsController::class, 'getData'])
             ->name('merchant.reports.data');
         Route::get('/reports/export', [ReportsController::class, 'export'])
@@ -547,6 +555,14 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/reports', [ReportsController::class, 'indexAdmin'])
             ->name('admin.reports.index');
+        Route::get('/reports/transactions', [ReportsController::class, 'transactionsAdmin'])
+            ->name('admin.reports.transactions');
+        Route::get('/reports/analytics', [\App\Http\Controllers\Admin\PaymentAnalyticsController::class, 'index'])
+            ->name('admin.reports.analytics');
+        Route::get('/reports/analytics/data', [\App\Http\Controllers\Admin\PaymentAnalyticsController::class, 'getData'])
+            ->name('admin.reports.analytics.data');
+        Route::get('/reports/analytics/export', [\App\Http\Controllers\Admin\PaymentAnalyticsController::class, 'export'])
+            ->name('admin.reports.analytics.export');
         Route::get('/reports/data', [ReportsController::class, 'getDataAdmin'])
             ->name('admin.reports.data');
         Route::get('/reports/export', [ReportsController::class, 'exportAdmin'])

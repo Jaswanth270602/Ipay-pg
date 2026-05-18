@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PaymentViewMode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -11,7 +12,12 @@ class ReportsController extends Controller
 {
     public function index(): View
     {
-        return view('merchant.reports.index');
+        return view('merchant.reports.hub');
+    }
+
+    public function transactions(): View
+    {
+        return view('merchant.reports.transactions');
     }
 
     public function getData(Request $request): \Illuminate\Http\JsonResponse
@@ -21,7 +27,7 @@ class ReportsController extends Controller
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
 
-        $query = $merchant->transactions();
+        $query = $merchant->transactions()->where('test_mode', (bool) $merchant->test_mode);
 
         if ($fromDate) {
             $query->whereDate('created_at', '>=', $fromDate);
@@ -54,6 +60,7 @@ class ReportsController extends Controller
 
         // Generate CSV
         $transactions = $merchant->transactions()
+            ->where('test_mode', (bool) $merchant->test_mode)
             ->when($request->from_date, fn($q) => $q->whereDate('created_at', '>=', $request->from_date))
             ->when($request->to_date, fn($q) => $q->whereDate('created_at', '<=', $request->to_date))
             ->get();
@@ -67,7 +74,12 @@ class ReportsController extends Controller
 
     public function indexAdmin(): View
     {
-        return view('admin.reports.index');
+        return view('admin.reports.hub');
+    }
+
+    public function transactionsAdmin(): View
+    {
+        return view('admin.reports.transactions');
     }
 
     public function exportAdmin(Request $request): StreamedResponse
@@ -115,9 +127,7 @@ class ReportsController extends Controller
                 abort(400, 'From date must be before or equal to To date');
             }
 
-            // Get admin's viewing mode from session (EXACT same as getDataAdmin)
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
 
             // Use EXACT same query logic as getDataAdmin
             $query = \App\Models\Transaction::with(['merchant', 'order']);
@@ -156,7 +166,7 @@ class ReportsController extends Controller
             \Log::info('CSV Export Query', [
                 'total_count' => $totalCount,
                 'test_mode' => $isTestMode,
-                'admin_view_mode' => $adminViewMode,
+                'test_mode' => $isTestMode,
                 'sql' => $query->toSql(),
                 'bindings' => $query->getBindings(),
             ]);
@@ -373,9 +383,7 @@ class ReportsController extends Controller
                 }
             }
 
-            // Get admin's viewing mode from session (same as other admin controllers)
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
 
             $query = \App\Models\Transaction::with(['merchant', 'order']);
 

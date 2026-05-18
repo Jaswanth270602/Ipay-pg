@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
+use App\Support\PaymentViewMode;
 use App\Models\Merchant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -67,20 +68,19 @@ class SalesReportController extends Controller
     public function getDateAndMerchantData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    merchants.business_name as merchant_name,
+            $query = Transaction::selectRaw("
+                    COALESCE(NULLIF(merchants.company_name, ''), merchants.name) as merchant_name,
                     DATE(transactions.created_at) as transaction_date,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->join('merchants', 'transactions.merchant_id', '=', 'merchants.id')
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
-                ->groupBy('merchants.business_name', 'transaction_date');
+                ->groupBy('merchants.id', 'merchant_name', 'transaction_date');
 
             // Date range filter
             if ($request->filled('date_range')) {
@@ -130,16 +130,15 @@ class SalesReportController extends Controller
     public function getDateAndAcquirerData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    COALESCE(transactions.gateway, "N/A") as transaction_provider,
+            $query = Transaction::selectRaw("
+                    COALESCE(transactions.gateway, 'N/A') as transaction_provider,
                     DATE(transactions.created_at) as transaction_date,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
                 ->groupBy('transaction_provider', 'transaction_date');
@@ -191,17 +190,16 @@ class SalesReportController extends Controller
     public function getDateAndTidData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    COALESCE(transactions.gateway, "N/A") as transaction_provider,
-                    COALESCE(transactions.gateway_txn_id, "N/A") as mid_name,
+            $query = Transaction::selectRaw("
+                    COALESCE(transactions.gateway, 'N/A') as transaction_provider,
+                    COALESCE(transactions.gateway_txn_id, 'N/A') as mid_name,
                     DATE(transactions.created_at) as transaction_date,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
                 ->groupBy('transaction_provider', 'mid_name', 'transaction_date');
@@ -256,20 +254,19 @@ class SalesReportController extends Controller
     public function getMonthAndMerchantData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    merchants.business_name as merchant_name,
-                    DATE_FORMAT(transactions.created_at, "%Y-%m") as transaction_month,
+            $query = Transaction::selectRaw("
+                    COALESCE(NULLIF(merchants.company_name, ''), merchants.name) as merchant_name,
+                    DATE_FORMAT(transactions.created_at, '%Y-%m') as transaction_month,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->join('merchants', 'transactions.merchant_id', '=', 'merchants.id')
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
-                ->groupBy('merchants.business_name', 'transaction_month');
+                ->groupBy('merchants.id', 'merchant_name', 'transaction_month');
 
             // Date range filter
             if ($request->filled('date_range')) {
@@ -318,16 +315,15 @@ class SalesReportController extends Controller
     public function getMonthAndAcquirerData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    COALESCE(transactions.gateway, "N/A") as transaction_provider,
-                    DATE_FORMAT(transactions.created_at, "%Y-%m") as transaction_month,
+            $query = Transaction::selectRaw("
+                    COALESCE(transactions.gateway, 'N/A') as transaction_provider,
+                    DATE_FORMAT(transactions.created_at, '%Y-%m') as transaction_month,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
                 ->groupBy('transaction_provider', 'transaction_month');
@@ -379,17 +375,16 @@ class SalesReportController extends Controller
     public function getMonthAndTidData(Request $request): JsonResponse
     {
         try {
-            $adminViewMode = session('admin_view_mode', 'test');
-            $isTestMode = $adminViewMode === 'test';
+            $isTestMode = PaymentViewMode::isTestMode();
             $perPage = min($request->integer('per_page', 5), 50);
 
-            $query = Transaction::selectRaw('
-                    COALESCE(transactions.gateway, "N/A") as transaction_provider,
-                    COALESCE(transactions.gateway_txn_id, "N/A") as mid_name,
-                    DATE_FORMAT(transactions.created_at, "%Y-%m") as transaction_month,
+            $query = Transaction::selectRaw("
+                    COALESCE(transactions.gateway, 'N/A') as transaction_provider,
+                    COALESCE(transactions.gateway_txn_id, 'N/A') as mid_name,
+                    DATE_FORMAT(transactions.created_at, '%Y-%m') as transaction_month,
                     COUNT(transactions.id) as transaction_count,
                     COALESCE(SUM(transactions.amount), 0) as transaction_total_amount
-                ')
+                ")
                 ->where('transactions.test_mode', $isTestMode)
                 ->where('transactions.status', 'success')
                 ->groupBy('transaction_provider', 'mid_name', 'transaction_month');

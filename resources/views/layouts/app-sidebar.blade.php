@@ -1193,9 +1193,13 @@
             <i class="bi bi-chevron-down ms-auto" style="font-size: 12px;"></i>
         </div>
         <div class="sidebar-submenu" style="display: {{ request()->routeIs('admin.reports.*') ? 'block' : 'none' }};">
-            <a href="{{ route('admin.reports.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.reports.index') && !request()->routeIs('admin.reports.gst-invoices.*') && !request()->routeIs('admin.reports.success-rate.*') && !request()->routeIs('admin.reports.profitability.*') && !request()->routeIs('admin.reports.sales.*') && !request()->routeIs('admin.reports.datatable-exports.*') && !request()->routeIs('admin.reports.miscellaneous.*') ? 'active' : '' }}" style="padding-left: 50px;">
+            <a href="{{ route('admin.reports.index') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.reports.index') && !request()->routeIs('admin.reports.gst-invoices.*') && !request()->routeIs('admin.reports.success-rate.*') && !request()->routeIs('admin.reports.profitability.*') && !request()->routeIs('admin.reports.sales.*') && !request()->routeIs('admin.reports.datatable-exports.*') && !request()->routeIs('admin.reports.miscellaneous.*') && !request()->routeIs('admin.reports.analytics*') && !request()->routeIs('admin.reports.transactions') ? 'active' : '' }}" style="padding-left: 50px;">
                 <i class="bi bi-bar-chart"></i>
-                <span>Reports</span>
+                <span>Reports home</span>
+            </a>
+            <a href="{{ route('admin.reports.analytics') }}" class="sidebar-menu-item sidebar-submenu-item {{ request()->routeIs('admin.reports.analytics*') ? 'active' : '' }}" style="padding-left: 50px;">
+                <i class="bi bi-graph-up"></i>
+                <span>Analytics</span>
             </a>
             <!-- VAT Invoices Submenu -->
             <div class="sidebar-menu-item sidebar-menu-dropdown {{ request()->routeIs('admin.reports.gst-invoices.*') ? 'active' : '' }}" onclick="event.stopPropagation(); toggleDropdown(this);" style="padding-left: 50px;">
