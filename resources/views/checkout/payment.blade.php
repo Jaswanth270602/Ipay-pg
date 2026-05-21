@@ -1097,11 +1097,6 @@
                 <!-- NET BANKING FORM -->
                 <div class="payment-form" id="netbankingForm">
                     <div class="mb-3">
-                        @if(!empty($checkoutInternalSimulation))
-                        <div class="alert alert-info py-2 small mb-3" role="status">
-                            <strong>Test mode.</strong> Select your bank, then <strong>Pay</strong> opens the <strong>simulation page</strong>.
-                        </div>
-                        @endif
                         <label class="form-label">Select Your Bank <span class="text-danger">*</span></label>
                         <select class="form-select" id="bankCode">
                             <option value="">Choose your bank</option>
@@ -1121,11 +1116,6 @@
                 <!-- WALLET FORM -->
                 <div class="payment-form" id="walletForm">
                     <div class="mb-3">
-                        @if(!empty($checkoutInternalSimulation))
-                        <div class="alert alert-info py-2 small mb-3" role="status">
-                            <strong>Test mode.</strong> Choose a wallet, then <strong>Pay</strong> opens the <strong>simulation page</strong> to confirm success or failure.
-                        </div>
-                        @endif
                         <label class="form-label">Select Wallet <span class="text-danger">*</span></label>
                         <select class="form-select" id="walletProvider">
                             <option value="">Choose wallet</option>
@@ -1133,9 +1123,6 @@
                             <option value="{{ $walletProvider['code'] }}">{{ $walletProvider['label'] }}</option>
                             @endforeach
                         </select>
-                        @if(!empty($checkoutInternalSimulation))
-                        <p class="small text-muted mt-2 mb-0">Test amounts: <strong>101</strong> success, <strong>102</strong> failed, <strong>103</strong> pending.</p>
-                        @endif
                     </div>
                 </div>
 
