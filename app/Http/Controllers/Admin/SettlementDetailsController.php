@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Support\PaymentViewMode;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 
 class SettlementDetailsController extends Controller
@@ -152,6 +153,33 @@ class SettlementDetailsController extends Controller
         }
         if (!empty($payload['settlement_ifsc_code']) && is_string($payload['settlement_ifsc_code'])) {
             $payload['settlement_ifsc_code'] = strtoupper($payload['settlement_ifsc_code']);
+        }
+
+        // Angular date inputs stringify as ISO 8601 (e.g. 2026-05-19T00:00:00.000Z). Empty strings must stay null-ish for DATE columns.
+        foreach (['bank_settlement_date', 'earliest_priority_settlement_date', 'latest_priority_settlement_date'] as $dateKey) {
+            if (! array_key_exists($dateKey, $payload)) {
+                continue;
+            }
+            if ($payload[$dateKey] === '' || $payload[$dateKey] === null) {
+                $payload[$dateKey] = null;
+
+                continue;
+            }
+            if ($payload[$dateKey] instanceof Carbon) {
+                continue;
+            }
+            try {
+                $payload[$dateKey] = Carbon::parse($payload[$dateKey])->toDateString();
+            } catch (\Throwable) {
+                // Leave as-is so validator catches invalid dates.
+            }
+        }
+        if (array_key_exists('transaction_date', $payload) && $payload['transaction_date'] !== '' && $payload['transaction_date'] !== null) {
+            try {
+                $payload['transaction_date'] = Carbon::parse($payload['transaction_date'])->format('Y-m-d H:i:s');
+            } catch (\Throwable) {
+                // Let validation handle bad values.
+            }
         }
 
         $validator = Validator::make($payload, [

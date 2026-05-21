@@ -33,6 +33,17 @@
                     insufficient_evidence_amount: 0
                 };
                 vm.loading = false;
+                vm.creating = false;
+                vm.form = {
+                    merchant_id: '',
+                    transaction_id: '',
+                    order_id: '',
+                    reason: '',
+                    amount: '',
+                    currency: 'INR',
+                    card_network: '',
+                    internal_notes: ''
+                };
                 vm.filters = {
                     status: 'action_required',
                     date_range: '',
@@ -161,6 +172,49 @@
                     if (vm.activeTab === 'action_required') {
                         vm.loadSummary();
                     }
+                };
+
+                vm.createDispute = function() {
+                    if (!vm.form.merchant_id || !vm.form.reason || !vm.form.amount || vm.form.amount <= 0) {
+                        alert('Please fill merchant, reason, and amount.');
+                        return;
+                    }
+
+                    vm.creating = true;
+                    $http.post('/admin/disputes', vm.form, {
+                        headers: { 'X-CSRF-TOKEN': csrf }
+                    }).then(function(response) {
+                        vm.creating = false;
+                        if (response.data && response.data.success) {
+                            vm.form = {
+                                merchant_id: '',
+                                transaction_id: '',
+                                order_id: '',
+                                reason: '',
+                                amount: '',
+                                currency: 'INR',
+                                card_network: '',
+                                internal_notes: ''
+                            };
+                            var modalEl = document.getElementById('adminNewDisputeModal');
+                            var modal = bootstrap.Modal.getInstance(modalEl);
+                            if (modal) modal.hide();
+                            vm.loadDisputes();
+                            vm.loadSummary();
+                            alert('Dispute created successfully.');
+                        } else {
+                            alert(response.data.message || 'Failed to create dispute.');
+                        }
+                    }, function(error) {
+                        vm.creating = false;
+                        var msg = 'Failed to create dispute';
+                        if (error.data && error.data.message) {
+                            msg = error.data.message;
+                        } else if (error.data && error.data.errors) {
+                            msg = Object.values(error.data.errors).flat().join('\n');
+                        }
+                        alert(msg);
+                    });
                 };
 
                 // Export CSV

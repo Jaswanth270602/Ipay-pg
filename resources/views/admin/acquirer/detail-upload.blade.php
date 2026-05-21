@@ -4,7 +4,7 @@
 @section('page-title', 'Acquirer Accounts Detail Upload')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AcquirerAccountUploadController as aauc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AcquirerAccountUploadController as aauc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Acquirer Details'],

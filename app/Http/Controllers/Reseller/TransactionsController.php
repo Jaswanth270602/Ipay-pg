@@ -16,7 +16,7 @@ class TransactionsController extends Controller
     {
         $reseller = $request->user()->reseller;
         $merchantOptions = $reseller
-            ? $reseller->merchants()->orderBy('name')->get(['id', 'name'])
+            ? $reseller->assignedMerchants()->get(['id', 'name'])
             : collect();
 
         return view('reseller.transactions', [
@@ -36,7 +36,7 @@ class TransactionsController extends Controller
             ], 403);
         }
 
-        $merchantIds = $reseller->merchants()->pluck('id');
+        $merchantIds = $reseller->assignedMerchantIds();
         if ($merchantIds->isEmpty()) {
             return response()->json([
                 'success' => true,

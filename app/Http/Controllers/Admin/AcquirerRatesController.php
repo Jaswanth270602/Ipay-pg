@@ -31,50 +31,58 @@ class AcquirerRatesController extends Controller
     public function getData(Request $request): JsonResponse
     {
         try {
-            $perPage = min($request->get('per_page', 5), 100);
-            
-            $query = AcquirerRate::query()->with('acquirerAccount');
+            $perPage = max(1, min((int) $request->input('per_page', 5), 100));
+            $page = max(1, (int) $request->input('page', 1));
 
-            // Filters
-            if ($request->has('payment_mode') && $request->get('payment_mode') !== 'all') {
-                $query->where('payment_mode', $request->get('payment_mode'));
+            $query = AcquirerRate::query();
+
+            // Filters (filled() avoids empty-string query params matching everything oddly)
+            if ($request->filled('payment_mode') && $request->input('payment_mode') !== 'all') {
+                $query->where('payment_mode', $request->input('payment_mode'));
             }
 
-            if ($request->has('bank_code') && $request->get('bank_code')) {
-                $query->where('bank_code', 'like', "%{$request->get('bank_code')}%");
+            if ($request->filled('bank_code')) {
+                $searchBank = $request->input('bank_code');
+                $query->where('bank_code', 'like', '%' . $searchBank . '%');
             }
 
-            if ($request->has('acquirer_name') && $request->get('acquirer_name') !== 'all') {
-                $query->where('acquirer_name', $request->get('acquirer_name'));
+            if ($request->filled('acquirer_name') && $request->input('acquirer_name') !== 'all') {
+                $query->where('acquirer_name', $request->input('acquirer_name'));
             }
 
-            if ($request->has('sector') && $request->get('sector') !== 'all') {
-                $query->where('sector', $request->get('sector'));
+            if ($request->filled('sector') && $request->input('sector') !== 'all') {
+                $query->where('sector', $request->input('sector'));
             }
 
             // Search
-            if ($request->has('search') && $request->get('search')) {
-                $search = $request->get('search');
-                $query->where(function($q) use ($search) {
-                    $q->where('account_id', 'like', "%{$search}%")
-                      ->orWhere('account_description', 'like', "%{$search}%")
-                      ->orWhere('bank_code', 'like', "%{$search}%")
-                      ->orWhere('bank_description', 'like', "%{$search}%");
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('account_id', 'like', '%' . $search . '%')
+                      ->orWhere('account_description', 'like', '%' . $search . '%')
+                      ->orWhere('bank_code', 'like', '%' . $search . '%')
+                      ->orWhere('bank_description', 'like', '%' . $search . '%');
                 });
             }
 
             // Sorting
             $sortBy = $request->get('sort_by', 'id');
-            $sortDirection = $request->get('sort_direction', 'desc');
-            if (in_array($sortBy, ['id', 'payment_mode', 'bank_code', 'acquirer_name', 'account_id', 'sector', 'settlement_time_frame', 'created_at'])) {
+            $sortDirection = strtolower((string) $request->get('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+            if (in_array($sortBy, ['id', 'payment_mode', 'bank_code', 'acquirer_name', 'account_id', 'sector', 'settlement_time_frame', 'created_at'], true)) {
                 $query->orderBy($sortBy, $sortDirection);
             } else {
                 $query->latest();
             }
 
-            $rates = $query->paginate($perPage);
+            /** @var \Illuminate\Pagination\LengthAwarePaginator $rates */
+            $rates = $query->paginate($perPage, ['*'], 'page', $page);
 
-            $data = $rates->items()->map(function($rate) {
+            // Stale UI can request page > last_page — show the last page instead of an empty slice
+            if ($rates->lastPage() > 0 && $rates->currentPage() > $rates->lastPage()) {
+                $rates = $query->paginate($perPage, ['*'], 'page', $rates->lastPage());
+            }
+
+            $data = collect($rates->items())->map(function ($rate) {
                 return [
                     'id' => $rate->id,
                     'payment_mode' => $rate->payment_mode,
@@ -97,7 +105,7 @@ class AcquirerRatesController extends Controller
                     'part_paid_id' => $rate->part_paid_id,
                     'acquirer_account_id' => $rate->acquirer_account_id,
                 ];
-            });
+            })->values()->all();
 
             return response()->json([
                 'success' => true,
@@ -106,7 +114,7 @@ class AcquirerRatesController extends Controller
                     'current_page' => $rates->currentPage(),
                     'per_page' => $rates->perPage(),
                     'total' => $rates->total(),
-                    'last_page' => $rates->lastPage(),
+                    'last_page' => max(1, $rates->lastPage()),
                 ],
             ]);
         } catch (\Exception $e) {

@@ -4,7 +4,7 @@
 @section('page-title','Settlements')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="SettlementsController as sc">
+<div ng-cloak ng-app="ipayApp" ng-controller="SettlementsController as sc">
     <div class="stat-card mb-3">
         <div class="row g-3">
             <div class="col-md-6 col-lg-3">

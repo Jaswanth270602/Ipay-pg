@@ -4,7 +4,7 @@
 @section('page-title', 'All Orders')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminOrdersController as aoc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminOrdersController as aoc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('admin.dashboard')],
         ['label'=>'All Orders']

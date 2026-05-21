@@ -4,7 +4,7 @@
 @section('page-title', 'Merchant Vendors')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminMerchantVendorsController as mvc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminMerchantVendorsController as mvc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Merchants'],
@@ -592,26 +592,30 @@
                 vm.deleteSelected = function () {
                     var ids = vm.getSelectedIds();
                     if (!ids.length) return;
-                    if (!confirm('Are you sure you want to delete selected vendors?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to delete selected vendors?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete vendors'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    // Delete one by one to keep it simple
-                    var requests = ids.map(function (id) {
-                        return $http.delete("{{ url('admin/merchant-vendors') }}/" + id, {
-                            headers: { 'X-CSRF-TOKEN': csrf }
+                        // Delete one by one to keep it simple
+                        var requests = ids.map(function (id) {
+                            return $http.delete("{{ url('admin/merchant-vendors') }}/" + id, {
+                                headers: { 'X-CSRF-TOKEN': csrf }
+                            });
                         });
+
+                        Promise.all(requests.map(function (p) { return p.then(function () {}, function () {}); }))
+                            .then(function () {
+                                if (typeof showToast === 'function') {
+                                    showToast('Selected vendors deleted successfully', 'success');
+                                } else {
+                                    alert('Selected vendors deleted successfully');
+                                }
+                                vm.loadVendors();
+                            });
                     });
-
-                    Promise.all(requests.map(function (p) { return p.then(function () {}, function () {}); }))
-                        .then(function () {
-                            if (typeof showToast === 'function') {
-                                showToast('Selected vendors deleted successfully', 'success');
-                            } else {
-                                alert('Selected vendors deleted successfully');
-                            }
-                            vm.loadVendors();
-                        });
                 };
 
                 vm.changeStatusForSelected = function (status) {

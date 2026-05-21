@@ -151,12 +151,25 @@
 
                 // Load rates
                 vm.loadRates = function(page) {
-                    if (page) vm.pagination.current_page = page;
+                    if (page) {
+                        vm.pagination.current_page = page;
+                    }
                     vm.loading = true;
-                    
+
+                    var perPage = parseInt(vm.pagination.per_page, 10);
+                    if (!perPage || perPage < 1) {
+                        perPage = 5;
+                    }
+                    var currentPage = parseInt(vm.pagination.current_page, 10);
+                    if (!currentPage || currentPage < 1) {
+                        currentPage = 1;
+                    }
+                    vm.pagination.per_page = perPage;
+                    vm.pagination.current_page = currentPage;
+
                     var params = {
-                        page: vm.pagination.current_page,
-                        per_page: vm.pagination.per_page,
+                        page: currentPage,
+                        per_page: perPage,
                         sort_by: vm.sortColumn,
                         sort_direction: vm.sortDirection
                     };
@@ -189,14 +202,31 @@
                         params: params,
                         headers: { 'X-CSRF-TOKEN': csrf }
                     }).then(function(response) {
-                        if (response.data.success) {
-                            vm.rates = response.data.data;
-                            vm.pagination = response.data.pagination;
+                        if (response.data && response.data.success) {
+                            var rows = response.data.data;
+                            vm.rates = angular.isArray(rows) ? rows : (rows ? Object.values(rows) : []);
+                            vm.pagination = angular.extend({}, vm.pagination, response.data.pagination);
+                            // Stale page index: rows exist in DB but this page is empty
+                            if (vm.pagination.total > 0 && vm.rates.length === 0 && vm.pagination.current_page > 1) {
+                                vm.loadRates(1);
+                                return;
+                            }
+                        } else {
+                            vm.rates = [];
+                            var loadErr = (response.data && response.data.message) ? response.data.message : 'Failed to load acquirer rates';
+                            if (typeof showToast === 'function') {
+                                showToast(loadErr, 'error');
+                            }
                         }
                         vm.loading = false;
                     }).catch(function(error) {
                         console.error('Error loading rates:', error);
                         vm.loading = false;
+                        vm.rates = [];
+                        var msg = (error.data && error.data.message) ? error.data.message : 'Failed to load acquirer rates';
+                        if (typeof showToast === 'function') {
+                            showToast(msg, 'error');
+                        }
                     });
                 };
 
@@ -227,7 +257,8 @@
                         filter_max_transaction_charge: '',
                         filter_part_paid_id: ''
                     };
-                    vm.loadRates();
+                    vm.pagination.current_page = 1;
+                    vm.loadRates(1);
                 };
 
                 // Apply filters
@@ -369,7 +400,7 @@
                             }
                             var modal = bootstrap.Modal.getInstance(document.getElementById('acquirerRateModal'));
                             modal.hide();
-                            vm.loadRates();
+                            vm.loadRates(1);
                         } else {
                             var errorMsg = 'Error: ' + (response.data.message || 'Failed to save rate');
                             if (typeof showToast === 'function') {
@@ -400,11 +431,16 @@
                 // Delete rate
                 vm.deleteRate = function() {
                     if (!vm.selectedRate) return;
-                    if (!confirm('Are you sure you want to delete this acquirer rate?')) return;
+                    ipayConfirm('Are you sure you want to delete this acquirer rate?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete acquirer rate'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete('/admin/acquirer-rates/' + vm.selectedRate.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
+                        $http.delete('/admin/acquirer-rates/' + vm.selectedRate.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
                         if (response.data.success) {
                             if (typeof showToast === 'function') {
                                 showToast(response.data.message, 'success');
@@ -412,7 +448,8 @@
                                 alert(response.data.message);
                             }
                             vm.selectedRate = null;
-                            vm.loadRates();
+                            vm.pagination.current_page = 1;
+                            vm.loadRates(1);
                         } else {
                             var errorMsg = 'Error: ' + (response.data.message || 'Failed to delete rate');
                             if (typeof showToast === 'function') {
@@ -429,6 +466,7 @@
                             alert('Failed to delete rate');
                         }
                     });
+                    });
                 };
 
                 // Duplicate rate
@@ -444,7 +482,7 @@
                             } else {
                                 alert(response.data.message);
                             }
-                            vm.loadRates();
+                            vm.loadRates(1);
                         } else {
                             var errorMsg = 'Error: ' + (response.data.message || 'Failed to duplicate rate');
                             if (typeof showToast === 'function') {

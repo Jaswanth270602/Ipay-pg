@@ -4,7 +4,8 @@
 @section('page-title', 'Sales Date and Merchant Report')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="SalesDateAndMerchantController as sr">
+@include('reports.partials.sales-report-styles')
+<div ng-cloak class="sales-report-page" ng-app="ipayApp" ng-controller="SalesDateAndMerchantController as sr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']
@@ -90,34 +91,34 @@
         </div>
 
         <div ng-hide="sr.loading">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive rounded-3 border shadow-sm sales-report-table-wrap">
+                <table class="table table-hover align-middle sales-report-table mb-0">
                     <thead>
                         <tr>
                             <th ng-show="sr.visibleColumns.merchant_name">
-                                <i class="bi bi-diamond"></i> Merchant Name
+Merchant Name
                             </th>
                             <th ng-show="sr.visibleColumns.transaction_date">
-                                <i class="bi bi-diamond"></i> Transaction Date
+Transaction Date
                             </th>
-                            <th ng-show="sr.visibleColumns.transaction_count">
-                                <i class="bi bi-diamond"></i> Transaction Count
+                            <th class="text-end" ng-show="sr.visibleColumns.transaction_count">
+Transaction Count
                             </th>
-                            <th ng-show="sr.visibleColumns.transaction_total_amount">
-                                <i class="bi bi-diamond"></i> Transaction Total Amount
+                            <th class="text-end" ng-show="sr.visibleColumns.transaction_total_amount">
+Transaction Total Amount
                             </th>
                         </tr>
-                        <tr>
+                        <tr class="filters-row">
                             <th ng-show="sr.visibleColumns.merchant_name">
                                 <input type="text" class="form-control form-control-sm" ng-model="sr.tableFilters.merchant_name" ng-change="sr.applyTableFilters()" placeholder="Merchant Name">
                             </th>
                             <th ng-show="sr.visibleColumns.transaction_date">
                                 <input type="text" class="form-control form-control-sm" ng-model="sr.tableFilters.transaction_date" ng-change="sr.applyTableFilters()" placeholder="Transaction Date">
                             </th>
-                            <th ng-show="sr.visibleColumns.transaction_count">
+                            <th class="text-end" ng-show="sr.visibleColumns.transaction_count">
                                 <input type="text" class="form-control form-control-sm" ng-model="sr.tableFilters.transaction_count" ng-change="sr.applyTableFilters()" placeholder="Transaction Count">
                             </th>
-                            <th ng-show="sr.visibleColumns.transaction_total_amount">
+                            <th class="text-end" ng-show="sr.visibleColumns.transaction_total_amount">
                                 <input type="text" class="form-control form-control-sm" ng-model="sr.tableFilters.transaction_total_amount" ng-change="sr.applyTableFilters()" placeholder="Transaction Total Amount">
                             </th>
                         </tr>
@@ -129,8 +130,8 @@
                         <tr ng-repeat="item in sr.data track by $index">
                             <td ng-show="sr.visibleColumns.merchant_name">@{{ item.merchant_name || 'N/A' }}</td>
                             <td ng-show="sr.visibleColumns.transaction_date">@{{ item.transaction_date || 'N/A' }}</td>
-                            <td ng-show="sr.visibleColumns.transaction_count">@{{ item.transaction_count || 0 }}</td>
-                            <td ng-show="sr.visibleColumns.transaction_total_amount">@{{ item.transaction_total_amount || '0.00' }}</td>
+                            <td class="text-end" ng-show="sr.visibleColumns.transaction_count">@{{ item.transaction_count || 0 }}</td>
+                            <td class="text-end" ng-show="sr.visibleColumns.transaction_total_amount">@{{ item.transaction_total_amount || '0.00' }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -138,10 +139,13 @@
 
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
-                <div>
-                    Showing @{{ (sr.pagination.current_page - 1) * sr.pagination.per_page + 1 }}
-                    to @{{ Math.min(sr.pagination.current_page * sr.pagination.per_page, sr.pagination.total) }}
-                    of @{{ sr.pagination.total }} entries
+                <div class="text-muted small">
+                    <span ng-if="sr.pagination.total > 0">
+                        Showing @{{ ((sr.pagination.current_page - 1) * (+sr.pagination.per_page)) + 1 }}
+                        to @{{ Math.min(sr.pagination.current_page * (+sr.pagination.per_page), sr.pagination.total) }}
+                        of @{{ sr.pagination.total }} entries
+                    </span>
+                    <span ng-if="sr.pagination.total === 0">Showing 0 entries</span>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary"

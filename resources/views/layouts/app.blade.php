@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
     @stack('styles')
+    <style>
+        /* Angular: hide templating until bootstrap (minimal layout pages) */
+        [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak { display: none !important; }
+    </style>
 </head>
 <body>
     @auth

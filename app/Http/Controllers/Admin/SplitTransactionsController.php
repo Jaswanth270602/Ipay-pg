@@ -86,7 +86,7 @@ class SplitTransactionsController extends Controller
                 
                 return [
                     'id' => $transaction->id,
-                    'transaction_date' => $transaction->created_at->format('d/m/Y H:i:s'),
+                    'transaction_date' => $transaction->created_at->format('d-m-Y H:i:s'),
                     'merchant_id' => $transaction->merchant_id,
                     'merchant_name' => $merchant->name ?? '-',
                     'msac_code' => $msacCode,
@@ -199,7 +199,7 @@ class SplitTransactionsController extends Controller
                     'order_id' => $transaction->order_id,
                     'amount' => '₹' . number_format($transaction->amount, 2),
                     'merchant_name' => $transaction->merchant->name ?? '-',
-                    'created_at' => $transaction->created_at->format('d/m/Y H:i:s'),
+                    'created_at' => $transaction->created_at->format('d-m-Y H:i:s'),
                 ],
             ]);
         } catch (\Exception $e) {

@@ -78,7 +78,7 @@
         .risk-kpis .stat-value { font-size: 26px; }
     }
 </style>
-<div ng-app="ipayApp" ng-controller="AdminRiskController as arc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminRiskController as arc">
     <!-- Stats Cards -->
     <div class="row g-4 mb-4 risk-kpis">
         <div class="col-xl-2 col-lg-4 col-md-6">

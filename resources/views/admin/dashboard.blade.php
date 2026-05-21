@@ -179,7 +179,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminDashboardController as adc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminDashboardController as adc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard']
     ]" />

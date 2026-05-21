@@ -71,13 +71,17 @@ class PaymentAnalyticsController extends Controller
         }
 
         $reportType = (string) $request->get('report_type', PaymentAnalyticsReportService::REPORT_TRANSACTION_SUMMARY);
-        $payload = $this->reports->build(
-            $reportType,
-            (bool) $merchant->test_mode,
-            (int) $merchant->id,
-            $request->get('from_date'),
-            $request->get('to_date')
-        );
+        try {
+            $payload = $this->reports->build(
+                $reportType,
+                (bool) $merchant->test_mode,
+                (int) $merchant->id,
+                $request->get('from_date'),
+                $request->get('to_date')
+            );
+        } catch (\Throwable $e) {
+            abort(400, 'Invalid date range or report: ' . $e->getMessage());
+        }
 
         $label = str_replace(' ', '_', PaymentAnalyticsReportService::reportLabels()[$reportType] ?? $reportType);
         $filename = 'merchant_' . $label . '_' . now()->format('Y-m-d') . '.csv';

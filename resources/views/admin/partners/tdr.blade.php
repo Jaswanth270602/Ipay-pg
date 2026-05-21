@@ -4,7 +4,7 @@
 @section('page-title', 'Partner TDR Management')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPartnerTDRController as tdr">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPartnerTDRController as tdr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pg Partners','url'=>route('admin.partners.index')],
@@ -673,29 +673,35 @@
                 };
 
                 vm.deleteTDRItem = function (item) {
-                    if (!confirm('Are you sure you want to delete this TDR?')) return;
+                    ipayConfirm('Are you sure you want to delete this TDR?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete TDR'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete("{{ url('admin/partners/tdr') }}/" + item.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'TDR deleted successfully', 'success');
-                            } else {
-                                alert(response.data.message || 'TDR deleted successfully');
+                        $http.delete("{{ url('admin/partners/tdr') }}/" + item.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'TDR deleted successfully', 'success');
+                                } else {
+                                    alert(response.data.message || 'TDR deleted successfully');
+                                }
+                                vm.loadTDRData();
                             }
-                            vm.loadTDRData();
-                        }
-                    }, function (error) {
-                        var msg = 'Failed to delete TDR';
-                        if (error.data && error.data.message) {
-                            msg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(msg, 'error');
-                        } else {
-                            alert(msg);
-                        }
+                        }, function (error) {
+                            var msg = 'Failed to delete TDR';
+                            if (error.data && error.data.message) {
+                                msg = error.data.message;
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'error');
+                            } else {
+                                alert(msg);
+                            }
+                        });
                     });
                 };
 
@@ -707,19 +713,25 @@
 
                 vm.duplicateTDR = function () {
                     if (!vm.selectedTDR) return;
-                    if (!confirm('Are you sure you want to duplicate this TDR?')) return;
+                    ipayConfirm('Are you sure you want to duplicate this TDR?', 'warning', {
+                        okText: 'Duplicate',
+                        cancelText: 'Cancel',
+                        title: 'Duplicate TDR'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.post("{{ url('admin/partners/tdr') }}/" + vm.selectedTDR.id + "/duplicate", {}, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'TDR duplicated successfully', 'success');
-                            } else {
-                                alert(response.data.message || 'TDR duplicated successfully');
+                        $http.post("{{ url('admin/partners/tdr') }}/" + vm.selectedTDR.id + "/duplicate", {}, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'TDR duplicated successfully', 'success');
+                                } else {
+                                    alert(response.data.message || 'TDR duplicated successfully');
+                                }
+                                vm.loadTDRData();
                             }
-                            vm.loadTDRData();
-                        }
+                        });
                     });
                 };
 

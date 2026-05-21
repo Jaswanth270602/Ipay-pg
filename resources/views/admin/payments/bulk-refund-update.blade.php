@@ -94,7 +94,7 @@
         padding: 4px 7px;
     }
 </style>
-<div class="bulk-refund-page" ng-app="ipayApp" ng-controller="AdminBulkRefundUpdateController as abruc">
+<div ng-cloak class="bulk-refund-page" ng-app="ipayApp" ng-controller="AdminBulkRefundUpdateController as abruc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Bulk Upload for refund Status']

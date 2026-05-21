@@ -4,7 +4,7 @@
 @section('page-title', 'Webhooks')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="WebhooksController as whc">
+<div ng-cloak ng-app="ipayApp" ng-controller="WebhooksController as whc">
     <div class="row mb-4">
         <div class="col-md-8">
             <h3 class="fw-bold">Webhooks</h3>

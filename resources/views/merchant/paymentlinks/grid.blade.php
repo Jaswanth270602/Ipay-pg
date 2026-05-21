@@ -46,7 +46,7 @@
                             </span>
                         </td>
                         <td>@{{ link.usage_count }} / @{{ link.max_usage || '∞' }}</td>
-                        <td>@{{ link.expires_at | date:'short' }}</td>
+                        <td>@{{ link.expires_at | date:'dd-MM-yyyy HH:mm' }}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary" ng-click="plc.copyLink(link)">
                                 <i class="bi bi-clipboard"></i> Copy

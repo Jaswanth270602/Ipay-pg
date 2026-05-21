@@ -15,7 +15,7 @@ class EarningsController extends Controller
     {
         $reseller = $request->user()->reseller;
         $merchantOptions = $reseller
-            ? $reseller->merchants()->orderBy('name')->get(['id', 'name'])
+            ? $reseller->assignedMerchants()->get(['id', 'name'])
             : collect();
 
         $totals = ResellerCommission::netTotalsForReseller($reseller?->id, PaymentViewMode::isTestMode());
@@ -38,7 +38,7 @@ class EarningsController extends Controller
             ], 403);
         }
 
-        $merchantIds = $reseller->merchants()->pluck('id');
+        $merchantIds = $reseller->assignedMerchantIds();
         $perPage = min((int) $request->get('per_page', 10), 50);
 
         $query = PaymentViewMode::scopeResellerCommissions(

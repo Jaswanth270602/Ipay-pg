@@ -4,7 +4,7 @@
 @section('page-title', 'Refund Details')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminRefundsController as arc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminRefundsController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Refund Details']

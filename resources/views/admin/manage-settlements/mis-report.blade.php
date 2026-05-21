@@ -4,7 +4,7 @@
 @section('page-title', 'Download MIS Report')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminMISReportController as amrc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminMISReportController as amrc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Download MIS Report']

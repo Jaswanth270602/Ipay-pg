@@ -4,7 +4,7 @@
 @section('page-title', 'Split Transactions')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantSplitTransactionsController as mstc">
+<div ng-cloak ng-app="ipayApp" ng-controller="MerchantSplitTransactionsController as mstc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Split Transactions']

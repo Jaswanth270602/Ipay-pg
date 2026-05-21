@@ -1,49 +1,110 @@
 @extends('layouts.app-sidebar')
 
-@section('title', 'Bulk Chargebacks Upload - ' . config('app.name'))
-@section('page-title', 'Bulk Chargebacks Upload')
+@section('title', 'Chargebacks Upload - ' . config('app.name'))
+@section('page-title', 'Chargebacks Upload')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantBulkChargebacksController as mbcc">
+<style>
+    .bulk-chargebacks-page {
+        font-size: 13px;
+    }
+    .bulk-chargebacks-page h2 {
+        font-size: 28px;
+        margin-bottom: 0;
+    }
+    .bulk-chargebacks-page .stat-card {
+        padding: 14px 16px;
+    }
+    .bulk-chargebacks-page .stat-card h5 {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+    .bulk-chargebacks-page .form-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .bulk-chargebacks-page .form-control,
+    .bulk-chargebacks-page .form-select,
+    .bulk-chargebacks-page .btn {
+        font-size: 12px;
+    }
+    .bulk-chargebacks-page .btn.btn-lg {
+        padding: 6px 18px;
+        font-size: 13px;
+    }
+    .bulk-chargebacks-page small {
+        font-size: 11px;
+        line-height: 1.2;
+    }
+    .bulk-chargebacks-jobs-table {
+        min-width: 1320px;
+        width: 100%;
+        font-size: 12px;
+    }
+    .bulk-chargebacks-jobs-table th,
+    .bulk-chargebacks-jobs-table td {
+        padding: 6px 8px !important;
+    }
+    .bulk-chargebacks-jobs-table thead th {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .2px;
+    }
+    .bulk-chargebacks-jobs-table .form-control.form-control-sm,
+    .bulk-chargebacks-jobs-table .form-select.form-select-sm {
+        height: 28px;
+        min-height: 28px;
+        padding: 2px 6px;
+        font-size: 11px;
+    }
+    .bulk-chargebacks-jobs-table td {
+        vertical-align: middle;
+    }
+    .bulk-chargebacks-jobs-table .badge {
+        font-size: 10px;
+        padding: 4px 7px;
+    }
+</style>
+<div ng-cloak class="bulk-chargebacks-page" ng-app="ipayApp" ng-controller="MerchantBulkChargebacksController as mbcc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
-        ['label'=>'Bulk Chargebacks Upload']
+        ['label'=>'Chargebacks Upload']
     ]" />
 
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2>Bulk Chargebacks Upload</h2>
+            <h2>Chargebacks Upload</h2>
         </div>
     </div>
 
-    <!-- Bulk Chargebacks Upload Section -->
     <div class="stat-card mb-4">
-        <h5 class="mb-3">Bulk Chargebacks Upload</h5>
+        <h5 class="mb-3">Chargebacks Upload</h5>
         <form id="bulkChargebackUploadForm" enctype="multipart/form-data">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Select File :</label>
                 </div>
                 <div class="col-md-4">
-                    <input type="file" class="form-control" id="chargebackFile" accept=".csv,.xlsx,.xls" ng-model="mbcc.selectedFile" onchange="document.getElementById('chargebackFileNameDisplay').value = this.files[0]?.name || 'No Files Selected'">
+                    <input type="file" class="form-control" id="chargebackFile" accept=".csv,.txt" onchange="document.getElementById('chargebackFileNameDisplay').value = this.files[0]?.name || 'No Files Selected'">
                 </div>
                 <div class="col-md-3">
                     <input type="text" class="form-control" id="chargebackFileNameDisplay" placeholder="No Files Selected" readonly>
                 </div>
                 <div class="col-md-2">
                     <button type="button" class="btn btn-primary" ng-click="mbcc.downloadTemplate()">
-                        <i class="bi bi-download"></i>
+                        <i class="bi bi-download"></i> Download CSV template
                     </button>
                 </div>
             </div>
             <div class="row mt-2">
                 <div class="col-md-12">
-                    <small class="text-muted">(* Max number of rows/transactions allowed per file upload is 1000)</small>
+                    <small class="text-muted d-block">(* Upload CSV only. Max 1000 rows per file. Columns must match the downloaded template.)</small>
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-md-12 text-center">
-                    <button type="button" class="btn btn-success btn-lg" ng-click="mbcc.uploadFile()" ng-disabled="!mbcc.selectedFile || mbcc.uploading">
+                    <button type="button" class="btn btn-success btn-lg" ng-click="mbcc.uploadFile()" ng-disabled="mbcc.uploading">
                         <span ng-if="!mbcc.uploading">Upload</span>
                         <span ng-if="mbcc.uploading">
                             <span class="spinner-border spinner-border-sm me-2"></span>Uploading...
@@ -102,18 +163,20 @@
 
         <div ng-hide="mbcc.loading">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover bulk-chargebacks-jobs-table">
                     <thead>
                         <tr>
                             <th ng-show="mbcc.visibleColumns.job_id.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Job Id</span>
                                 </div>
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mbcc.filters.filter_job_id" ng-change="mbcc.applyFilters()">
                             </th>
                             <th ng-show="mbcc.visibleColumns.job_name.visible">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Job Name</span>
                                 </div>
+                                <input type="text" class="form-control form-control-sm mt-1" placeholder="Filter..." ng-model="mbcc.filters.filter_job_name" ng-change="mbcc.applyFilters()">
                             </th>
                             <th ng-show="mbcc.visibleColumns.progress.visible">
                                 <div class="d-flex align-items-center gap-2">
@@ -129,6 +192,7 @@
                                     <option value="pending">Pending</option>
                                     <option value="processing">Processing</option>
                                     <option value="completed">Completed</option>
+                                    <option value="completed_with_errors">Completed with errors</option>
                                     <option value="failed">Failed</option>
                                 </select>
                             </th>
@@ -170,7 +234,7 @@
                             <td ng-show="mbcc.visibleColumns.status.visible">
                                 <span class="badge" ng-class="{
                                     'bg-success': job.status === 'completed',
-                                    'bg-warning': job.status === 'pending',
+                                    'bg-warning': job.status === 'pending' || job.status === 'completed_with_errors',
                                     'bg-info': job.status === 'processing',
                                     'bg-danger': job.status === 'failed'
                                 }">
@@ -234,8 +298,9 @@
                 vm.filters = {};
                 vm.loading = false;
                 vm.uploading = false;
-                vm.selectedFile = null;
-                
+                var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                var csrfToken = function() { return csrfMeta ? csrfMeta.content : ''; };
+
                 vm.visibleColumns = {
                     job_id: { visible: true, label: 'Job Id' },
                     job_name: { visible: true, label: 'Job Name' },
@@ -277,30 +342,50 @@
                 };
 
                 vm.uploadFile = function() {
-                    if (!vm.selectedFile) {
-                        alert('Please select a file');
+                    var notify = function(message, type) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(message, type || 'info');
+                        } else {
+                            console.warn('Toast unavailable:', message);
+                        }
+                    };
+
+                    var fileInput = document.getElementById('chargebackFile');
+                    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                        notify('Please select a CSV file first.', 'warning');
                         return;
                     }
 
                     var formData = new FormData();
-                    var fileInput = document.getElementById('chargebackFile');
-                    if (fileInput.files.length > 0) {
-                        formData.append('file', fileInput.files[0]);
-                    }
+                    formData.append('file', fileInput.files[0]);
 
                     vm.uploading = true;
                     $http.post('/merchant/payments/bulk-chargebacks/upload', formData, {
-                        headers: { 'Content-Type': undefined },
+                        headers: {
+                            'Content-Type': undefined,
+                            'X-CSRF-TOKEN': csrfToken(),
+                            Accept: 'application/json'
+                        },
                         transformRequest: angular.identity
                     }).then(function(response) {
                         vm.uploading = false;
-                        alert('File uploaded successfully!');
-                        vm.loadJobs();
-                        document.getElementById('chargebackFile').value = '';
-                        document.getElementById('chargebackFileNameDisplay').value = 'No Files Selected';
+                        if (response.data.success) {
+                            notify(response.data.message || 'File uploaded successfully. Processing started.', 'success');
+                            vm.loadJobs();
+                            fileInput.value = '';
+                            document.getElementById('chargebackFileNameDisplay').value = 'No Files Selected';
+                        } else {
+                            var failMessage = response.data.message || 'Unknown error';
+                            notify('Upload failed: ' + failMessage, 'error');
+                        }
                     }, function(error) {
                         vm.uploading = false;
-                        alert('Error uploading file: ' + (error.data?.message || 'Unknown error'));
+                        var msg = 'Upload failed';
+                        if (error && error.data && error.data.message) {
+                            msg = error.data.message;
+                        }
+                        notify(msg, 'error');
+                        console.error('Bulk chargeback upload error:', error);
                     });
                 };
 
@@ -310,8 +395,7 @@
 
                 vm.downloadStatusFile = function(job) {
                     if (job.export_files && job.export_files !== '-') {
-                        // Note: This route may need to be added if download functionality is required
-                        alert('Download functionality is not yet available for this job.');
+                        window.location.href = '/merchant/payments/bulk-chargebacks/download/' + job.id;
                     }
                 };
 

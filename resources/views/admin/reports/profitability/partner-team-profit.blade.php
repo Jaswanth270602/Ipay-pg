@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Team Profit Report')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPartnerTeamProfitController as ptp">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPartnerTeamProfitController as ptp">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']

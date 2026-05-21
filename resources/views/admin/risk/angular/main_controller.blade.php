@@ -109,13 +109,19 @@
                 };
 
                 vm.deleteRule = function(r) {
-                    if (!confirm('Delete this rule?')) return;
-                    $http.delete('/admin/risk/rules/' + r.id, { headers: { 'X-CSRF-TOKEN': csrf } }).then(function() {
-                        vm.loadRules();
-                        vm.loadStats();
-                    }, function(err) { 
-                        alert('Failed to delete rule');
-                        console.error(err);
+                    ipayConfirm('Delete this rule?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete rule'
+                    }).then(function (ok) {
+                        if (!ok) return;
+                        $http.delete('/admin/risk/rules/' + r.id, { headers: { 'X-CSRF-TOKEN': csrf } }).then(function() {
+                            vm.loadRules();
+                            vm.loadStats();
+                        }, function(err) {
+                            alert('Failed to delete rule');
+                            console.error(err);
+                        });
                     });
                 };
 

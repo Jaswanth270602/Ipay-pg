@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class Reseller extends Model
 {
@@ -59,6 +61,33 @@ class Reseller extends Model
     public function merchantSplits(): HasMany
     {
         return $this->hasMany(MerchantResellerSplit::class);
+    }
+
+    /**
+     * Merchant IDs this reseller may view (merchants.reseller_id + reseller_merchant pivot).
+     */
+    public function assignedMerchantIds(): Collection
+    {
+        $viaColumn = $this->merchants()->pluck('id');
+
+        if (! Schema::hasTable('reseller_merchant')) {
+            return $viaColumn->unique()->values();
+        }
+
+        return $viaColumn
+            ->merge($this->merchantsPivot()->pluck('merchants.id'))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Query assigned merchants ordered by name.
+     */
+    public function assignedMerchants()
+    {
+        return Merchant::query()
+            ->whereIn('id', $this->assignedMerchantIds())
+            ->orderBy('name');
     }
 }
 

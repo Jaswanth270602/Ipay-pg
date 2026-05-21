@@ -4,7 +4,7 @@
 @section('page-title', 'Pending Settlement')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPendingSettlementController as apsc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPendingSettlementController as apsc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pending Settlement']

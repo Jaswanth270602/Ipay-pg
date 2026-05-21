@@ -4,7 +4,7 @@
 @section('page-title', 'Datatable Export Files')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="DatatableExportController as de">
+<div ng-cloak ng-app="ipayApp" ng-controller="DatatableExportController as de">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Datatable Export List']

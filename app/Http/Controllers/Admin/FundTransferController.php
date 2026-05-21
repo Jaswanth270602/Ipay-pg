@@ -7,6 +7,7 @@ use App\Traits\LogsConditionally;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -103,6 +104,15 @@ class FundTransferController extends Controller
         foreach (['purpose_of_payment', 'transfer_reference_no', 'to_account', 'bank_name_ca'] as $field) {
             if (array_key_exists($field, $payload) && is_string($payload[$field])) {
                 $payload[$field] = trim($payload[$field]);
+            }
+        }
+
+        // Angular date input sends ISO strings; normalize for MySQL DATE column.
+        if (array_key_exists('transfer_date', $payload) && $payload['transfer_date'] !== '' && $payload['transfer_date'] !== null) {
+            try {
+                $payload['transfer_date'] = Carbon::parse($payload['transfer_date'])->toDateString();
+            } catch (\Throwable) {
+                // Validator will reject invalid dates.
             }
         }
 

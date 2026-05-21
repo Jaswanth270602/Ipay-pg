@@ -8,6 +8,7 @@ use App\Models\Dispute;
 use App\Models\DisputeEvidence;
 use App\Models\DisputeTimeline;
 use App\Models\Transaction;
+use App\Services\Disputes\DisputeCreationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -20,12 +21,52 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DisputesController extends Controller
 {
+    public function __construct(
+        private readonly DisputeCreationService $disputeCreation,
+    ) {}
+
     /**
      * Display disputes index page
      */
     public function index(): View
     {
         return view('admin.disputes.index');
+    }
+
+    /**
+     * Register a new dispute (admin only — merchants have read-only access).
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'merchant_id' => 'required|integer|exists:merchants,id',
+                'transaction_id' => 'nullable',
+                'payment_id' => 'nullable|string',
+                'order_id' => 'nullable|string',
+                'reason' => 'required|string|in:fraud,product_not_received,product_not_as_described,duplicate_charge,refund_not_processed,subscription_canceled,no_authorization',
+                'amount' => 'required|numeric|min:0',
+                'card_network' => 'nullable|string|in:VISA,MASTERCARD,RUPAY',
+                'currency' => 'nullable|string|size:3',
+                'due_by' => 'nullable|date',
+                'internal_notes' => 'nullable|string',
+            ]);
+
+            $dispute = $this->disputeCreation->createForMerchant((int) $validated['merchant_id'], $validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dispute created successfully',
+                'data' => $dispute,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create dispute: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

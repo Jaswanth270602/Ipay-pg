@@ -156,7 +156,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="DisputeDetailController as ddc">
+<div ng-cloak ng-app="ipayApp" ng-controller="DisputeDetailController as ddc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Disputes','url'=>route('admin.disputes.index')],
@@ -580,47 +580,55 @@
                 
                 // Delete evidence
                 vm.deleteEvidence = function(evidenceId) {
-                    if (!confirm('Are you sure you want to delete this evidence?')) {
-                        return;
-                    }
-                    
-                    $http.delete('/admin/disputes/' + disputeId + '/evidence/' + evidenceId, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Evidence deleted successfully');
-                            vm.loadDispute(); // Reload dispute data
-                        } else {
-                            alert('Failed to delete evidence: ' + (response.data.message || 'Unknown error'));
-                        }
-                    }, function(error) {
-                        console.error('Error deleting evidence:', error);
-                        alert('Failed to delete evidence');
+                    ipayConfirm('Are you sure you want to delete this evidence?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete evidence'
+                    }).then(function (ok) {
+                        if (!ok) return;
+
+                        $http.delete('/admin/disputes/' + disputeId + '/evidence/' + evidenceId, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
+                            if (response.data.success) {
+                                alert('Evidence deleted successfully');
+                                vm.loadDispute(); // Reload dispute data
+                            } else {
+                                alert('Failed to delete evidence: ' + (response.data.message || 'Unknown error'));
+                            }
+                        }, function(error) {
+                            console.error('Error deleting evidence:', error);
+                            alert('Failed to delete evidence');
+                        });
                     });
                 };
                 
                 // Submit evidence
                 vm.submitEvidence = function() {
-                    if (!confirm('Are you sure you want to submit evidence? You will not be able to upload additional documents after submission.')) {
-                        return;
-                    }
-                    
-                    vm.submitting = true;
-                    
-                    $http.post('/admin/disputes/' + disputeId + '/submit', {}, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Evidence submitted successfully');
-                            vm.loadDispute(); // Reload dispute data
-                        } else {
-                            alert('Failed to submit evidence: ' + (response.data.message || 'Unknown error'));
-                        }
-                        vm.submitting = false;
-                    }, function(error) {
-                        console.error('Error submitting evidence:', error);
-                        alert('Failed to submit evidence');
-                        vm.submitting = false;
+                    ipayConfirm('Are you sure you want to submit evidence? You will not be able to upload additional documents after submission.', 'warning', {
+                        okText: 'Submit',
+                        cancelText: 'Cancel',
+                        title: 'Submit evidence'
+                    }).then(function (ok) {
+                        if (!ok) return;
+
+                        vm.submitting = true;
+
+                        $http.post('/admin/disputes/' + disputeId + '/submit', {}, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
+                            if (response.data.success) {
+                                alert('Evidence submitted successfully');
+                                vm.loadDispute(); // Reload dispute data
+                            } else {
+                                alert('Failed to submit evidence: ' + (response.data.message || 'Unknown error'));
+                            }
+                            vm.submitting = false;
+                        }, function(error) {
+                            console.error('Error submitting evidence:', error);
+                            alert('Failed to submit evidence');
+                            vm.submitting = false;
+                        });
                     });
                 };
                 

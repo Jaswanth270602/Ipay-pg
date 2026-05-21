@@ -4,7 +4,7 @@
 @section('page-title', 'Settlement Summary')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantSettlementSummaryController as mssc">
+<div ng-cloak ng-app="ipayApp" ng-controller="MerchantSettlementSummaryController as mssc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Settlement Summary']

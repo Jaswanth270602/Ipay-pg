@@ -213,7 +213,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="DashboardController as dc">
+<div ng-cloak ng-app="ipayApp" ng-controller="DashboardController as dc">
     <div class="row mb-4">
         <div class="col-md-12">
             <h3 class="fw-bold" style="color:#E10600;">Welcome, {{ $user->name }}</h3>

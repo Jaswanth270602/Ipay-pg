@@ -1,5 +1,5 @@
 {{-- Shared analytics UI; pass $dataUrl, $exportUrl, $isAdmin (bool), $breadcrumbs --}}
-<div ng-app="ipayApp" ng-controller="PaymentAnalyticsController as pa">
+<div ng-cloak ng-app="ipayApp" ng-controller="PaymentAnalyticsController as pa">
     <x-breadcrumbs :items="$breadcrumbs" />
 
     <div class="stat-card mb-3">
@@ -131,10 +131,39 @@
                 };
 
                 vm.buildParams = function () {
+                    /** Normalize: ng-model on type=date can be a Date; URLSearchParams otherwise uses Date.toString() which Carbon cannot parse. */
+                    function toYmd(v) {
+                        if (v == null || v === '') {
+                            return '';
+                        }
+                        if (Object.prototype.toString.call(v) === '[object Date]') {
+                            if (isNaN(v.getTime())) {
+                                return '';
+                            }
+                            var y = v.getFullYear();
+                            var m = String(v.getMonth() + 1).padStart(2, '0');
+                            var d = String(v.getDate()).padStart(2, '0');
+                            return y + '-' + m + '-' + d;
+                        }
+                        if (typeof v === 'string') {
+                            var t = v.trim();
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+                                return t;
+                            }
+                            var parsed = new Date(t);
+                            if (!isNaN(parsed.getTime())) {
+                                var y2 = parsed.getFullYear();
+                                var m2 = String(parsed.getMonth() + 1).padStart(2, '0');
+                                var d2 = String(parsed.getDate()).padStart(2, '0');
+                                return y2 + '-' + m2 + '-' + d2;
+                            }
+                        }
+                        return '';
+                    }
                     var p = {
                         report_type: vm.filters.report_type,
-                        from_date: vm.filters.from_date || '',
-                        to_date: vm.filters.to_date || ''
+                        from_date: toYmd(vm.filters.from_date),
+                        to_date: toYmd(vm.filters.to_date)
                     };
                     if (vm.filters.merchant_id) {
                         p.merchant_id = vm.filters.merchant_id;

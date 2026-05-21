@@ -3,8 +3,20 @@
 @section('title', 'Settlement Details - Admin - ' . config('app.name'))
 @section('page-title', 'Settlement Details')
 
+@push('styles')
+<style>
+    /* Compact primary CTA — brand red without layout’s oversized .btn-primary padding */
+    .admin-settlement-details-page .btn-new-settlement-detail.btn-primary {
+        padding: 0.375rem 0.875rem !important;
+        font-size: 0.875rem !important;
+        line-height: 1.35;
+        border-radius: 0.5rem;
+    }
+</style>
+@endpush
+
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminSettlementDetailsController as asdc">
+<div ng-cloak class="admin-settlement-details-page" ng-app="ipayApp" ng-controller="AdminSettlementDetailsController as asdc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Settlement Details']
@@ -17,25 +29,20 @@
         </div>
     </div>
 
-    <!-- Date Range -->
+    <!-- Date Range + environment -->
     <div class="stat-card mb-3">
         <div class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-6 col-lg-5">
                 <label class="form-label">Select Date Range :</label>
                 <input type="text" class="form-control" ng-model="asdc.dateRange" placeholder="14/11/2025 00:00:00 - 29/11/2025 23:59:59">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4 col-lg-3">
                 <label class="form-label">Environment</label>
                 <select class="form-select" ng-model="asdc.mode" ng-change="asdc.applyFilters()">
                     <option value="all">All</option>
                     <option value="test">Test</option>
                     <option value="live">Live</option>
                 </select>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary" ng-click="asdc.openCreateModal()">
-                    <i class="bi bi-plus-circle"></i> + Settlement Detail
-                </button>
             </div>
         </div>
     </div>
@@ -52,7 +59,11 @@
                     <option value="50">50 entries</option>
                 </select>
             </div>
-            <div class="d-flex gap-2 flex-wrap">
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <button type="button" class="btn btn-sm btn-primary btn-new-settlement-detail d-inline-flex align-items-center gap-1" ng-click="asdc.openCreateModal()">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                    <span>New settlement detail</span>
+                </button>
                 <button class="btn btn-sm btn-outline-secondary" ng-click="asdc.clearFilters()">
                     <i class="bi bi-funnel"></i> Clear Filters
                 </button>

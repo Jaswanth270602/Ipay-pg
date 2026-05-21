@@ -1283,24 +1283,28 @@
                         alert('Please select a merchant to duplicate');
                         return;
                     }
-                    if (!confirm('Are you sure you want to duplicate this merchant?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to duplicate this merchant?', 'warning', {
+                        okText: 'Duplicate',
+                        cancelText: 'Cancel',
+                        title: 'Duplicate merchant'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.post('/admin/merchant-accounts/' + vm.selectedMerchant.id + '/duplicate', {}, {
-                        headers: {
-                            'X-CSRF-TOKEN': csrf
-                        }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Merchant duplicated successfully');
-                            vm.loadMerchants();
-                        } else {
-                            alert('Failed to duplicate merchant: ' + (response.data.message || 'Unknown error'));
-                        }
-                    }, function(error) {
-                        alert('Failed to duplicate merchant');
-                        console.error('Error:', error);
+                        $http.post('/admin/merchant-accounts/' + vm.selectedMerchant.id + '/duplicate', {}, {
+                            headers: {
+                                'X-CSRF-TOKEN': csrf
+                            }
+                        }).then(function(response) {
+                            if (response.data.success) {
+                                alert('Merchant duplicated successfully');
+                                vm.loadMerchants();
+                            } else {
+                                alert('Failed to duplicate merchant: ' + (response.data.message || 'Unknown error'));
+                            }
+                        }, function(error) {
+                            alert('Failed to duplicate merchant');
+                            console.error('Error:', error);
+                        });
                     });
                 };
 

@@ -4,7 +4,7 @@
 @section('page-title', 'Merchant Transaction Drilldown')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ResellerMerchantTransactionsController as rmtc">
+<div ng-cloak ng-app="ipayApp" ng-controller="ResellerMerchantTransactionsController as rmtc">
     <div class="row mb-4">
         <div class="col-md-12 d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>

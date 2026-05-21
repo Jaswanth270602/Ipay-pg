@@ -4,7 +4,7 @@
 @section('page-title', 'Reseller Management')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminResellersController as arc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminResellersController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'User Settings'],
@@ -460,18 +460,22 @@
         };
 
         vm.remove = function(r) {
-            if (!confirm('Delete reseller "' + (r.name || '') + '"? This cannot be undone.')) {
-                return;
-            }
-            $http.delete('/admin/resellers/' + r.id).then(function(resp) {
-                if (!resp.data.success) {
-                    vm.error = resp.data.message || 'Failed to delete reseller';
-                    return;
-                }
-                vm.showSuccessToast(resp.data.message || 'Reseller deleted successfully.');
-                vm.load();
-            }).catch(function(err) {
-                vm.error = err?.data?.message || 'Failed to delete reseller';
+            ipayConfirm('Delete reseller "' + (r.name || '') + '"? This cannot be undone.', 'danger', {
+                okText: 'Delete',
+                cancelText: 'Cancel',
+                title: 'Delete reseller'
+            }).then(function (ok) {
+                if (!ok) return;
+                $http.delete('/admin/resellers/' + r.id).then(function(resp) {
+                    if (!resp.data.success) {
+                        vm.error = resp.data.message || 'Failed to delete reseller';
+                        return;
+                    }
+                    vm.showSuccessToast(resp.data.message || 'Reseller deleted successfully.');
+                    vm.load();
+                }).catch(function(err) {
+                    vm.error = err?.data?.message || 'Failed to delete reseller';
+                });
             });
         };
 

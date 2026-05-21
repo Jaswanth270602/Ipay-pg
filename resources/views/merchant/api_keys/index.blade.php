@@ -4,7 +4,7 @@
 @section('page-title', 'API Keys')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ApiKeysController as akc">
+<div ng-cloak ng-app="ipayApp" ng-controller="ApiKeysController as akc">
     <div class="row mb-4">
         <div class="col-md-8">
             <h3 class="fw-bold">API Keys</h3>

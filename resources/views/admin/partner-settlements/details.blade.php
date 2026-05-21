@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Settlement Details')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPartnerSettlementsDetailsController as psd">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPartnerSettlementsDetailsController as psd">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Partner Settlement Details']

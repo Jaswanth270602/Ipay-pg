@@ -4,7 +4,7 @@
 @section('page-title', 'Earnings')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ResellerEarningsController as rec">
+<div ng-cloak ng-app="ipayApp" ng-controller="ResellerEarningsController as rec">
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Earnings</h2>

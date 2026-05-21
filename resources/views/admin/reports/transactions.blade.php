@@ -4,7 +4,7 @@
 @section('page-title','Transaction export')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminReportsController as arc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminReportsController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Reports','url'=>route('admin.reports.index')],

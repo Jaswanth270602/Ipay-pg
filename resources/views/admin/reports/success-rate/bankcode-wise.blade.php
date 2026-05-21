@@ -4,7 +4,7 @@
 @section('page-title', 'Bank Code Success Rate')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminBankCodeSuccessRateController as bcsr">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminBankCodeSuccessRateController as bcsr">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'BankCode-wise']

@@ -3,8 +3,81 @@
 @section('title', 'Miscellaneous Reports List - Admin - ' . config('app.name'))
 @section('page-title', 'Miscellaneous Reports List')
 
+@push('styles')
+<style>
+    .adhoc-report-page .adhoc-report-table-wrap {
+        border-color: #e5e7eb !important;
+        overflow: hidden;
+    }
+    .adhoc-report-page .adhoc-report-table {
+        --adhoc-table-border: #e8eaed;
+    }
+    .adhoc-report-page .adhoc-report-table thead tr:first-child th {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.055em;
+        color: #374151;
+        background: linear-gradient(180deg, #fafafa 0%, #f3f4f6 100%);
+        border-bottom: 2px solid var(--adhoc-table-border);
+        padding: 0.75rem 0.875rem;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+    .adhoc-report-page .adhoc-report-table thead tr.filters-row th {
+        background: #f9fafb;
+        padding: 0.45rem 0.625rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--adhoc-table-border);
+    }
+    .adhoc-report-page .adhoc-report-table thead tr.filters-row .form-control-sm {
+        font-size: 0.8125rem;
+        border-radius: 0.375rem;
+        border-color: #d1d5db;
+        min-height: calc(1.5em + 0.45rem + 2px);
+    }
+    .adhoc-report-page .adhoc-report-table thead tr.filters-row .form-control-sm:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 0.15rem rgba(99, 102, 241, 0.18);
+    }
+    .adhoc-report-page .adhoc-report-table tbody td {
+        padding: 0.65rem 0.875rem;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+    .adhoc-report-page .adhoc-report-table tbody tr:nth-child(even) td {
+        background-color: rgba(249, 250, 251, 0.92);
+    }
+    .adhoc-report-page .adhoc-report-table tbody tr:hover td {
+        background-color: rgba(238, 242, 255, 0.65);
+    }
+    .adhoc-report-page .adhoc-report-actions-cell {
+        white-space: nowrap;
+        vertical-align: middle !important;
+    }
+    .adhoc-report-page .adhoc-report-actions {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .adhoc-report-page .adhoc-report-actions-sep {
+        color: #9ca3af;
+        font-weight: 400;
+        user-select: none;
+        flex-shrink: 0;
+        line-height: 1;
+    }
+    .adhoc-report-page .adhoc-report-actions .btn {
+        flex-shrink: 0;
+        padding: 0.25rem 0.45rem;
+    }
+</style>
+@endpush
+
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdhocReportController as ar">
+<div ng-cloak class="adhoc-report-page" ng-app="ipayApp" ng-controller="AdhocReportController as ar">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Adhoc Report List']
@@ -83,28 +156,28 @@
         </div>
 
         <div ng-hide="ar.loading">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div class="table-responsive rounded-3 border shadow-sm adhoc-report-table-wrap">
+                <table class="table table-hover align-middle adhoc-report-table mb-0">
                     <thead>
                         <tr>
                             <th>
                                 <input type="checkbox" ng-model="ar.selectAll" ng-change="ar.toggleSelectAll()">
                             </th>
                             <th ng-show="ar.visibleColumns.adhoc_report_id">
-                                <i class="bi bi-diamond"></i> Adhoc Report ID
+                                Adhoc Report ID
                             </th>
                             <th ng-show="ar.visibleColumns.adhoc_report_name">
-                                <i class="bi bi-diamond"></i> Adhoc Report Name
+                                Adhoc Report Name
                             </th>
                             <th ng-show="ar.visibleColumns.adhoc_report_description">
-                                <i class="bi bi-diamond"></i> Adhoc Report Description
+                                Adhoc Report Description
                             </th>
                             <th ng-show="ar.visibleColumns.adhoc_report_created_date">
-                                <i class="bi bi-diamond"></i> Adhoc Report Created Date
+                                Adhoc Report Created Date
                             </th>
                             <th ng-show="ar.visibleColumns.action">Action</th>
                         </tr>
-                        <tr>
+                        <tr class="filters-row">
                             <th></th>
                             <th ng-show="ar.visibleColumns.adhoc_report_id">
                                 <input type="text" class="form-control form-control-sm" ng-model="ar.tableFilters.adhoc_report_id" ng-change="ar.applyTableFilters()" placeholder="Report ID">
@@ -133,16 +206,20 @@
                             <td ng-show="ar.visibleColumns.adhoc_report_name">@{{ item.adhoc_report_name || 'N/A' }}</td>
                             <td ng-show="ar.visibleColumns.adhoc_report_description">@{{ item.adhoc_report_description || 'N/A' }}</td>
                             <td ng-show="ar.visibleColumns.adhoc_report_created_date">@{{ item.adhoc_report_created_date || 'N/A' }}</td>
-                            <td ng-show="ar.visibleColumns.action">
-                                <button class="btn btn-sm btn-info" ng-click="ar.editReport(item)" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" ng-click="ar.deleteReport(item)" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                                <button class="btn btn-sm btn-warning" ng-click="ar.duplicateReport(item)" title="Duplicate">
-                                    <i class="bi bi-files"></i>
-                                </button>
+                            <td ng-show="ar.visibleColumns.action" class="adhoc-report-actions-cell">
+                                <div class="adhoc-report-actions">
+                                    <button type="button" class="btn btn-sm btn-info" ng-click="ar.editReport(item)" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <span class="adhoc-report-actions-sep" aria-hidden="true">/</span>
+                                    <button type="button" class="btn btn-sm btn-danger" ng-click="ar.deleteReport(item)" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <span class="adhoc-report-actions-sep" aria-hidden="true">/</span>
+                                    <button type="button" class="btn btn-sm btn-warning" ng-click="ar.duplicateReport(item)" title="Duplicate">
+                                        <i class="bi bi-files"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -172,8 +249,6 @@
             </div>
         </div>
     </div>
-
-</div>
 
 <!-- Create/Edit Modal -->
 <div class="modal fade" id="adhocReportModal" tabindex="-1" aria-labelledby="adhocReportModalLabel" aria-hidden="true">
@@ -213,6 +288,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 
@@ -458,38 +534,42 @@
                 };
 
                 vm.deleteReport = function (report) {
-                    if (!confirm('Are you sure you want to delete this adhoc report?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to delete this adhoc report?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete adhoc report'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete("{{ url('admin/reports/miscellaneous') }}/" + report.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast('Adhoc report deleted successfully', 'success');
+                        $http.delete("{{ url('admin/reports/miscellaneous') }}/" + report.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast('Adhoc report deleted successfully', 'success');
+                                } else {
+                                    alert('Adhoc report deleted successfully');
+                                }
+                                vm.loadData();
                             } else {
-                                alert('Adhoc report deleted successfully');
+                                var errorMsg = 'Failed to delete adhoc report: ' + (response.data.message || 'Unknown error');
+                                if (typeof showToast === 'function') {
+                                    showToast(errorMsg, 'error');
+                                } else {
+                                    alert(errorMsg);
+                                }
                             }
-                            vm.loadData();
-                        } else {
-                            var errorMsg = 'Failed to delete adhoc report: ' + (response.data.message || 'Unknown error');
+                        }, function (error) {
+                            var errorMsg = 'Failed to delete adhoc report';
+                            if (error.data && error.data.message) {
+                                errorMsg = error.data.message;
+                            }
                             if (typeof showToast === 'function') {
                                 showToast(errorMsg, 'error');
                             } else {
                                 alert(errorMsg);
                             }
-                        }
-                    }, function (error) {
-                        var errorMsg = 'Failed to delete adhoc report';
-                        if (error.data && error.data.message) {
-                            errorMsg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(errorMsg, 'error');
-                        } else {
-                            alert(errorMsg);
-                        }
+                        });
                     });
                 };
 
@@ -500,38 +580,42 @@
                 };
 
                 vm.duplicateReport = function (report) {
-                    if (!confirm('Are you sure you want to duplicate this adhoc report?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to duplicate this adhoc report?', 'warning', {
+                        okText: 'Duplicate',
+                        cancelText: 'Cancel',
+                        title: 'Duplicate adhoc report'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.post("{{ url('admin/reports/miscellaneous') }}/" + report.id + "/duplicate", {}, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast('Adhoc report duplicated successfully', 'success');
+                        $http.post("{{ url('admin/reports/miscellaneous') }}/" + report.id + "/duplicate", {}, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast('Adhoc report duplicated successfully', 'success');
+                                } else {
+                                    alert('Adhoc report duplicated successfully');
+                                }
+                                vm.loadData();
                             } else {
-                                alert('Adhoc report duplicated successfully');
+                                var errorMsg = 'Failed to duplicate adhoc report: ' + (response.data.message || 'Unknown error');
+                                if (typeof showToast === 'function') {
+                                    showToast(errorMsg, 'error');
+                                } else {
+                                    alert(errorMsg);
+                                }
                             }
-                            vm.loadData();
-                        } else {
-                            var errorMsg = 'Failed to duplicate adhoc report: ' + (response.data.message || 'Unknown error');
+                        }, function (error) {
+                            var errorMsg = 'Failed to duplicate adhoc report';
+                            if (error.data && error.data.message) {
+                                errorMsg = error.data.message;
+                            }
                             if (typeof showToast === 'function') {
                                 showToast(errorMsg, 'error');
                             } else {
                                 alert(errorMsg);
                             }
-                        }
-                    }, function (error) {
-                        var errorMsg = 'Failed to duplicate adhoc report';
-                        if (error.data && error.data.message) {
-                            errorMsg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(errorMsg, 'error');
-                        } else {
-                            alert(errorMsg);
-                        }
+                        });
                     });
                 };
 

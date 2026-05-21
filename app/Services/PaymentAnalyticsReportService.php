@@ -53,10 +53,29 @@ class PaymentAnalyticsReportService
      */
     public function parseRange(?string $fromDate, ?string $toDate): array
     {
-        $from = $fromDate ? Carbon::parse($fromDate)->startOfDay() : null;
-        $to = $toDate ? Carbon::parse($toDate)->endOfDay() : null;
+        $from = $fromDate !== null && $fromDate !== '' ? $this->parseAnalyticsDate($fromDate)->startOfDay() : null;
+        $to = $toDate !== null && $toDate !== '' ? $this->parseAnalyticsDate($toDate)->endOfDay() : null;
 
         return [$from, $to];
+    }
+
+    /**
+     * Accepts Y-m-d, ISO dates, and JS Date.toString() (strips parenthetical zone name; Carbon rejects "GMT+0530 (IST)").
+     */
+    private function parseAnalyticsDate(string $raw): Carbon
+    {
+        $s = trim($raw);
+        if ($s === '') {
+            throw new \InvalidArgumentException('Empty date value');
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) {
+            return Carbon::createFromFormat('Y-m-d', $s)->startOfDay();
+        }
+        // e.g. "Fri May 01 2026 00:00:00 GMT+0530 (India Standard Time)" — trailing "(TZ name)" confuses Carbon (double timezone)
+        $s = preg_replace('/\s*\([^)]+\)\s*$/', '', $s);
+        $s = trim($s);
+
+        return Carbon::parse($s);
     }
 
     /**

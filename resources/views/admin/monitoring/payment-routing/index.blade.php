@@ -4,7 +4,7 @@
 @section('page-title', 'Acquirer monitoring')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="PaymentRoutingMonitorsController as prm">
+<div ng-cloak ng-app="ipayApp" ng-controller="PaymentRoutingMonitorsController as prm">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Acquirer Details'],

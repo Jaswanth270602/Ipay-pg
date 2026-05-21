@@ -4,7 +4,7 @@
 @section('page-title', 'Chargebacks')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantChargebacksController as mcc">
+<div ng-cloak ng-app="ipayApp" ng-controller="MerchantChargebacksController as mcc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Chargebacks']
@@ -172,6 +172,8 @@
             </div>
         </div>
     </div>
+
+    @include('payments.partials.chargeback-detail-modal', ['ng' => 'mcc', 'showMerchant' => true])
 </div>
 @endsection
 
@@ -186,9 +188,10 @@
         }
         try {
             var app = angular.module('ipayApp');
-            app.controller('MerchantChargebacksController', ['$http', function($http) {
+            app.controller('MerchantChargebacksController', ['$http', '$timeout', function($http, $timeout) {
                 var vm = this;
                 vm.chargebacks = [];
+                vm.selectedChargeback = null;
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
                 vm.filters = {};
                 vm.loading = false;
@@ -266,7 +269,14 @@
                 };
 
                 vm.viewChargeback = function(chargeback) {
-                    alert('View chargeback: ' + chargeback.chargeback_request_id);
+                    vm.selectedChargeback = chargeback;
+                    $timeout(function() {
+                        var el = document.getElementById('chargeback-detail-modal-mcc');
+                        if (el && window.bootstrap && window.bootstrap.Modal) {
+                            var inst = window.bootstrap.Modal.getInstance(el) || new window.bootstrap.Modal(el);
+                            inst.show();
+                        }
+                    });
                 };
 
                 vm.loadChargebacks();

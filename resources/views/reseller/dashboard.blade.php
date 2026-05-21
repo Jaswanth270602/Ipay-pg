@@ -84,7 +84,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ResellerDashboardController as rdc">
+<div ng-cloak ng-app="ipayApp" ng-controller="ResellerDashboardController as rdc">
     <div ng-show="rdc.loading" class="dashboard-fx-loader" aria-live="polite" aria-busy="true">
         <div class="dashboard-fx-loader-inner">
             <div class="dashboard-fx-spinner" role="status" aria-label="Loading"></div>
@@ -168,7 +168,13 @@
                     <div class="col-md-2 d-grid">
                         <button class="btn btn-sm btn-primary" ng-click="rdc.applyFilters()">Apply</button>
                     </div>
+                    <div class="col-md-2 d-grid">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" ng-click="rdc.clearFilters()">Clear Filters</button>
+                    </div>
                 </div>
+                <p class="text-muted small mb-0 mt-2" ng-if="rdc.hasActiveDateFilter()">
+                    Date filter active — only transactions within the selected range are shown. Clear filters to see all data.
+                </p>
             </div>
 
             <div class="stat-card">
@@ -197,12 +203,12 @@
                         <tr ng-repeat="row in rdc.rows track by row.merchant_id">
                             <td>@{{ row.merchant_name }}</td>
                             <td>@{{ row.total_transactions }}</td>
-                            <td>INR @{{ rdc.money(row.gross_volume) }}</td>
-                            <td>INR @{{ rdc.money(row.refund_amount) }}</td>
-                            <td>INR @{{ rdc.money(row.net_volume) }}</td>
-                            <td>INR @{{ rdc.money(row.commission_earned) }}</td>
-                            <td>INR @{{ rdc.money(row.pending_commission) }}</td>
-                            <td>INR @{{ rdc.money(row.paid_commission) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.gross_volume) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.refund_amount) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.net_volume) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.commission_earned) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.pending_commission) }}</td>
+                            <td>@{{ (rdc.displayCurrency || 'INR') }} @{{ rdc.money(row.paid_commission) }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" type="button" ng-click="rdc.openDetails(row)">
                                     View Details
@@ -211,7 +217,10 @@
                         </tr>
                         </tbody>
                     </table>
-                    <div class="p-3 text-muted text-center" ng-if="rdc.rows.length === 0">No merchant data found.</div>
+                    <div class="p-3 text-muted text-center" ng-if="rdc.rows.length === 0">
+                        <span ng-if="rdc.hasActiveDateFilter()">No merchant activity in the selected date range.</span>
+                        <span ng-if="!rdc.hasActiveDateFilter()">No merchant data found.</span>
+                    </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center p-3 border-top" ng-hide="rdc.loading" ng-if="rdc.pagination.total > 0">
                     <small class="text-muted">Showing @{{ rdc.pagination.from }}–@{{ rdc.pagination.to }} of @{{ rdc.pagination.total }}</small>
@@ -274,7 +283,14 @@
                         </tr>
                         </tbody>
                     </table>
-                    <div class="p-3 text-muted text-center" ng-if="rdc.details.rows.length === 0">No transactions found for this merchant.</div>
+                    <div class="p-3 text-muted text-center" ng-if="rdc.details.rows.length === 0">
+                        <span ng-if="rdc.formatDateParam(rdc.details.filters.date_from) || rdc.formatDateParam(rdc.details.filters.date_to)">
+                            No transactions in the selected date range for this merchant.
+                        </span>
+                        <span ng-if="!rdc.formatDateParam(rdc.details.filters.date_from) && !rdc.formatDateParam(rdc.details.filters.date_to)">
+                            No transactions found for this merchant.
+                        </span>
+                    </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center pt-3" ng-if="rdc.details.pagination.total > 0">
                     <small class="text-muted">Showing @{{ rdc.details.pagination.from }}–@{{ rdc.details.pagination.to }} of @{{ rdc.details.pagination.total }}</small>
@@ -387,6 +403,38 @@
                     return n.toFixed(2);
                 };
 
+                /** Normalize date picker values to yyyy-MM-dd for API + CSV (Date objects break report download). */
+                vm.formatDateParam = function (val) {
+                    if (!val) return '';
+                    if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
+                        var y = val.getFullYear();
+                        var m = ('0' + (val.getMonth() + 1)).slice(-2);
+                        var d = ('0' + val.getDate()).slice(-2);
+                        return y + '-' + m + '-' + d;
+                    }
+                    var s = String(val).trim();
+                    var iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+                    if (iso) return iso[1];
+                    return s;
+                };
+
+                vm.hasActiveDateFilter = function () {
+                    return !!(vm.formatDateParam(vm.filters.date_from) || vm.formatDateParam(vm.filters.date_to));
+                };
+
+                vm.clearFilters = function () {
+                    vm.filters = { search: '', date_from: null, date_to: null, merchant_id: '' };
+                    vm.pagination.current_page = 1;
+                    if (vm.details.visible) {
+                        vm.details.filters.date_from = null;
+                        vm.details.filters.date_to = null;
+                        vm.details.filters.status = 'all';
+                        vm.details.pagination.current_page = 1;
+                        vm.loadDetails();
+                    }
+                    vm.applyFilters();
+                };
+
                 vm.cardDataFromSummary = function (summary) {
                     return [
                         { key: 'tm', label: 'Total Merchants', value: summary.total_merchants || 0, currency: false, caption: 'Assigned under your account' },
@@ -409,8 +457,10 @@
                         search: vm.filters.search || ''
                     };
                     if (vm.filters.merchant_id) { params.merchant_id = vm.filters.merchant_id; }
-                    if (vm.filters.date_from) { params.date_from = vm.filters.date_from; }
-                    if (vm.filters.date_to) { params.date_to = vm.filters.date_to; }
+                    var dateFrom = vm.formatDateParam(vm.filters.date_from);
+                    var dateTo = vm.formatDateParam(vm.filters.date_to);
+                    if (dateFrom) { params.date_from = dateFrom; }
+                    if (dateTo) { params.date_to = dateTo; }
                     params.display_currency = vm.displayCurrency;
                     params.fx_mode = vm.fxMode;
 
@@ -425,17 +475,20 @@
                         }
                         vm.cards = vm.cardDataFromSummary(res.data.summary || {});
                         vm.loading = false;
-                    }, function () {
+                    }, function (err) {
                         vm.loading = false;
-                        alert('Failed to load merchant performance');
+                        var msg = (err.data && err.data.message) ? err.data.message : 'Failed to load merchant performance';
+                        alert(msg);
                     });
                     }, 0);
                 };
 
                 vm.loadRecent = function () {
                     var params = { page: 1, per_page: 5, status: '' };
-                    if (vm.filters.date_from && vm.filters.date_to) {
-                        params.date_range = vm.filters.date_from + ' 00:00:00 - ' + vm.filters.date_to + ' 23:59:59';
+                    var dateFrom = vm.formatDateParam(vm.filters.date_from);
+                    var dateTo = vm.formatDateParam(vm.filters.date_to);
+                    if (dateFrom && dateTo) {
+                        params.date_range = dateFrom + ' 00:00:00 - ' + dateTo + ' 23:59:59';
                     }
                     if (vm.filters.merchant_id) {
                         params.merchant_id = vm.filters.merchant_id;
@@ -463,8 +516,10 @@
 
                 vm.downloadReport = function () {
                     var params = [];
-                    if (vm.filters.date_from) { params.push('date_from=' + encodeURIComponent(vm.filters.date_from)); }
-                    if (vm.filters.date_to) { params.push('date_to=' + encodeURIComponent(vm.filters.date_to)); }
+                    var dateFrom = vm.formatDateParam(vm.filters.date_from);
+                    var dateTo = vm.formatDateParam(vm.filters.date_to);
+                    if (dateFrom) { params.push('date_from=' + encodeURIComponent(dateFrom)); }
+                    if (dateTo) { params.push('date_to=' + encodeURIComponent(dateTo)); }
                     if (vm.filters.merchant_id) { params.push('merchant_id=' + encodeURIComponent(vm.filters.merchant_id)); }
                     params.push('format=' + encodeURIComponent(vm.reportFormat || 'csv'));
                     var url = "{{ route('reseller.report.download') }}" + '?' + params.join('&');
@@ -479,8 +534,8 @@
                         page: vm.details.pagination.current_page,
                         per_page: vm.details.pagination.per_page
                     };
-                    if (vm.details.filters.date_from) params.date_from = vm.details.filters.date_from;
-                    if (vm.details.filters.date_to) params.date_to = vm.details.filters.date_to;
+                    if (vm.details.filters.date_from) params.date_from = vm.formatDateParam(vm.details.filters.date_from);
+                    if (vm.details.filters.date_to) params.date_to = vm.formatDateParam(vm.details.filters.date_to);
 
                     $http.get("{{ route('reseller.merchant-transactions') }}", { params: params }).then(function (res) {
                         vm.details.rows = res.data.data || [];
@@ -495,8 +550,9 @@
                     vm.details.visible = true;
                     vm.details.merchant_id = row.merchant_id;
                     vm.details.merchant_name = row.merchant_name || '';
-                    vm.details.filters.date_from = vm.filters.date_from || null;
-                    vm.details.filters.date_to = vm.filters.date_to || null;
+                    // Show all merchant transactions by default; user can narrow with detail filters.
+                    vm.details.filters.date_from = null;
+                    vm.details.filters.date_to = null;
                     vm.details.filters.status = 'all';
                     vm.details.pagination.current_page = 1;
                     vm.loadDetails();

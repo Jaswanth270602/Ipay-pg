@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reseller;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\Refund;
+use App\Models\Reseller;
 use App\Models\Transaction;
 use App\Services\DashboardDisplayCurrencyService;
 use App\Services\DashboardMetricsCacheService;
@@ -44,7 +45,7 @@ class DashboardController extends Controller
             : $this->buildDashboardStats(null, null, null, null, $fxCtx);
 
         if ($reseller) {
-            $merchantOptions = $reseller->merchants()->orderBy('name')->get(['id', 'name']);
+            $merchantOptions = $reseller->assignedMerchants()->get(['id', 'name']);
         } else {
             $merchantOptions = collect();
         }
@@ -67,36 +68,45 @@ class DashboardController extends Controller
             return response()->json(['success' => false, 'message' => 'Reseller not found'], 403);
         }
 
-        [$from, $to] = $this->resolveDateRange($request);
-        $fxCtx = DashboardFxContext::fromRequest($request);
-        $search = trim((string) $request->get('search', ''));
-        $merchantId = (int) $request->get('merchant_id', 0);
-        $perPage = min(max((int) $request->get('per_page', 10), 1), 100);
-        $page = max(1, (int) $request->get('page', 1));
+        try {
+            [$from, $to] = $this->resolveDateRange($request);
+            $fxCtx = DashboardFxContext::fromRequest($request);
+            $search = trim((string) $request->get('search', ''));
+            $merchantId = (int) $request->get('merchant_id', 0);
+            $perPage = min(max((int) $request->get('per_page', 10), 1), 100);
+            $page = max(1, (int) $request->get('page', 1));
 
-        $fromKey = $from?->format('Y-m-d') ?? '';
-        $toKey = $to?->format('Y-m-d') ?? '';
+            $fromKey = $from?->format('Y-m-d') ?? '';
+            $toKey = $to?->format('Y-m-d') ?? '';
 
-        if ($merchantId > 0 && ! $reseller->merchants()->where('merchants.id', $merchantId)->exists()) {
-            return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
+            if ($merchantId > 0 && ! $reseller->assignedMerchantIds()->contains($merchantId)) {
+                return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
+            }
+
+            $cached = $this->metricsCache->remember('reseller_merchant_summary', [
+                'reseller_id' => $reseller->id,
+                'test' => PaymentViewMode::cacheTestFlag(),
+                'merchant_id' => $merchantId,
+                'from' => $fromKey,
+                'to' => $toKey,
+                'currency' => $fxCtx->displayCurrency,
+                'fx_mode' => $fxCtx->mode,
+                'page' => $page,
+                'per_page' => $perPage,
+                'search' => $search,
+            ], function () use ($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page) {
+                return $this->buildMerchantSummaryPayload($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page);
+            });
+
+            return response()->json(array_merge(['success' => true, 'fx_options' => $this->displayCurrency->fxOptionsPayload()], $cached));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load merchant performance',
+            ], 500);
         }
-
-        $cached = $this->metricsCache->remember('reseller_merchant_summary', [
-            'reseller_id' => $reseller->id,
-            'test' => PaymentViewMode::cacheTestFlag(),
-            'merchant_id' => $merchantId,
-            'from' => $fromKey,
-            'to' => $toKey,
-            'currency' => $fxCtx->displayCurrency,
-            'fx_mode' => $fxCtx->mode,
-            'page' => $page,
-            'per_page' => $perPage,
-            'search' => $search,
-        ], function () use ($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page) {
-            return $this->buildMerchantSummaryPayload($reseller, $request, $from, $to, $fxCtx, $search, $merchantId, $perPage, $page);
-        });
-
-        return response()->json(array_merge(['success' => true, 'fx_options' => $this->displayCurrency->fxOptionsPayload()], $cached));
     }
 
     /**
@@ -116,7 +126,7 @@ class DashboardController extends Controller
         $usdRates = $this->displayCurrency->getUsdBasedRates();
         $isTestMode = PaymentViewMode::isTestMode();
 
-        $merchantIds = $reseller->merchants()->pluck('id');
+        $merchantIds = $reseller->assignedMerchantIds();
         if ($merchantId > 0) {
             $merchantIds = collect([$merchantId]);
         }
@@ -182,7 +192,7 @@ class DashboardController extends Controller
             ->orderBy('merchants.name');
 
         $rows = $query->paginate($perPage, ['*'], 'page', $page);
-        $data = collect($rows->items())->map(function ($r) use ($from, $to, $fxCtx, $usdRates) {
+        $data = collect($rows->items())->map(function ($r) use ($from, $to, $fxCtx, $usdRates, $isTestMode) {
             $mid = (int) $r->id;
             $txQuery = Transaction::query()
                 ->where('merchant_id', $mid)
@@ -242,7 +252,7 @@ class DashboardController extends Controller
         }
 
         $merchantId = (int) $request->get('merchant_id', 0);
-        $allowedMerchantIds = $reseller->merchants()->pluck('id');
+        $allowedMerchantIds = $reseller->assignedMerchantIds();
         if ($merchantId <= 0 || ! $allowedMerchantIds->contains($merchantId)) {
             return response()->json(['success' => false, 'message' => 'Invalid merchant'], 422);
         }
@@ -314,7 +324,7 @@ class DashboardController extends Controller
 
         [$from, $to] = $this->resolveDateRange($request);
         $merchantId = (int) $request->get('merchant_id', 0);
-        $allowedMerchantIds = $reseller->merchants()->pluck('id');
+        $allowedMerchantIds = $reseller->assignedMerchantIds();
         if ($allowedMerchantIds->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'No merchants assigned'], 422);
         }
@@ -428,9 +438,8 @@ class DashboardController extends Controller
             return $stats;
         }
 
-        $merchantIds = DB::table('reseller_merchant')
-            ->where('reseller_id', $resellerId)
-            ->pluck('merchant_id');
+        $reseller = Reseller::query()->find($resellerId);
+        $merchantIds = $reseller ? $reseller->assignedMerchantIds() : collect();
         if ($merchantId) {
             $merchantIds = $merchantIds->contains($merchantId) ? collect([$merchantId]) : collect();
         }

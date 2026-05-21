@@ -4,7 +4,7 @@
 @section('page-title', 'Integration')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="IntegrationController as ic">
+<div ng-cloak ng-app="ipayApp" ng-controller="IntegrationController as ic">
     <div class="row mb-4">
         <div class="col-md-12">
             <h3 class="fw-bold">Integration Guide</h3>

@@ -1,66 +1,66 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\RegistrationController;
-use App\Http\Controllers\LandingController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Merchant\PaymentLinksController;
-use App\Http\Controllers\Merchant\TransactionsController as MerchantTransactionsController;
-use App\Http\Controllers\Merchant\OrdersController;
-use App\Http\Controllers\Merchant\RefundsController as MerchantRefundsController;
-use App\Http\Controllers\Merchant\SettlementsController;
-use App\Http\Controllers\Merchant\SettingsController;
-use App\Http\Controllers\Merchant\ProfileController;
-use App\Http\Controllers\Merchant\ApiKeysController;
-use App\Http\Controllers\Merchant\IntegrationController;
-use App\Http\Controllers\Merchant\WebhooksController;
-use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\MerchantsController;
-use App\Http\Controllers\Admin\MerchantAccountsController;
-use App\Http\Controllers\Admin\MerchantRegistrationKeysController;
-use App\Http\Controllers\Admin\PartnersController;
-use App\Http\Controllers\Admin\PartnerTDRController;
-use App\Http\Controllers\Admin\PartnerSettlementsController;
-use App\Http\Controllers\Admin\GSTInvoicesController;
-use App\Http\Controllers\Admin\BankCodeSuccessRateController;
-use App\Http\Controllers\Admin\PartnerTeamProfitController;
-use App\Http\Controllers\Admin\SalesReportController;
-use App\Http\Controllers\Admin\DatatableExportController;
-use App\Http\Controllers\Admin\AdhocReportController;
-use App\Http\Controllers\Admin\S2SCallbackLogController;
-use App\Http\Controllers\Admin\ApprovalController;
-use App\Http\Controllers\Admin\SettlementSummaryController;
-use App\Http\Controllers\Admin\RefundsController as AdminRefundsController;
-use App\Http\Controllers\Admin\TransactionsController as AdminTransactionsController;
-use App\Http\Controllers\Admin\BulkRefundUpdateController;
-use App\Http\Controllers\Admin\ChargebacksController;
-use App\Http\Controllers\Admin\BulkChargebacksController;
-use App\Http\Controllers\Admin\SplitTransactionsController;
-use App\Http\Controllers\Admin\FederalVPAController;
-use App\Http\Controllers\Admin\SettlementDetailsController;
-use App\Http\Controllers\Admin\FundTransferController;
-use App\Http\Controllers\Admin\PendingSettlementController;
-use App\Http\Controllers\Admin\MISReportController;
-use App\Http\Controllers\ReportsController;
-use App\Http\Controllers\DisputesController;
-use App\Http\Controllers\PaymentCheckoutController;
-use App\Http\Controllers\NotificationsController;
-use App\Http\Controllers\Admin\RiskManagementController;
-use App\Http\Controllers\Admin\UsersController;
-use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AcquirerAccountsController;
-use App\Http\Controllers\Admin\PaymentRoutingMonitorsController;
 use App\Http\Controllers\Admin\AcquirerAccountUploadController;
 use App\Http\Controllers\Admin\AcquirerRatesController;
+use App\Http\Controllers\Admin\AdhocReportController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminSettingsController;
+use App\Http\Controllers\Admin\ApprovalController;
+use App\Http\Controllers\Admin\BankCodeSuccessRateController;
+use App\Http\Controllers\Admin\BulkChargebacksController;
+use App\Http\Controllers\Admin\BulkRefundUpdateController;
+use App\Http\Controllers\Admin\ChargebacksController;
+use App\Http\Controllers\Admin\DatatableExportController;
+use App\Http\Controllers\Admin\FederalVPAController;
+use App\Http\Controllers\Admin\FundTransferController;
+use App\Http\Controllers\Admin\GSTInvoicesController;
+use App\Http\Controllers\Admin\MerchantAccountsController;
+use App\Http\Controllers\Admin\MerchantRegistrationKeysController;
+use App\Http\Controllers\Admin\MerchantsController;
+use App\Http\Controllers\Admin\MISReportController;
+use App\Http\Controllers\Admin\PartnersController;
+use App\Http\Controllers\Admin\PartnerSettlementsController;
+use App\Http\Controllers\Admin\PartnerTDRController;
+use App\Http\Controllers\Admin\PartnerTeamProfitController;
+use App\Http\Controllers\Admin\PaymentRoutingMonitorsController;
+use App\Http\Controllers\Admin\PendingSettlementController;
+use App\Http\Controllers\Admin\RefundsController as AdminRefundsController;
 use App\Http\Controllers\Admin\ResellersController as AdminResellersController;
+use App\Http\Controllers\Admin\RiskManagementController;
+use App\Http\Controllers\Admin\S2SCallbackLogController;
+use App\Http\Controllers\Admin\SalesReportController;
+use App\Http\Controllers\Admin\SettlementDetailsController;
+use App\Http\Controllers\Admin\SettlementSummaryController;
+use App\Http\Controllers\Admin\SplitTransactionsController;
+use App\Http\Controllers\Admin\TransactionsController as AdminTransactionsController;
+use App\Http\Controllers\Admin\UsersController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\RegistrationController;
+use App\Http\Controllers\CronScheduleController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisputesController;
+use App\Http\Controllers\DocsController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\Merchant\ApiKeysController;
+use App\Http\Controllers\Merchant\IntegrationController;
+use App\Http\Controllers\Merchant\OrdersController;
+use App\Http\Controllers\Merchant\PaymentLinksController;
+use App\Http\Controllers\Merchant\ProfileController;
+use App\Http\Controllers\Merchant\RefundsController as MerchantRefundsController;
+use App\Http\Controllers\Merchant\SettingsController;
+use App\Http\Controllers\Merchant\SettlementCronController;
+use App\Http\Controllers\Merchant\SettlementsController;
+use App\Http\Controllers\Merchant\TransactionsController as MerchantTransactionsController;
+use App\Http\Controllers\Merchant\WebhooksController;
+use App\Http\Controllers\NotificationsController;
+use App\Http\Controllers\PaymentCheckoutController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\Reseller\DashboardController as ResellerDashboardController;
 use App\Http\Controllers\Reseller\EarningsController as ResellerEarningsController;
 use App\Http\Controllers\Reseller\MerchantsController as ResellerMerchantsController;
 use App\Http\Controllers\Reseller\ProfileController as ResellerProfileController;
 use App\Http\Controllers\Reseller\TransactionsController as ResellerTransactionsController;
-use App\Http\Controllers\DocsController;
-use App\Http\Controllers\CronScheduleController;
-use App\Http\Controllers\Merchant\SettlementCronController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -102,6 +102,7 @@ Route::get('/payment/return/{token}', [PaymentCheckoutController::class, 'handle
 
 // CashFree webhooks and verification
 use App\Http\Controllers\CashFreeWebhookController;
+
 Route::post('/webhooks/cashfree/{token}', [CashFreeWebhookController::class, 'handleWebhook'])->name('webhooks.cashfree');
 Route::post('/pay/{token}/verify-cashfree', [CashFreeWebhookController::class, 'verifyOrder'])->name('payment.verify.cashfree');
 
@@ -115,7 +116,6 @@ Route::middleware('guest')->group(function () {
     Route::get('/signup/locations', [RegistrationController::class, 'locations'])->name('signup.locations');
     Route::post('/signup', [RegistrationController::class, 'register'])->name('signup.post');
 });
-
 
 // Logout route (only when authenticated)
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -194,6 +194,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.bulk-chargebacks.upload');
         Route::get('/payments/bulk-chargebacks/template', [\App\Http\Controllers\Merchant\BulkChargebacksController::class, 'downloadTemplate'])
             ->name('merchant.payments.bulk-chargebacks.template');
+        Route::get('/payments/bulk-chargebacks/download/{id}', [\App\Http\Controllers\Merchant\BulkChargebacksController::class, 'downloadStatusFile'])
+            ->name('merchant.payments.bulk-chargebacks.download');
         Route::get('/payments/split-transactions', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'index'])
             ->name('merchant.payments.split-transactions');
         Route::get('/payments/split-transactions/data', [\App\Http\Controllers\Merchant\SplitTransactionsController::class, 'getData'])
@@ -218,7 +220,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.settlements.data');
         Route::get('/settlements/export', [SettlementsController::class, 'export'])
             ->name('merchant.settlements.export');
-        
+
         // Settlement Summary
         Route::get('/settlements/summary', [\App\Http\Controllers\Merchant\SettlementSummaryController::class, 'index'])
             ->name('merchant.settlements.summary');
@@ -226,7 +228,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.settlements.summary.data');
         Route::post('/settlements/summary/mark-settled', [\App\Http\Controllers\Merchant\SettlementSummaryController::class, 'markAsSettled'])
             ->name('merchant.settlements.summary.mark-settled');
-        
+
         // Settlement Details
         Route::get('/settlements/details', [\App\Http\Controllers\Merchant\SettlementDetailsController::class, 'index'])
             ->name('merchant.settlements.details');
@@ -260,10 +262,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.disputes.index');
         Route::get('/disputes/data', [DisputesController::class, 'getData'])
             ->name('merchant.disputes.data');
-        Route::post('/disputes', [DisputesController::class, 'store'])
-            ->name('merchant.disputes.store');
-        Route::post('/disputes/{id}/status', [DisputesController::class, 'updateStatus'])
-            ->name('merchant.disputes.update-status');
 
         // API Keys
         Route::get('/api-keys', [ApiKeysController::class, 'index'])->name('merchant.api_keys.index');
@@ -293,7 +291,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings/switch-mode', [SettingsController::class, 'switchMode'])->name('merchant.settings.switch-mode');
         Route::post('/settings/webhook', [SettingsController::class, 'updateWebhook'])->name('merchant.settings.update-webhook');
         Route::post('/settings/split', [SettingsController::class, 'updateSplit'])->name('merchant.settings.update-split');
-        
+
         // Profile
         Route::get('/profile', [ProfileController::class, 'index'])->name('merchant.profile.index');
         Route::put('/profile', [ProfileController::class, 'update'])->name('merchant.profile.update');
@@ -341,7 +339,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.csv-lifecycle.upload');
         Route::get('/csv-lifecycle/report/download', [\App\Http\Controllers\Admin\CsvLifecycleController::class, 'downloadReport'])
             ->name('admin.csv-lifecycle.report.download');
-        
+
         Route::get('/merchants', [MerchantsController::class, 'index'])
             ->name('admin.merchants.index');
         Route::get('/merchants/data', [MerchantsController::class, 'getData'])
@@ -495,6 +493,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.payments.bulk-chargebacks.upload');
         Route::get('/payments/bulk-chargebacks/template', [BulkChargebacksController::class, 'downloadTemplate'])
             ->name('admin.payments.bulk-chargebacks.template');
+        Route::get('/payments/bulk-chargebacks/download/{id}', [BulkChargebacksController::class, 'downloadStatusFile'])
+            ->name('admin.payments.bulk-chargebacks.download');
         Route::get('/payments/split-transactions', [SplitTransactionsController::class, 'index'])
             ->name('admin.payments.split-transactions');
         Route::get('/payments/split-transactions/data', [SplitTransactionsController::class, 'getData'])
@@ -530,7 +530,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.settlements.fund-transfer.data');
         Route::post('/settlements/fund-transfer', [FundTransferController::class, 'store'])
             ->name('admin.settlements.fund-transfer.store');
-        
+
         // Manage Settlements Module
         Route::get('/manage-settlements/pending', [PendingSettlementController::class, 'index'])
             ->name('admin.manage-settlements.pending');
@@ -594,17 +594,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/success-rate/bankcode-wise/merchants', [BankCodeSuccessRateController::class, 'getMerchants'])
             ->name('admin.reports.success-rate.bankcode-wise.merchants');
 
-        if (config('features.partners', false)) {
-            // Profitability - Partner Team Profit
-            Route::get('/reports/profitability/partner-team-profit', [PartnerTeamProfitController::class, 'index'])
-                ->name('admin.reports.profitability.partner-team-profit');
-            Route::get('/reports/profitability/partner-team-profit/data', [PartnerTeamProfitController::class, 'getData'])
-                ->name('admin.reports.profitability.partner-team-profit.data');
-            Route::get('/reports/profitability/partner-team-profit/payment-modes', [PartnerTeamProfitController::class, 'getPaymentModes'])
-                ->name('admin.reports.profitability.partner-team-profit.payment-modes');
-            Route::get('/reports/profitability/partner-team-profit/payment-channels', [PartnerTeamProfitController::class, 'getPaymentChannels'])
-                ->name('admin.reports.profitability.partner-team-profit.payment-channels');
-        }
+        // Profitability - Partner Team Profit (hub + sidebar always link here; optional env in controller if needed)
+        Route::get('/reports/profitability/partner-team-profit', [PartnerTeamProfitController::class, 'index'])
+            ->name('admin.reports.profitability.partner-team-profit');
+        Route::get('/reports/profitability/partner-team-profit/data', [PartnerTeamProfitController::class, 'getData'])
+            ->name('admin.reports.profitability.partner-team-profit.data');
+        Route::get('/reports/profitability/partner-team-profit/payment-modes', [PartnerTeamProfitController::class, 'getPaymentModes'])
+            ->name('admin.reports.profitability.partner-team-profit.payment-modes');
+        Route::get('/reports/profitability/partner-team-profit/payment-channels', [PartnerTeamProfitController::class, 'getPaymentChannels'])
+            ->name('admin.reports.profitability.partner-team-profit.payment-channels');
 
         // Sales Reports
         Route::get('/reports/sales/date-and-merchant', [SalesReportController::class, 'dateAndMerchant'])
@@ -665,6 +663,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.disputes.data');
         Route::get('/disputes/summary', [\App\Http\Controllers\Admin\DisputesController::class, 'getSummary'])
             ->name('admin.disputes.summary');
+        Route::post('/disputes', [\App\Http\Controllers\Admin\DisputesController::class, 'store'])
+            ->name('admin.disputes.store');
+        Route::get('/disputes/export/csv', [\App\Http\Controllers\Admin\DisputesController::class, 'export'])
+            ->name('admin.disputes.export');
         Route::get('/disputes/{id}', [\App\Http\Controllers\Admin\DisputesController::class, 'showView'])
             ->name('admin.disputes.show');
         Route::get('/disputes/{id}/data', [\App\Http\Controllers\Admin\DisputesController::class, 'show'])
@@ -677,8 +679,6 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.disputes.submit');
         Route::patch('/disputes/{id}/status', [\App\Http\Controllers\Admin\DisputesController::class, 'updateStatus'])
             ->name('admin.disputes.update-status');
-        Route::get('/disputes/export/csv', [\App\Http\Controllers\Admin\DisputesController::class, 'export'])
-            ->name('admin.disputes.export');
 
         // Admin Settings (Mode Switching)
         Route::post('/settings/switch-mode', [AdminSettingsController::class, 'switchMode'])
@@ -731,7 +731,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.approvals.merchant-tdr.reject');
         Route::post('/approvals/merchant-tdr/bulk-action', [ApprovalController::class, 'bulkMerchantTdrAction'])
             ->name('admin.approvals.merchant-tdr.bulk-action');
-        
+
         Route::get('/approvals/pg-refunds', [ApprovalController::class, 'pgRefunds'])
             ->name('admin.approvals.pg-refunds');
         Route::get('/approvals/pg-refunds/data', [ApprovalController::class, 'getPgRefundData'])
@@ -805,7 +805,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.acquirer.monitoring.data');
         Route::get('/payment-routing-monitors/{id}', [PaymentRoutingMonitorsController::class, 'show'])
             ->name('admin.acquirer.monitoring.show');
-        
+
         // Acquirer Account Details Upload
         Route::get('/acquirer-account-upload', [AcquirerAccountUploadController::class, 'index'])
             ->name('admin.acquirer.detail-upload.index');
@@ -821,7 +821,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.acquirer.detail-upload.download-status');
         Route::get('/acquirer-account-upload/download-template', [AcquirerAccountUploadController::class, 'downloadTemplate'])
             ->name('admin.acquirer.detail-upload.download-template');
-        
+
         // Acquirer Rates
         Route::get('/acquirer-rates', [AcquirerRatesController::class, 'index'])
             ->name('admin.acquirer.rates.index');
@@ -888,4 +888,4 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// TBD : also configure routes for ICICI bank apis - usha handle it 
+// TBD : also configure routes for ICICI bank apis - usha handle it

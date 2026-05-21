@@ -3,8 +3,56 @@
 @section('title', 'VAT Invoices Report - Admin - ' . config('app.name'))
 @section('page-title', 'VAT Invoices Report')
 
+@push('styles')
+<style>
+    .gst-vat-invoices-page .gst-action-group.btn-group > .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.35rem;
+        padding: 0.35rem 0.45rem;
+        line-height: 1;
+        border-radius: 0;
+    }
+    .gst-vat-invoices-page .gst-action-group.btn-group > .btn:first-child {
+        border-top-left-radius: 0.375rem;
+        border-bottom-left-radius: 0.375rem;
+    }
+    .gst-vat-invoices-page .gst-action-group.btn-group > .btn:last-child {
+        border-top-right-radius: 0.375rem;
+        border-bottom-right-radius: 0.375rem;
+    }
+    .gst-vat-invoices-page .gst-action-group .btn i {
+        font-size: 1rem;
+    }
+    .gst-vat-invoices-page .gst-view-detail-table th {
+        width: 32%;
+        max-width: 280px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #4b5563;
+        padding: 0.65rem 1rem !important;
+        vertical-align: middle;
+        background: #f3f4f6 !important;
+        border-color: #e5e7eb !important;
+        white-space: nowrap;
+    }
+    .gst-vat-invoices-page .gst-view-detail-table td {
+        font-size: 0.875rem;
+        padding: 0.65rem 1rem !important;
+        vertical-align: middle;
+        border-color: #e5e7eb !important;
+        word-break: break-word;
+    }
+    .gst-vat-invoices-page #gstInvoiceViewModal .modal-content {
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+</style>
+@endpush
+
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminGSTInvoicesController as gst">
+<div ng-cloak class="gst-vat-invoices-page" ng-app="ipayApp" ng-controller="AdminGSTInvoicesController as gst">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Canned Report']
@@ -175,16 +223,18 @@
                             <td>@{{ invoice.invoice_value || '0.00' }}</td>
                             <td>@{{ invoice.invoice_date || '-' }}</td>
                             <td>@{{ invoice.id }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-success" ng-click="gst.viewInvoice(invoice); $event.stopPropagation();" title="View">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-primary" ng-click="gst.editInvoice(invoice); $event.stopPropagation();" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" ng-click="gst.deleteInvoice(invoice); $event.stopPropagation();" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                            <td class="text-end text-nowrap align-middle">
+                                <div class="btn-group btn-group-sm gst-action-group" role="group" aria-label="Invoice actions">
+                                    <button type="button" class="btn btn-outline-success" ng-click="gst.viewInvoice(invoice); $event.stopPropagation();" title="View">
+                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" ng-click="gst.editInvoice(invoice); $event.stopPropagation();" title="Edit">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" ng-click="gst.deleteInvoice(invoice); $event.stopPropagation();" title="Delete">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -194,9 +244,10 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (gst.pagination.current_page - 1) * gst.pagination.per_page + 1 }}
+                    <span ng-if="gst.pagination.total > 0">Showing @{{ (gst.pagination.current_page - 1) * gst.pagination.per_page + 1 }}
                     to @{{ Math.min(gst.pagination.current_page * gst.pagination.per_page, gst.pagination.total) }}
-                    of @{{ gst.pagination.total }} entries
+                    of @{{ gst.pagination.total }} entries</span>
+                    <span ng-if="gst.pagination.total === 0">Showing 0 entries</span>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary"
@@ -338,7 +389,55 @@
         </div>
     </div>
 </div>
+
+<!-- View invoice (read-only) -->
+<div class="modal fade" id="gstInvoiceViewModal" tabindex="-1" aria-labelledby="gstInvoiceViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-2 pt-4 px-4 align-items-start">
+                <div class="flex-grow-1">
+                    <span class="badge bg-success rounded-pill px-3 py-2">View only</span>
+                    <h5 class="modal-title mt-2 mb-0" id="gstInvoiceViewModalLabel">VAT invoice details</h5>
+                    <p class="text-muted small mb-0 mt-1" ng-if="gst.viewDetail && gst.viewDetail.invoice_number">
+                        <span class="font-monospace">@{{ gst.viewDetail.invoice_number }}</span>
+                    </p>
+                </div>
+                <button type="button" class="btn-close mt-1" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pt-0 pb-3">
+                <p class="text-muted small mb-3" ng-if="gst.viewDetail">Review all fields stored for this invoice.</p>
+                <div ng-if="gst.viewDetail" class="table-responsive rounded-3 border border-light">
+                    <table class="table table-sm align-middle mb-0 gst-view-detail-table">
+                        <tbody>
+                            <tr><th scope="row">ID</th><td>@{{ gst.viewDetail.id }}</td></tr>
+                            <tr><th scope="row">Invoice number</th><td><span class="font-monospace">@{{ gst.viewDetail.invoice_number || '—' }}</span></td></tr>
+                            <tr><th scope="row">Period</th><td>@{{ gst.monthLabel(gst.viewDetail.month) }} @{{ gst.viewDetail.year }}</td></tr>
+                            <tr><th scope="row">Merchant</th><td>@{{ gst.merchantLabel(gst.viewDetail) }}</td></tr>
+                            <tr><th scope="row">VAT provided by</th><td>@{{ gst.viewDetail.gst_provided_by || '—' }}</td></tr>
+                            <tr><th scope="row">VAT payer name</th><td>@{{ gst.viewDetail.gst_payer_name || '—' }}</td></tr>
+                            <tr><th scope="row">Payer VATIN</th><td><span class="font-monospace text-uppercase">@{{ gst.viewDetail.payer_gstin || '—' }}</span></td></tr>
+                            <tr><th scope="row">Payer VATIN state</th><td>@{{ gst.viewDetail.payer_gstin_state || '—' }}</td></tr>
+                            <tr><th scope="row">Non-taxable TDR</th><td>@{{ gst.viewDetail.non_taxable_tdr | number:2 }}</td></tr>
+                            <tr><th scope="row">Taxable TDR</th><td>@{{ gst.viewDetail.taxable_tdr | number:2 }}</td></tr>
+                            <tr><th scope="row">SGST</th><td>@{{ gst.viewDetail.sgst | number:2 }}</td></tr>
+                            <tr><th scope="row">CGST</th><td>@{{ gst.viewDetail.cgst | number:2 }}</td></tr>
+                            <tr><th scope="row">IGST</th><td>@{{ gst.viewDetail.igst | number:2 }}</td></tr>
+                            <tr><th scope="row">UTGST</th><td>@{{ gst.viewDetail.utgst | number:2 }}</td></tr>
+                            <tr><th scope="row">Invoice value</th><td><strong>@{{ gst.viewDetail.invoice_value | number:2 }}</strong></td></tr>
+                            <tr><th scope="row">Invoice date</th><td>@{{ gst.viewDetail.invoice_date || '—' }}</td></tr>
+                            <tr><th scope="row">Notes</th><td class="text-break text-muted">@{{ gst.viewDetail.notes || '—' }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+    </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -354,9 +453,11 @@
 
         try {
             var app = angular.module('ipayApp');
-            app.controller('AdminGSTInvoicesController', ['$http', function ($http) {
+            app.controller('AdminGSTInvoicesController', ['$http', '$timeout', function ($http, $timeout) {
                 var vm = this;
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+                var MONTH_LABELS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
                 vm.invoices = [];
                 vm.states = [];
@@ -366,7 +467,23 @@
                 vm.isEditing = false;
                 vm.saving = false;
                 vm.formErrors = {};
+                vm.viewDetail = null;
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
+
+                vm.monthLabel = function (m) {
+                    var n = parseInt(m, 10);
+                    return (n >= 1 && n <= 12) ? MONTH_LABELS[n] : (m !== undefined && m !== null && m !== '') ? String(m) : '—';
+                };
+
+                vm.merchantLabel = function (inv) {
+                    if (!inv) {
+                        return '—';
+                    }
+                    if (inv.merchant) {
+                        return inv.merchant.business_name || inv.merchant.name || ('Merchant #' + inv.merchant.id);
+                    }
+                    return inv.merchant_id ? ('#' + inv.merchant_id) : '—';
+                };
 
                 vm.visibleColumns = {
                     invoice_number: true,
@@ -657,37 +774,18 @@
                 };
 
                 vm.viewInvoice = function (invoice) {
+                    vm.viewDetail = null;
                     $http.get("{{ url('admin/reports/gst-invoices') }}/" + invoice.id).then(function (response) {
                         if (response.data && response.data.success) {
-                            var invoiceData = response.data.data;
-                            var details = 'Invoice Number: ' + invoiceData.invoice_number + '\n' +
-                                        'Month: ' + invoiceData.month + '\n' +
-                                        'Year: ' + invoiceData.year + '\n' +
-                                        'VAT Payer Name: ' + invoiceData.gst_payer_name + '\n' +
-                                        'Payer VATIN: ' + (invoiceData.payer_gstin || 'N/A') + '\n' +
-                                        'Invoice Value: ' + invoiceData.invoice_value;
-                            alert(details);
-                        }
-                    });
-                };
-
-                vm.deleteInvoice = function (invoice) {
-                    if (!confirm('Are you sure you want to delete this VAT invoice?')) {
-                        return;
-                    }
-
-                    $http.delete("{{ url('admin/reports/gst-invoices') }}/" + invoice.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'VAT invoice deleted', 'success');
-                            } else {
-                                alert(response.data.message || 'VAT invoice deleted');
-                            }
-                            vm.loadInvoices();
+                            vm.viewDetail = response.data.data;
+                            $timeout(function () {
+                                var el = document.getElementById('gstInvoiceViewModal');
+                                if (el) {
+                                    bootstrap.Modal.getOrCreateInstance(el).show();
+                                }
+                            }, 0);
                         } else {
-                            var msg = (response.data && response.data.message) || 'Failed to delete VAT invoice';
+                            var msg = (response.data && response.data.message) || 'Could not load invoice';
                             if (typeof showToast === 'function') {
                                 showToast(msg, 'error');
                             } else {
@@ -695,7 +793,7 @@
                             }
                         }
                     }, function (error) {
-                        var msg = 'Failed to delete VAT invoice';
+                        var msg = 'Could not load invoice';
                         if (error.data && error.data.message) {
                             msg = error.data.message;
                         }
@@ -704,6 +802,53 @@
                         } else {
                             alert(msg);
                         }
+                    });
+                };
+
+                vm.deleteInvoice = function (invoice) {
+                    function doDelete() {
+                        $http.delete("{{ url('admin/reports/gst-invoices') }}/" + invoice.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'VAT invoice deleted', 'success');
+                                } else {
+                                    alert(response.data.message || 'VAT invoice deleted');
+                                }
+                                vm.loadInvoices();
+                            } else {
+                                var msg = (response.data && response.data.message) || 'Failed to delete VAT invoice';
+                                if (typeof showToast === 'function') {
+                                    showToast(msg, 'error');
+                                } else {
+                                    alert(msg);
+                                }
+                            }
+                        }, function (error) {
+                            var msg = 'Failed to delete VAT invoice';
+                            if (error.data && error.data.message) {
+                                msg = error.data.message;
+                            }
+                            if (typeof showToast === 'function') {
+                                showToast(msg, 'error');
+                            } else {
+                                alert(msg);
+                            }
+                        });
+                    }
+
+                    ipayConfirm('Are you sure you want to delete this VAT invoice? This cannot be undone.', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete VAT invoice'
+                    }).then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+                        $timeout(function () {
+                            doDelete();
+                        });
                     });
                 };
 

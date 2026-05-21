@@ -4,7 +4,7 @@
 @section('page-title', 'Transactions Details')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPaymentsTransactionsController as atc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPaymentsTransactionsController as atc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Latest Transactions']

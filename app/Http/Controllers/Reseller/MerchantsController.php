@@ -12,7 +12,7 @@ class MerchantsController extends Controller
     {
         $reseller = $request->user()->reseller;
         $merchants = $reseller
-            ? $reseller->merchants()->orderBy('name')->get(['id', 'merchant_unique_id', 'name', 'email', 'status', 'approval_status'])
+            ? $reseller->assignedMerchants()->get(['id', 'merchant_unique_id', 'name', 'email', 'status', 'approval_status'])
             : collect();
 
         return view('reseller.merchants', [

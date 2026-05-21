@@ -4,7 +4,7 @@
 @section('page-title', 'Fund Transfer')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminFundTransferController as aftc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminFundTransferController as aftc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Fund Transfer']

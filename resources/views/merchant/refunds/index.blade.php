@@ -72,7 +72,7 @@
         font-weight: 600;
     }
 </style>
-<div ng-app="ipayApp" ng-controller="RefundsController as rc">
+<div ng-cloak ng-app="ipayApp" ng-controller="RefundsController as rc">
     <div class="alert alert-info d-flex align-items-start gap-2 mb-3" role="alert">
         <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
         <div class="small">

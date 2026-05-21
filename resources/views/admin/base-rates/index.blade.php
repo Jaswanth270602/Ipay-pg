@@ -4,7 +4,7 @@
 @section('page-title', 'Base Rates Configuration')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="BaseRatesController as brc">
+<div ng-cloak ng-app="ipayApp" ng-controller="BaseRatesController as brc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Base Rates']
@@ -1494,13 +1494,16 @@
                 };
 
                 vm.deleteRate = function(rate) {
-                    if (!confirm('Are you sure you want to delete this base rate?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to delete this base rate?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete base rate'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete('/admin/base-rates/' + rate.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
+                        $http.delete('/admin/base-rates/' + rate.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
                         if (response.data.success) {
                             if (typeof showToast === 'function') {
                                 showToast('Base rate deleted successfully', 'success');
@@ -1523,6 +1526,7 @@
                             alert('Failed to delete base rate');
                         }
                         console.error('Error:', error);
+                    });
                     });
                 };
 

@@ -4,7 +4,7 @@
 @section('page-title', 'Transactions')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ResellerTransactionsController as rtc">
+<div ng-cloak ng-app="ipayApp" ng-controller="ResellerTransactionsController as rtc">
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Transactions</h2>

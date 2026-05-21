@@ -4,7 +4,7 @@
 @section('page-title', 'Split Transactions')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminSplitTransactionsController as astc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminSplitTransactionsController as astc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Split Transaction Details']

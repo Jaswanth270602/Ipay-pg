@@ -4,7 +4,7 @@
 @section('page-title','Transaction export')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="ReportsController as rptc">
+<div ng-cloak ng-app="ipayApp" ng-controller="ReportsController as rptc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('dashboard')],
         ['label'=>'Reports','url'=>route('merchant.reports.index')],

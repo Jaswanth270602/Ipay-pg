@@ -9,7 +9,7 @@
     window.ipayInitialVendors = @json($initialVendors ?? []);
     window.ipayPaymentLinkPublicKey = @json($paymentLinkPublicKey ?? '');
 </script>
-<div id="paymentLinksApp" ng-app="ipayApp" ng-controller="PaymentLinksController as plc">
+<div ng-cloak id="paymentLinksApp" ng-app="ipayApp" ng-controller="PaymentLinksController as plc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('dashboard')],
         ['label'=>'Payment Links']

@@ -4,7 +4,7 @@
 @section('page-title', 'Merchants Management')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminMerchantsController as amc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminMerchantsController as amc">
     <x-breadcrumbs :items="[
         ['label'=>'Dashboard','url'=>route('admin.dashboard')],
         ['label'=>'Merchants']

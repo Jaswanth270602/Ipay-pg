@@ -124,7 +124,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminUsersController as auc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminUsersController as auc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'User Settings'],
@@ -913,22 +913,26 @@
                         alert('Please select a user to delete');
                         return;
                     }
-                    if (!confirm('Are you sure you want to delete user: ' + vm.selectedUser.name + '?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to delete user: ' + vm.selectedUser.name + '?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete user'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete('/admin/users/' + vm.selectedUser.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('User deleted successfully');
-                            vm.loadUsers();
-                        } else {
-                            alert('Failed to delete user: ' + (response.data.message || 'Unknown error'));
-                        }
-                    }, function(error) {
-                        console.error('Error deleting user:', error);
-                        alert('Failed to delete user. Please try again.');
+                        $http.delete('/admin/users/' + vm.selectedUser.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
+                            if (response.data.success) {
+                                alert('User deleted successfully');
+                                vm.loadUsers();
+                            } else {
+                                alert('Failed to delete user: ' + (response.data.message || 'Unknown error'));
+                            }
+                        }, function(error) {
+                            console.error('Error deleting user:', error);
+                            alert('Failed to delete user. Please try again.');
+                        });
                     });
                 };
 
@@ -953,24 +957,28 @@
                 vm.toggle2FA = function(user, event) {
                     if (event) event.stopPropagation();
                     var action = user.two_factor_enabled ? 'disable' : 'enable';
-                    if (!confirm('Are you sure you want to ' + action + ' 2FA for user: ' + user.name + '?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to ' + action + ' 2FA for user: ' + user.name + '?', 'warning', {
+                        okText: 'Continue',
+                        cancelText: 'Cancel',
+                        title: (action === 'enable' ? 'Enable' : 'Disable') + ' two-factor authentication'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.post('/admin/users/' + user.id + '/toggle-2fa', {}, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            user.two_factor_enabled = response.data.two_factor_enabled;
-                            user.two_factor_auth = response.data.two_factor_auth;
-                            alert(response.data.message);
-                            vm.loadUsers();
-                        } else {
-                            alert('Failed to update 2FA: ' + (response.data.message || 'Unknown error'));
-                        }
-                    }, function(error) {
-                        console.error('Error toggling 2FA:', error);
-                        alert('Failed to update 2FA. Please try again.');
+                        $http.post('/admin/users/' + user.id + '/toggle-2fa', {}, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
+                            if (response.data.success) {
+                                user.two_factor_enabled = response.data.two_factor_enabled;
+                                user.two_factor_auth = response.data.two_factor_auth;
+                                alert(response.data.message);
+                                vm.loadUsers();
+                            } else {
+                                alert('Failed to update 2FA: ' + (response.data.message || 'Unknown error'));
+                            }
+                        }, function(error) {
+                            console.error('Error toggling 2FA:', error);
+                            alert('Failed to update 2FA. Please try again.');
+                        });
                     });
                 };
 

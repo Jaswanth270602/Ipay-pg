@@ -4,7 +4,7 @@
 @section('page-title', 'Federal Direct VPA Payments')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminFederalVPAController as afvc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminFederalVPAController as afvc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Federal Direct VPA Payments']

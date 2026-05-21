@@ -40,7 +40,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AcquirerRatesController as arc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AcquirerRatesController as arc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Acquirer Details'],
@@ -250,7 +250,8 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ ((arc.pagination.current_page - 1) * arc.pagination.per_page) + 1 }} to @{{ Math.min(arc.pagination.current_page * arc.pagination.per_page, arc.pagination.total) }} of @{{ arc.pagination.total }} entries
+                    <span ng-if="arc.pagination.total > 0">Showing @{{ ((arc.pagination.current_page - 1) * arc.pagination.per_page) + 1 }} to @{{ Math.min(arc.pagination.current_page * arc.pagination.per_page, arc.pagination.total) }} of @{{ arc.pagination.total }} entries</span>
+                    <span ng-if="arc.pagination.total === 0">Showing 0 entries</span>
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" ng-click="arc.loadRates(arc.pagination.current_page - 1)" ng-disabled="arc.pagination.current_page === 1">

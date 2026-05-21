@@ -146,16 +146,21 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminDisputesController as adc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminDisputesController as adc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Disputes']
     ]" />
 
     <div class="row mb-4">
-        <div class="col-md-12">
+        <div class="col-md-8">
             <h2>Disputes</h2>
-            <p class="text-muted">Manage chargebacks and disputes</p>
+            <p class="text-muted mb-0">Manage chargebacks and disputes on behalf of merchants</p>
+        </div>
+        <div class="col-md-4 d-flex align-items-end justify-content-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#adminNewDisputeModal">
+                <i class="bi bi-plus-lg"></i> New Dispute
+            </button>
         </div>
     </div>
 
@@ -386,6 +391,78 @@
                         </li>
                     </ul>
                 </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminNewDisputeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Dispute</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Merchant ID <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" ng-model="adc.form.merchant_id" placeholder="Merchant ID" required min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction ID <span class="text-muted">(optional)</span></label>
+                        <input type="text" class="form-control" ng-model="adc.form.transaction_id" placeholder="TXN ID or numeric ID">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Order ID <span class="text-muted">(optional)</span></label>
+                        <input type="text" class="form-control" ng-model="adc.form.order_id" placeholder="Order reference">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" ng-model="adc.form.reason" required>
+                            <option value="">Select Reason</option>
+                            <option value="fraud">Fraud</option>
+                            <option value="product_not_received">Product Not Received</option>
+                            <option value="product_not_as_described">Product Not As Described</option>
+                            <option value="duplicate_charge">Duplicate Charge</option>
+                            <option value="refund_not_processed">Refund Not Processed</option>
+                            <option value="subscription_canceled">Subscription Canceled</option>
+                            <option value="no_authorization">No Authorization</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" ng-model="adc.form.amount" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" ng-model="adc.form.currency">
+                                <option value="INR">INR</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Card Network <span class="text-muted">(optional)</span></label>
+                        <select class="form-select" ng-model="adc.form.card_network">
+                            <option value="">Select Card Network</option>
+                            <option value="VISA">VISA</option>
+                            <option value="MASTERCARD">MASTERCARD</option>
+                            <option value="RUPAY">RUPAY</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Internal Notes <span class="text-muted">(optional)</span></label>
+                        <textarea class="form-control" ng-model="adc.form.internal_notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" ng-click="adc.createDispute()" ng-disabled="adc.creating || !adc.form.merchant_id || !adc.form.reason || !adc.form.amount || adc.form.amount <= 0">
+                        <span ng-if="adc.creating" class="spinner-border spinner-border-sm me-1"></span>
+                        Create
+                    </button>
+                </div>
             </div>
         </div>
     </div>

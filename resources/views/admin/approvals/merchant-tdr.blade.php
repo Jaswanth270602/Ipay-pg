@@ -3,8 +3,61 @@
 @section('title', 'Merchant TDR Approvals - Admin - ' . config('app.name'))
 @section('page-title', 'Approval Management')
 
+@push('styles')
+<style>
+    /* Approval management tables — readable headers, wider filter inputs */
+    .approvals-mgmt-page .table thead tr:first-child th {
+        text-transform: none;
+        letter-spacing: normal;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #374151;
+        white-space: nowrap;
+        vertical-align: bottom;
+        padding-top: 0.75rem;
+        padding-bottom: 0.35rem;
+        border-bottom-width: 1px;
+    }
+    .approvals-mgmt-page .table thead tr:nth-child(2) th {
+        padding-top: 0.5rem;
+        padding-bottom: 0.65rem;
+        border-top: none;
+        vertical-align: top;
+    }
+    .approvals-mgmt-page .table thead .form-control-sm,
+    .approvals-mgmt-page .table thead .form-select-sm {
+        min-width: 7.5rem;
+        font-size: 0.8125rem;
+    }
+    .approvals-mgmt-page .table tbody td {
+        font-size: 0.875rem;
+        vertical-align: middle;
+    }
+    .approvals-mgmt-page .table-responsive {
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+    }
+    .approvals-mgmt-page .approval-actions.btn-group > .btn {
+        min-width: 2.35rem;
+        padding: 0.32rem 0.45rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+    .approvals-mgmt-page .approval-actions.btn-group > .btn:first-child {
+        border-top-left-radius: 0.375rem;
+        border-bottom-left-radius: 0.375rem;
+    }
+    .approvals-mgmt-page .approval-actions.btn-group > .btn:last-child {
+        border-top-right-radius: 0.375rem;
+        border-bottom-right-radius: 0.375rem;
+    }
+</style>
+@endpush
+
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantTdrApprovalController as mta">
+<div ng-cloak class="approvals-mgmt-page" ng-app="ipayApp" ng-controller="MerchantTdrApprovalController as mta">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Approvals']
@@ -98,45 +151,19 @@
                             <th>
                                 <input type="checkbox" ng-model="mta.selectAll" ng-change="mta.toggleSelectAll()">
                             </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Approval Id
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Created By
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Merchant ID
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Merchant Name
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Model Id
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Model Name
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Operation
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Previous Changes
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Changes
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Is Approved
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Created At
-                                <i class="bi bi-arrow-down-up ms-1" style="font-size: 10px;"></i>
-                            </th>
-                            <th>
-                                <i class="bi bi-diamond"></i> Approved Date
-                                <i class="bi bi-arrow-down-up ms-1" style="font-size: 10px;"></i>
-                            </th>
-                            <th>Action</th>
+                            <th>Approval ID</th>
+                            <th>Created by</th>
+                            <th>Merchant ID</th>
+                            <th>Merchant name</th>
+                            <th>Model ID</th>
+                            <th>Model name</th>
+                            <th>Operation</th>
+                            <th>Previous changes</th>
+                            <th>Changes</th>
+                            <th>Status</th>
+                            <th>Created at</th>
+                            <th>Approved date</th>
+                            <th class="text-end">Action</th>
                         </tr>
                         <tr>
                             <th></th>
@@ -218,14 +245,16 @@
                             </td>
                             <td>@{{ item.created_at || 'N/A' }}</td>
                             <td>@{{ item.approved_at || 'N/A' }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-success" ng-if="item.is_approved === 'pending'" ng-click="mta.approve(item)" title="Approve">
-                                    <i class="bi bi-check-lg"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" ng-if="item.is_approved === 'pending'" ng-click="mta.reject(item)" title="Reject">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                                <span ng-if="item.is_approved !== 'pending'">-</span>
+                            <td class="text-end">
+                                <div ng-if="item.is_approved === 'pending'" class="btn-group btn-group-sm approval-actions" role="group" aria-label="Approve or reject">
+                                    <button type="button" class="btn btn-success" ng-click="mta.approve(item)" title="Approve">
+                                        <i class="bi bi-check-lg" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger" ng-click="mta.reject(item)" title="Reject">
+                                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <span ng-if="item.is_approved !== 'pending'" class="text-muted">—</span>
                             </td>
                         </tr>
                     </tbody>
@@ -488,28 +517,16 @@
                 };
 
                 vm.viewPreviousChanges = function (item) {
-                    var content = item.previous_changes;
-                    try {
-                        var parsed = JSON.parse(content);
-                        content = JSON.stringify(parsed, null, 2);
-                    } catch (e) {
-                        // Use as is if not valid JSON
-                    }
+                    var content = item.previous_changes || '';
                     $timeout(function () {
-                        ipayAlert(content, 'info', { title: 'Previous changes', forceJson: true });
+                        ipayAlert(content, 'info', { title: 'Previous changes', keyValueLayout: true });
                     });
                 };
 
                 vm.viewChanges = function (item) {
-                    var content = item.changes;
-                    try {
-                        var parsed = JSON.parse(content);
-                        content = JSON.stringify(parsed, null, 2);
-                    } catch (e) {
-                        // Use as is if not valid JSON
-                    }
+                    var content = item.changes || '';
                     $timeout(function () {
-                        ipayAlert(content, 'info', { title: 'Request changes', forceJson: true });
+                        ipayAlert(content, 'info', { title: 'Request changes', keyValueLayout: true });
                     });
                 };
 

@@ -36,6 +36,15 @@
             min-height: 100vh;
         }
 
+        /* Hide Angular template until compiled (prevents mustache/bracket flashes before bootstrap) */
+        [ng\:cloak],
+        [ng-cloak],
+        [data-ng-cloak],
+        [x-ng-cloak],
+        .ng-cloak {
+            display: none !important;
+        }
+
         /* Sidebar Styles */
         .sidebar {
             position: fixed;
@@ -1989,6 +1998,31 @@ document.addEventListener('click', function(event) {
 </script>
 
 @include('components.ipay-modals')
+
+<script>
+(function () {
+    'use strict';
+    var _nativeAlert = window.alert;
+    /** Route legacy window.alert() to Bootstrap ipay modal when available */
+    window.alert = function (message) {
+        var msg = message == null ? '' : String(message);
+        if (typeof window.ipayAlert === 'function') {
+            var lower = msg.toLowerCase();
+            var type = 'info';
+            if ((/\b(successfully|saved|deleted|created|updated|completed|duplicated|scheduled|copied|revoked)\b/i.test(msg)) && !/\bfail|\berror\b|\binvalid\b|\bunable\b|\bcannot\b|\bcould not\b/i.test(lower)) {
+                type = 'success';
+            } else if (/\bfail|\berror|\binvalid|\bunable|\bcannot|\bcould not|\bplease select|\bplease enter|\bupload failed|\bvalidation/i.test(lower)) {
+                type = 'danger';
+            } else if (/\bwarn|\bcaution/i.test(lower)) {
+                type = 'warning';
+            }
+            window.ipayAlert(msg, type);
+            return;
+        }
+        _nativeAlert(message);
+    };
+})();
+</script>
 
 <script>
 (function () {

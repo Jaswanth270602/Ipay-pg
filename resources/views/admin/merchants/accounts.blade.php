@@ -30,7 +30,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminMerchantAccountsController as amac">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminMerchantAccountsController as amac">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Merchants']

@@ -4,7 +4,7 @@
 @section('page-title', 'Merchant Registration Keys')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminMerchantRegistrationKeysController as mrk">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminMerchantRegistrationKeysController as mrk">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Merchants'],

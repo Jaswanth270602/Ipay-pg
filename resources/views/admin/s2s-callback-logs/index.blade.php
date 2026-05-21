@@ -8,7 +8,7 @@
 @endpush
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="S2SCallbackLogController as s2s">
+<div ng-cloak ng-app="ipayApp" ng-controller="S2SCallbackLogController as s2s">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Server To Server Call Back Logs']

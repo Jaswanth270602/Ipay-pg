@@ -4,7 +4,7 @@
 @section('page-title', 'Partner Management')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="AdminPartnersController as apc">
+<div ng-cloak ng-app="ipayApp" ng-controller="AdminPartnersController as apc">
     <x-breadcrumbs :items="[
         ['label'=>'Home','url'=>route('admin.dashboard')],
         ['label'=>'Pg Partners']
@@ -941,40 +941,44 @@
                 };
 
                 vm.deletePartner = function (partner) {
-                    if (!confirm('Are you sure you want to delete partner "' + partner.name + '"?')) {
-                        return;
-                    }
+                    ipayConfirm('Are you sure you want to delete partner "' + partner.name + '"?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete partner'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete("{{ url('admin/partners') }}/" + partner.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function (response) {
-                        if (response.data && response.data.success) {
-                            if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'Partner deleted', 'success');
+                        $http.delete("{{ url('admin/partners') }}/" + partner.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function (response) {
+                            if (response.data && response.data.success) {
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'Partner deleted', 'success');
+                                } else {
+                                    alert(response.data.message || 'Partner deleted');
+                                }
+                                vm.loadPartners();
+                                if (vm.selectedPartner && vm.selectedPartner.id === partner.id) {
+                                    vm.selectedPartner = null;
+                                }
                             } else {
-                                alert(response.data.message || 'Partner deleted');
+                                if (typeof showToast === 'function') {
+                                    showToast(response.data.message || 'Failed to delete partner', 'error');
+                                } else {
+                                    alert(response.data.message || 'Failed to delete partner');
+                                }
                             }
-                            vm.loadPartners();
-                            if (vm.selectedPartner && vm.selectedPartner.id === partner.id) {
-                                vm.selectedPartner = null;
+                        }, function (error) {
+                            var msg = 'Failed to delete partner';
+                            if (error.data && error.data.message) {
+                                msg = error.data.message;
                             }
-                        } else {
                             if (typeof showToast === 'function') {
-                                showToast(response.data.message || 'Failed to delete partner', 'error');
+                                showToast(msg, 'error');
                             } else {
-                                alert(response.data.message || 'Failed to delete partner');
+                                alert(msg);
                             }
-                        }
-                    }, function (error) {
-                        var msg = 'Failed to delete partner';
-                        if (error.data && error.data.message) {
-                            msg = error.data.message;
-                        }
-                        if (typeof showToast === 'function') {
-                            showToast(msg, 'error');
-                        } else {
-                            alert(msg);
-                        }
+                        });
                     });
                 };
 

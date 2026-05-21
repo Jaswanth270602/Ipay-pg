@@ -68,18 +68,22 @@
         };
 
         vm.revokeKey = function(id) {
-            if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
-                return;
-            }
+            ipayConfirm('Are you sure you want to revoke this API key? This action cannot be undone.', 'danger', {
+                okText: 'Revoke',
+                cancelText: 'Cancel',
+                title: 'Revoke API key'
+            }).then(function (ok) {
+                if (!ok) return;
 
-            var csrf = document.querySelector('meta[name="csrf-token"]').content;
-            $http.delete('/merchant/api-keys/' + id, {
-                headers: { 'X-CSRF-TOKEN': csrf }
-            }).then(function() {
-                vm.showToast('API key revoked successfully', 'success');
-                vm.loadApiKeys();
-            }, function() {
-                vm.showToast('Failed to revoke API key', 'error');
+                var csrf = document.querySelector('meta[name="csrf-token"]').content;
+                $http.delete('/merchant/api-keys/' + id, {
+                    headers: { 'X-CSRF-TOKEN': csrf }
+                }).then(function() {
+                    vm.showToast('API key revoked successfully', 'success');
+                    vm.loadApiKeys();
+                }, function() {
+                    vm.showToast('Failed to revoke API key', 'error');
+                });
             });
         };
 
@@ -133,6 +137,11 @@
         };
 
         vm.showToast = function(msg, type) {
+            if (typeof window.ipayAlert === 'function') {
+                var t = type === 'error' ? 'danger' : (type === 'success' ? 'success' : 'info');
+                window.ipayAlert(msg, t);
+                return;
+            }
             alert(msg);
         };
 

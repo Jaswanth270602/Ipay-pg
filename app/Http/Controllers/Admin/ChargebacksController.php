@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Traits\LogsConditionally;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class ChargebacksController extends Controller
 {
@@ -16,6 +16,7 @@ class ChargebacksController extends Controller
     public function index(): View
     {
         $this->logInfo('Admin chargebacks page accessed', ['user_id' => auth()->id()]);
+
         return view('admin.payments.chargebacks');
     }
 
@@ -23,7 +24,7 @@ class ChargebacksController extends Controller
     {
         try {
             $perPage = min($request->get('per_page', 5), 50);
-            
+
             $query = DB::table('chargebacks')
                 ->leftJoin('merchants', 'chargebacks.merchant_id', '=', 'merchants.id')
                 ->leftJoin('transactions', 'chargebacks.transaction_id', '=', 'transactions.id')
@@ -45,7 +46,12 @@ class ChargebacksController extends Controller
 
             $chargebacks = $query->latest('chargebacks.created_at')->paginate($perPage);
 
-            $data = collect($chargebacks->items())->map(function($chargeback) {
+            $data = collect($chargebacks->items())->map(function ($chargeback) {
+                $testMode = null;
+                if (isset($chargeback->test_mode)) {
+                    $testMode = ($chargeback->test_mode === true || $chargeback->test_mode === 1 || $chargeback->test_mode === '1') ? 'Yes' : 'No';
+                }
+
                 return [
                     'id' => $chargeback->id,
                     'chargeback_request_id' => $chargeback->chargeback_request_id ?? '-',
@@ -69,6 +75,9 @@ class ChargebacksController extends Controller
                     'second_chargeback' => $chargeback->second_chargeback ?? 'No',
                     'chargeback_amount' => number_format($chargeback->chargeback_amount ?? 0, 2),
                     'notes' => $chargeback->notes ?? '-',
+                    'created_at' => $chargeback->created_at ? date('Y-m-d H:i:s', strtotime((string) $chargeback->created_at)) : '-',
+                    'updated_at' => $chargeback->updated_at ? date('Y-m-d H:i:s', strtotime((string) $chargeback->updated_at)) : '-',
+                    'test_mode' => $testMode,
                 ];
             });
 

@@ -4,7 +4,7 @@
 @section('page-title', 'Transactions Details')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantTransactionsController as mtc">
+<div ng-cloak ng-app="ipayApp" ng-controller="MerchantTransactionsController as mtc">
     <div class="row mb-4">
         <div class="col-md-12">
             <h2>Transactions Details</h2>
@@ -533,6 +533,49 @@
 <script>
 (function() {
     'use strict';
+
+    /** Full default filter shape for column bindings + backend params (fixes Clear/Reset wiping filter keys). */
+    function createMerchantTransactionFilters() {
+        return {
+            status: 'all',
+            filter_transaction_initiation_time: '',
+            filter_transaction_sequence_id: '',
+            filter_order_id: '',
+            filter_transaction_datetime: '',
+            filter_transaction_id: '',
+            filter_amount_paid: '',
+            filter_payment_status: 'all',
+            filter_payment_mode: '',
+            filter_payment_channel: '',
+            filter_merc_approved: 'all',
+            filter_currency_code: '',
+            filter_bank_reference_number: '',
+            filter_acq_payment_id: '',
+            filter_acq_transaction_id: '',
+            filter_provider_name: '',
+            filter_account_id: '',
+            filter_tdr_amount: '',
+            filter_gst_amount: '',
+            filter_is_updated_by_recon: 'all',
+            filter_tdr_amount_paid_by_merchant: '',
+            filter_tdr_amount_paid_by_customer: '',
+            filter_gst_paid_by_merchant: '',
+            filter_gst_paid_by_customer: '',
+            filter_net_settlements_amount: '',
+            filter_settlement_batch_id: '',
+            filter_settlement_status: '',
+            filter_card_holder_name: '',
+            filter_card_number: '',
+            filter_customer_ip_address: '',
+            filter_udf1: '',
+            filter_udf2: '',
+            filter_udf3: '',
+            filter_udf4: '',
+            filter_udf5: '',
+            filter_upi_id: ''
+        };
+    }
+
     function registerController() {
         if (typeof angular === 'undefined') {
             setTimeout(registerController, 50);
@@ -544,7 +587,7 @@
                 var vm = this;
                 vm.transactions = [];
                 vm.pagination = { current_page: 1, per_page: 10, total: 0, last_page: 1 };
-                vm.filters = { status: '' }; // Empty = no filter, show all
+                vm.filters = createMerchantTransactionFilters();
                 vm.loading = false;
                 vm.sortColumn = 'id';
                 vm.sortDirection = 'desc';
@@ -726,19 +769,14 @@
                     Object.keys(vm.visibleColumns).forEach(function(key) {
                         vm.visibleColumns[key].visible = true;
                     });
-                    vm.filters = { status: '' };
+                    vm.sortColumn = 'id';
+                    vm.sortDirection = 'desc';
+                    vm.filters = createMerchantTransactionFilters();
                     vm.applyFilters();
                 };
 
                 vm.clearFilters = function() {
-                    console.log('Clearing all transaction filters');
-                    vm.filters = {};
-                    Object.keys(vm.filters).forEach(function(key) {
-                        if (key.startsWith('filter_')) {
-                            vm.filters[key] = '';
-                        }
-                    });
-                    vm.filters.status = '';
+                    vm.filters = createMerchantTransactionFilters();
                     vm.pagination.current_page = 1;
                     vm.loadTransactions();
                 };

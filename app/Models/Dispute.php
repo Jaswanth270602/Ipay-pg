@@ -50,12 +50,19 @@ class Dispute extends Model
         });
 
         static::created(function ($dispute) {
-            // Create timeline entry
+            $notes = 'Dispute raised by card network';
+            if (auth()->check() && auth()->user()->isAdmin()) {
+                $notes = 'Dispute registered by admin';
+            }
+
             DisputeTimeline::create([
                 'dispute_id' => $dispute->id,
                 'event' => 'dispute_created',
-                'notes' => 'Dispute raised by card network',
-                'changed_by_type' => 'system',
+                'notes' => $notes,
+                'changed_by_type' => auth()->check()
+                    ? (auth()->user()->isAdmin() ? 'admin' : 'merchant')
+                    : 'system',
+                'changed_by_id' => auth()->id(),
                 'created_at' => now(),
             ]);
         });

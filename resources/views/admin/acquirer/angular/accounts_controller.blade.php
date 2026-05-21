@@ -698,11 +698,16 @@
                 // Delete account
                 vm.deleteAccount = function() {
                     if (!vm.selectedAccount) return;
-                    if (!confirm('Are you sure you want to delete this acquirer account?')) return;
+                    ipayConfirm('Are you sure you want to delete this acquirer account?', 'danger', {
+                        okText: 'Delete',
+                        cancelText: 'Cancel',
+                        title: 'Delete acquirer account'
+                    }).then(function (ok) {
+                        if (!ok) return;
 
-                    $http.delete('/admin/acquirer-accounts/' + vm.selectedAccount.id, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
+                        $http.delete('/admin/acquirer-accounts/' + vm.selectedAccount.id, {
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        }).then(function(response) {
                         if (response.data.success) {
                             if (typeof showToast === 'function') {
                                 showToast(response.data.message, 'success');
@@ -726,6 +731,7 @@
                         } else {
                             alert('Failed to delete account');
                         }
+                    });
                     });
                 };
 

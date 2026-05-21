@@ -79,18 +79,24 @@
         };
 
         vm.retryWebhook = function(id) {
-            if (!confirm('Retry sending this webhook?')) return;
+            ipayConfirm('Retry sending this webhook?', 'warning', {
+                okText: 'Retry',
+                cancelText: 'Cancel',
+                title: 'Retry webhook'
+            }).then(function (ok) {
+                if (!ok) return;
 
-            var csrf = document.querySelector('meta[name="csrf-token"]').content;
-            $http.post('/merchant/webhooks/' + id + '/retry', {}, {
-                headers: {'X-CSRF-TOKEN': csrf}
-            }).then(function(response) {
-                if (response.data.success) {
-                    alert('Webhook retry scheduled');
-                    vm.loadWebhooks();
-                }
-            }, function() {
-                alert('Failed to retry webhook');
+                var csrf = document.querySelector('meta[name="csrf-token"]').content;
+                $http.post('/merchant/webhooks/' + id + '/retry', {}, {
+                    headers: {'X-CSRF-TOKEN': csrf}
+                }).then(function(response) {
+                    if (response.data.success) {
+                        alert('Webhook retry scheduled');
+                        vm.loadWebhooks();
+                    }
+                }, function() {
+                    alert('Failed to retry webhook');
+                });
             });
         };
 

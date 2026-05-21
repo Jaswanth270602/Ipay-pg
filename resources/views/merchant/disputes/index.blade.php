@@ -4,7 +4,12 @@
 @section('page-title','Disputes')
 
 @section('content')
-<div ng-app="ipayApp" ng-controller="MerchantDisputesController as mdc">
+<div ng-cloak ng-app="ipayApp" ng-controller="MerchantDisputesController as mdc">
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        Disputes are managed by the platform admin. You can view status updates here; contact support if you have questions.
+    </div>
+
     <div class="stat-card mb-3">
         <div class="row g-3">
             <div class="col-md-4">
@@ -19,14 +24,6 @@
                     <option value="closed">Closed</option>
                 </select>
             </div>
-            <div class="col-md-8 d-flex align-items-end justify-content-end">
-                <button class="btn btn-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#newDisputeModal"
-                        title="Create a new dispute for a transaction or order">
-                    <i class="bi bi-plus-lg"></i> New Dispute
-                </button>
-            </div>
         </div>
     </div>
 
@@ -40,8 +37,8 @@
                         <th>Reason</th>
                         <th>Amount</th>
                         <th>Status</th>
+                        <th>Due By</th>
                         <th>Created</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,139 +60,17 @@
                                   ng-attr-title="@{{ d.status_formatted || d.status }}"
                                   ng-bind="d.status_formatted || d.status"></span>
                         </td>
+                        <td>@{{ d.due_by_formatted || '-' }}</td>
                         <td>@{{ d.created_at | date:'MMM d, y HH:mm' }}</td>
-                        <td>
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-primary"
-                                    ng-click="mdc.openUpdateStatus(d)"
-                                    title="Update dispute status and add notes">
-                                Update
-                            </button>
-                        </td>
+                    </tr>
+                    <tr ng-if="!mdc.items.data || mdc.items.data.length === 0">
+                        <td colspan="7" class="text-center text-muted py-4">No disputes found.</td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- Update Status Modal -->
-    <div class="modal fade" id="updateDisputeStatusModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Dispute Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-2">
-                        <strong>Transaction:</strong>
-                        <span>@{{ mdc.updateForm.transaction_label }}</span>
-                    </p>
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" ng-model="mdc.updateForm.status">
-                            <option value="action_required">Action Required</option>
-                            <option value="under_review">Under Review</option>
-                            <option value="insufficient_evidence">Insufficient Evidence</option>
-                            <option value="won">Won</option>
-                            <option value="lost">Lost</option>
-                            <option value="closed">Closed</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Notes (optional)</label>
-                        <textarea class="form-control"
-                                  rows="3"
-                                  ng-model="mdc.updateForm.notes"
-                                  placeholder="Add any remarks about this status change"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button"
-                            class="btn btn-primary"
-                            ng-click="mdc.updateStatus()"
-                            ng-disabled="mdc.updating">
-                        <span ng-if="mdc.updating" class="spinner-border spinner-border-sm me-1"></span>
-                        <span ng-if="!mdc.updating">Update</span>
-                        <span ng-if="mdc.updating">Updating...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="newDisputeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Create Dispute</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Transaction ID <span class="text-muted">(optional)</span></label>
-                        <input type="text" class="form-control" ng-model="mdc.form.transaction_id" placeholder="Enter transaction ID (e.g., TXN_123 or 123)">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Order ID <span class="text-muted">(optional)</span></label>
-                        <input type="text" class="form-control" ng-model="mdc.form.order_id" placeholder="e.g., order_123456">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reason <span class="text-danger">*</span></label>
-                        <select class="form-select" ng-model="mdc.form.reason" required>
-                            <option value="">Select Reason</option>
-                            <option value="fraud">Fraud</option>
-                            <option value="product_not_received">Product Not Received</option>
-                            <option value="product_not_as_described">Product Not As Described</option>
-                            <option value="duplicate_charge">Duplicate Charge</option>
-                            <option value="refund_not_processed">Refund Not Processed</option>
-                            <option value="subscription_canceled">Subscription Canceled</option>
-                            <option value="no_authorization">No Authorization</option>
-                        </select>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Amount <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" ng-model="mdc.form.amount" placeholder="0.00" required min="0">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Currency</label>
-                            <select class="form-select" ng-model="mdc.form.currency">
-                                <option value="USD" selected>USD</option>
-                                <option value="INR">INR</option>
-                                <option value="EUR">EUR</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Card Network <span class="text-muted">(optional)</span></label>
-                        <select class="form-select" ng-model="mdc.form.card_network">
-                            <option value="">Select Card Network</option>
-                            <option value="VISA">VISA</option>
-                            <option value="MASTERCARD">MASTERCARD</option>
-                            <option value="RUPAY">RUPAY</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Internal Notes <span class="text-muted">(optional)</span></label>
-                        <textarea class="form-control" ng-model="mdc.form.internal_notes" rows="3" placeholder="Add any additional notes about this dispute..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" ng-click="mdc.create()" ng-disabled="mdc.creating || !mdc.form.reason || !mdc.form.amount || mdc.form.amount <= 0">
-                        <span ng-if="mdc.creating" class="spinner-border spinner-border-sm me-2"></span>
-                        <span ng-if="!mdc.creating">Create</span>
-                        <span ng-if="mdc.creating">Creating...</span>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 @endsection
 
 @include('merchant.disputes.angular.main_controller')
-
-
