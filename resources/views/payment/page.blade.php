@@ -468,11 +468,9 @@
                         <label class="form-label">Select Wallet *</label>
                         <select class="form-select" id="walletProvider">
                             <option value="">Choose wallet</option>
-                            <option value="paytm">Paytm</option>
-                            <option value="phonepe">PhonePe</option>
-                            <option value="mobikwik">MobiKwik</option>
-                            <option value="freecharge">Freecharge</option>
-                            <option value="amazonpay">Amazon Pay</option>
+                            @foreach(config('wallet.providers', []) as $walletProvider)
+                            <option value="{{ $walletProvider['code'] }}">{{ $walletProvider['label'] }}</option>
+                            @endforeach
                         </select>
                     </div>
                 </div>

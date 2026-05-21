@@ -486,7 +486,7 @@
 
         .payment-methods-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 50px;
             margin-top: 2px;
         }
@@ -964,11 +964,11 @@
                             <div class="method-label">Net Banking</div>
                             <div class="method-desc">Online Banking</div>
                         </div>
-                        <!-- <div class="payment-method-btn" data-method="wallet">
+                        <div class="payment-method-btn" data-method="wallet">
                             <i class="bi bi-wallet2"></i>
                             <div class="method-label">Wallets</div>
                             <div class="method-desc">Paytm, PhonePe</div>
-                        </div> -->
+                        </div>
                     </div>
                 </div>
 
@@ -1129,12 +1129,13 @@
                         <label class="form-label">Select Wallet <span class="text-danger">*</span></label>
                         <select class="form-select" id="walletProvider">
                             <option value="">Choose wallet</option>
-                            <option value="paytm">Paytm</option>
-                            <option value="phonepe">PhonePe</option>
-                            <option value="mobikwik">MobiKwik</option>
-                            <option value="freecharge">Freecharge</option>
-                            <option value="amazonpay">Amazon Pay</option>
+                            @foreach(($walletProviders ?? config('wallet.providers', [])) as $walletProvider)
+                            <option value="{{ $walletProvider['code'] }}">{{ $walletProvider['label'] }}</option>
+                            @endforeach
                         </select>
+                        @if(!empty($checkoutInternalSimulation))
+                        <p class="small text-muted mt-2 mb-0">Test amounts: <strong>101</strong> success, <strong>102</strong> failed, <strong>103</strong> pending.</p>
+                        @endif
                     </div>
                 </div>
 
@@ -1164,6 +1165,81 @@
         const successMessage = document.getElementById('successMessage');
         const errorMessage = document.getElementById('errorMessage');
 
+        function isWalletLiveCheckout() {
+            return selectedMethod === 'wallet' && !checkoutInternalSimulation;
+        }
+
+        function extractApiErrorMessage(result, fallback) {
+            if (!result || typeof result !== 'object') {
+                return fallback || 'Payment could not be completed.';
+            }
+            const parts = [];
+            const main = result.message && String(result.message).trim();
+            if (main) {
+                parts.push(main);
+            }
+            if (result.error_code) {
+                parts.push('(' + String(result.error_code) + ')');
+            }
+            if (result.errors && typeof result.errors === 'object') {
+                for (const key of Object.keys(result.errors)) {
+                    const val = result.errors[key];
+                    const text = Array.isArray(val) ? val[0] : val;
+                    if (text) {
+                        parts.push(String(text));
+                        break;
+                    }
+                }
+            }
+            if (typeof result.error === 'string' && result.error.trim()) {
+                parts.push(result.error.trim());
+            } else if (result.error && typeof result.error === 'object' && result.error.message) {
+                parts.push(String(result.error.message));
+            }
+            if (result.transaction_id) {
+                parts.push('Ref: ' + String(result.transaction_id));
+            }
+            return parts.length ? parts.join(' ') : (fallback || 'Payment could not be completed.');
+        }
+
+        function showCheckoutError(result, fallback, options) {
+            const opts = options || {};
+            const scroll = opts.scroll !== false;
+            let text;
+            if (isWalletLiveCheckout()) {
+                text = extractApiErrorMessage(result, fallback);
+            } else {
+                text = 'Payment could not be completed. Please try again later or contact support.';
+                if (result && result.errors && typeof result.errors === 'object' && Object.keys(result.errors).length > 0) {
+                    text = (result.message && String(result.message).trim()) ? result.message : 'Please check your details and try again.';
+                } else if (result && result.message && String(result.message).trim() !== '') {
+                    const m = String(result.message);
+                    const looksInternal = /razorpay|cashfree|acquirer|credential|gateway|api key|authentication failed/i.test(m);
+                    text = looksInternal ? text : m;
+                } else if (fallback) {
+                    text = fallback;
+                }
+            }
+            errorMessage.textContent = text;
+            errorAlert.style.display = 'flex';
+            if (scroll) {
+                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return text;
+        }
+
+        function maybeRedirectCheckoutFailure(result) {
+            if (!result || !result.redirect_url) {
+                return;
+            }
+            if (isWalletLiveCheckout()) {
+                return;
+            }
+            setTimeout(() => {
+                window.location.href = result.redirect_url;
+            }, 2000);
+        }
+
         // CashFree Checkout Initialization Function
         function initializeCashFreeCheckout(result) {
             try {
@@ -1172,8 +1248,7 @@
                 // Check if CashFree SDK is loaded
                 if (typeof Cashfree === 'undefined') {
                     console.error('CashFree SDK not loaded');
-                    errorMessage.textContent = 'Payment SDK failed to load. Please refresh the page.';
-                    errorAlert.style.display = 'flex';
+                    showCheckoutError(null, 'Payment SDK failed to load. Please refresh the page.');
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
                     return;
@@ -1188,8 +1263,7 @@
                 const sessionId = result.payment_session_id;
                 if (!sessionId || typeof sessionId !== 'string' || sessionId.trim() === '') {
                     console.error('CashFree: payment_session_id missing or invalid', result);
-                    errorMessage.textContent = 'Payment session not created. Please try again.';
-                    errorAlert.style.display = 'flex';
+                    showCheckoutError(result, 'Payment session not created. Please try again.');
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
                     return;
@@ -1223,8 +1297,7 @@
                             'result': result,
                             'checkoutResult': checkoutResult
                         });
-                        errorMessage.textContent = 'Payment completed but order ID not found. Please contact support.';
-                        errorAlert.style.display = 'flex';
+                        showCheckoutError(result, 'Payment completed but order ID not found. Please contact support.');
                         payButton.disabled = false;
                         payButton.dataset.processing = '';
                         return;
@@ -1257,8 +1330,10 @@
                     
                 }).catch(function(error) {
                     console.error('CashFree checkout error:', error);
-                    errorMessage.textContent = 'Payment failed';
-                    errorAlert.style.display = 'flex';
+                    const cfErr = error && (error.message || error.error?.message)
+                        ? { message: error.message || error.error?.message }
+                        : { message: 'Cashfree checkout was closed or could not be completed.' };
+                    showCheckoutError(cfErr, 'Wallet payment was not completed in Cashfree.');
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
                     @if($paymentLink->allow_partial_payment)
@@ -1271,8 +1346,7 @@
 
             } catch (error) {
                 console.error('CashFree checkout initialization error:', error);
-                errorMessage.textContent = 'Failed to initialize payment. Please try again.';
-                errorAlert.style.display = 'flex';
+                showCheckoutError({ message: error && error.message ? error.message : 'Failed to initialize payment.' }, 'Failed to initialize payment. Please try again.');
                 payButton.disabled = false;
                 payButton.dataset.processing = '';
                 @if($paymentLink->allow_partial_payment)
@@ -1351,8 +1425,7 @@
                     
                     // Other permanent errors - don't retry
                     if (isPermanentError) {
-                        errorMessage.textContent = 'Payment failed';
-                        errorAlert.style.display = 'flex';
+                        showCheckoutError(errorData, 'Payment failed');
                         payButton.disabled = false;
                         payButton.dataset.processing = '';
                         @if($paymentLink->allow_partial_payment)
@@ -1365,8 +1438,7 @@
                     }
                     
                     // Other errors - show error message
-                    errorMessage.textContent = 'Payment failed';
-                    errorAlert.style.display = 'flex';
+                    showCheckoutError(errorData, 'Payment failed');
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
                     @if($paymentLink->allow_partial_payment)
@@ -1400,8 +1472,7 @@
                         }, 2000);
                     } else if (verifyResult.status === 'failed') {
                         // Payment failed
-                        errorMessage.textContent = 'Payment failed';
-                        errorAlert.style.display = 'flex';
+                        showCheckoutError(verifyResult, 'Wallet payment failed at the gateway.');
                         payButton.disabled = false;
                         payButton.dataset.processing = '';
                         @if($paymentLink->allow_partial_payment)
@@ -1436,8 +1507,7 @@
                     }
                 } else {
                     // Verification failed - show error
-                    errorMessage.textContent = 'Payment failed';
-                    errorAlert.style.display = 'flex';
+                    showCheckoutError(verifyResult, 'Payment verification failed.');
                     payButton.disabled = false;
                     payButton.dataset.processing = '';
                     @if($paymentLink->allow_partial_payment)
@@ -1449,8 +1519,7 @@
                 }
             } catch (error) {
                 console.error('Error verifying CashFree payment:', error);
-                errorMessage.textContent = 'Failed to verify payment. Please check your dashboard.';
-                errorAlert.style.display = 'flex';
+                showCheckoutError({ message: error && error.message ? error.message : '' }, 'Failed to verify payment. Please check your dashboard.');
                 payButton.disabled = false;
                 payButton.dataset.processing = '';
                 @if($paymentLink->allow_partial_payment)
@@ -2227,8 +2296,7 @@
                         } else {
                             // Missing payment_session_id - error
                             console.error('CashFree: payment_session_id missing', result);
-                            errorMessage.textContent = 'Payment session not created. Please try again.';
-                            errorAlert.style.display = 'flex';
+                            showCheckoutError(result, 'Payment session not created. Please try again.');
                             payButton.disabled = false;
                             payButton.dataset.processing = '';
                             @if($paymentLink->allow_partial_payment)
@@ -2663,8 +2731,8 @@
                                 cardForm.style.display = '';
                             }
                             
-                            errorMessage.textContent = 'Payment failed';
-                            errorAlert.style.display = 'flex';
+                            const rzFailMsg = response?.error?.description || response?.error?.reason || 'Payment failed in Razorpay';
+                            showCheckoutError({ message: rzFailMsg, transaction_id: transactionIdForRazorpay }, 'Payment failed');
                             payButton.disabled = false;
                             @if($paymentLink->allow_partial_payment)
                             const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
@@ -2685,17 +2753,19 @@
                                         body: JSON.stringify({
                                             transaction_id: transactionIdForRazorpay,
                                             razorpay_order_id: response?.error?.metadata?.order_id || result.razorpay_order_id,
-                                            reason: response?.error?.description || response?.error?.reason || 'Payment failed in Razorpay',
+                                            reason: rzFailMsg,
                                         }),
                                     });
                                 } catch (e) {
                                     console.warn('Failed to record Razorpay failure', e);
                                 }
 
-                                setTimeout(() => {
-                                    const baseUrl = window.location.origin;
-                                    window.location.href = `${baseUrl}/failure-simple.html?transaction_id=${encodeURIComponent(transactionIdForRazorpay || '')}`;
-                                }, 1200);
+                                if (!isWalletLiveCheckout()) {
+                                    setTimeout(() => {
+                                        const baseUrl = window.location.origin;
+                                        window.location.href = `${baseUrl}/failure-simple.html?transaction_id=${encodeURIComponent(transactionIdForRazorpay || '')}`;
+                                    }, 1200);
+                                }
                             })();
                         });
                         
@@ -2798,32 +2868,11 @@
                         document.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
                     }
                 } else {
-                    // Never show upstream PSP names or internal routing — server sends safe copy for most cases
-                    let displayMsg = 'Payment could not be completed. Please try again later or contact support.';
-                    if (result.errors && typeof result.errors === 'object' && Object.keys(result.errors).length > 0) {
-                        displayMsg = (result.message && String(result.message).trim() !== '')
-                            ? result.message
-                            : 'Please check your details and try again.';
-                    } else if (httpStatus === 410 || httpStatus === 400) {
-                        displayMsg = (result.message && String(result.message).trim() !== '')
-                            ? result.message
-                            : displayMsg;
-                    } else if (result.message && String(result.message).trim() !== '') {
-                        const m = String(result.message);
-                        const looksInternal = /razorpay|cashfree|acquirer|credential|gateway|api key|authentication failed/i.test(m);
-                        displayMsg = looksInternal ? displayMsg : m;
-                    }
-                    errorMessage.textContent = displayMsg;
-                    errorAlert.style.display = 'flex';
-                    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Redirect to merchant test app failure page after 2 seconds
-                    if (result.redirect_url) {
-                        setTimeout(() => {
-                            window.location.href = result.redirect_url;
-                        }, 2000);
-                    } else {
+                    showCheckoutError(result, 'Payment could not be completed. Please try again later or contact support.');
+                    maybeRedirectCheckoutFailure(result);
+                    if (!result.redirect_url || isWalletLiveCheckout()) {
                         payButton.disabled = false;
+                        payButton.dataset.processing = '';
                         @if($paymentLink->allow_partial_payment)
                     const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
                     payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
@@ -2837,19 +2886,24 @@
                 if (error.response) {
                     try {
                         const errorData = await error.response.json();
-                        if (errorData && errorData.redirect_url) {
-                            setTimeout(() => {
-                                window.location.href = errorData.redirect_url;
-                            }, 600);
-                            return;
+                        showCheckoutError(errorData, 'Payment failed');
+                        maybeRedirectCheckoutFailure(errorData);
+                        if (!errorData.redirect_url || isWalletLiveCheckout()) {
+                            payButton.disabled = false;
+                            payButton.dataset.processing = '';
+                            @if($paymentLink->allow_partial_payment)
+                            const remainingBalance = parseFloat({{ $paymentLink->getRemainingBalance() }});
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${remainingBalance.toFixed(2)}`;
+                            @else
+                            payButtonText.textContent = `Pay ${paymentLink.currency} ${parseFloat(paymentLink.amount).toFixed(2)}`;
+                            @endif
                         }
+                        return;
                     } catch (e) {
                         // Ignore parse errors and show generic failure below.
                     }
                 }
-                errorMessage.textContent = 'Payment failed';
-                errorAlert.style.display = 'flex';
-                errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showCheckoutError({ message: error && error.message ? error.message : '' }, 'Payment failed');
                 payButton.disabled = false;
                 payButton.dataset.processing = '';
                 @if($paymentLink->allow_partial_payment)

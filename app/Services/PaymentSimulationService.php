@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Log;
 class PaymentSimulationService
 {
     use SanitizesCardData;
+
+    public function __construct(
+        protected WalletService $walletService
+    ) {
+    }
+
     /**
      * Process payment (simulation for test mode or real for live mode).
      */
@@ -21,6 +27,17 @@ class PaymentSimulationService
     {
         return DB::transaction(function () use ($paymentData) {
             try {
+                if (! empty($paymentData['idempotency_key'])) {
+                    $existing = Transaction::where('idempotency_key', $paymentData['idempotency_key'])
+                        ->where('merchant_id', $paymentData['merchant_id'])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existing) {
+                        return $this->responseForExistingTransaction($existing, $paymentData);
+                    }
+                }
+
                 // Create or find order
                 $order = $this->createOrder($paymentData);
 
@@ -28,10 +45,38 @@ class PaymentSimulationService
             $sanitizedPaymentData = $this->sanitizePaymentDetails($paymentData);
             
             // Create transaction with sanitized data
+            if (! empty($paymentData['idempotency_key'])) {
+                $sanitizedPaymentData['idempotency_key'] = $paymentData['idempotency_key'];
+            }
             $transaction = $this->createTransaction($order, $sanitizedPaymentData);
 
             // Simulate payment processing (needs full card data for simulation)
             $paymentResult = $this->simulatePaymentGateway($paymentData);
+
+                if (! empty($paymentResult['pending'])) {
+                    $transaction->update([
+                        'status' => 'pending',
+                        'gateway_response' => $this->sanitizePaymentDetails($paymentResult),
+                        'gateway_txn_id' => $paymentResult['gateway_txn_id'] ?? null,
+                    ]);
+                    $order->update(['status' => 'pending']);
+
+                    Log::info('Wallet test payment pending', [
+                        'transaction_id' => $transaction->txn_id,
+                        'payment_method' => $transaction->payment_method,
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'pending' => true,
+                        'message' => $paymentResult['message'] ?? 'Wallet payment pending',
+                        'order_id' => $order->order_id,
+                        'transaction_id' => $transaction->txn_id,
+                        'amount' => $transaction->amount,
+                        'currency' => $transaction->currency,
+                        'wallet_response' => $paymentResult['wallet_response'] ?? null,
+                    ];
+                }
 
                 // Update transaction and order based on result
                 if ($paymentResult['success']) {
@@ -169,8 +214,9 @@ class PaymentSimulationService
             'currency' => $order->currency,
             'status' => 'initiated',
             'settlement_status' => 'pending',
-            'payment_details' => $this->sanitizePaymentDetails($paymentData['payment_details']),
+            'payment_details' => $this->sanitizePaymentDetails($paymentData['payment_details'] ?? []),
             'test_mode' => $order->test_mode,
+            'idempotency_key' => $paymentData['idempotency_key'] ?? null,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
@@ -213,21 +259,38 @@ class PaymentSimulationService
 
         // In test mode, simulate based on test data
         if ($testMode) {
-            return $this->simulateTestPayment($paymentMethod, $paymentDetails);
+            return $this->simulateTestPayment($paymentData);
         }
 
         // In live mode, you would integrate with real payment gateway here
         // For now, we'll treat it as test mode
-        return $this->simulateTestPayment($paymentMethod, $paymentDetails);
+        return $this->simulateTestPayment($paymentData);
     }
 
     /**
-     * Simulate test payment based on test card numbers and UPI IDs.
+     * Simulate test payment based on test card numbers, UPI IDs, and wallet rules.
      */
-    protected function simulateTestPayment(string $paymentMethod, array $paymentDetails = []): array
+    protected function simulateTestPayment(array $paymentData): array
     {
+        $paymentMethod = (string) ($paymentData['payment_method'] ?? '');
+        $paymentDetails = $paymentData['payment_details'] ?? [];
+        $amount = (float) ($paymentData['amount'] ?? 0);
+
+        if ($paymentMethod === 'wallet') {
+            return $this->simulateWalletTestPayment($paymentData, $paymentDetails, $amount);
+        }
+
         // Check for explicit simulation result (from test mode buttons)
         if (isset($paymentDetails['simulate']) && isset($paymentDetails['simulate_result'])) {
+            if ($paymentDetails['simulate_result'] === 'pending') {
+                return [
+                    'pending' => true,
+                    'success' => false,
+                    'gateway_txn_id' => strtoupper($paymentMethod).'_'.strtoupper(uniqid()),
+                    'message' => 'Payment pending (simulated)',
+                    'payment_method' => $paymentMethod,
+                ];
+            }
             if ($paymentDetails['simulate_result'] === 'success') {
                 return [
                     'success' => true,
@@ -235,13 +298,13 @@ class PaymentSimulationService
                     'message' => 'Payment successful (simulated)',
                     'payment_method' => $paymentMethod,
                 ];
-            } else {
-                return [
-                    'success' => false,
-                    'message' => 'Payment failed (simulated)',
-                    'error_code' => 'PAYMENT_FAILED',
-                ];
             }
+
+            return [
+                'success' => false,
+                'message' => 'Payment failed (simulated)',
+                'error_code' => 'PAYMENT_FAILED',
+            ];
         }
 
         if ($paymentMethod === 'card') {
@@ -348,13 +411,123 @@ class PaymentSimulationService
             ];
         }
 
-        // For netbanking and wallet, default to success
+        // For netbanking, default to success
         return [
             'success' => true,
             'gateway_txn_id' => strtoupper($paymentMethod) . '_' . strtoupper(uniqid()),
             'message' => 'Payment successful',
             'payment_method' => $paymentMethod,
         ];
+    }
+
+    /**
+     * Wallet-only test simulation (amount 101/102/103, explicit simulate, or default success).
+     */
+    protected function simulateWalletTestPayment(array $paymentData, array $paymentDetails, float $amount): array
+    {
+        $provider = strtolower(trim((string) ($paymentDetails['wallet_provider'] ?? '')));
+        $walletLabel = $this->walletService->labelFor($provider !== '' ? $provider : 'wallet');
+        $txnId = $this->walletService->generateTestTxnId();
+
+        $resolveOutcome = function (string $outcome) use ($walletLabel, $txnId, $amount, $provider): array {
+            $payload = $this->walletService->buildGatewayPayload($outcome, $walletLabel, $txnId, $amount);
+
+            if ($outcome === 'pending') {
+                return [
+                    'pending' => true,
+                    'success' => false,
+                    'gateway_txn_id' => $txnId,
+                    'message' => 'Wallet payment pending (test mode)',
+                    'payment_method' => 'wallet',
+                    'wallet_provider' => $provider,
+                    'wallet_response' => $payload,
+                    'wallet_mode' => 'test',
+                ];
+            }
+
+            if ($outcome === 'failed') {
+                return [
+                    'success' => false,
+                    'message' => 'Wallet payment failed (test mode)',
+                    'error_code' => 'WALLET_PAYMENT_FAILED',
+                    'gateway_txn_id' => $txnId,
+                    'payment_method' => 'wallet',
+                    'wallet_provider' => $provider,
+                    'wallet_response' => $payload,
+                    'wallet_mode' => 'test',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'gateway_txn_id' => $txnId,
+                'message' => 'Wallet payment successful (test mode)',
+                'payment_method' => 'wallet',
+                'wallet_provider' => $provider,
+                'wallet_response' => $payload,
+                'wallet_mode' => 'test',
+            ];
+        };
+
+        if (isset($paymentDetails['simulate'], $paymentDetails['simulate_result'])) {
+            $sim = (string) $paymentDetails['simulate_result'];
+            if ($sim === 'pending') {
+                return $resolveOutcome('pending');
+            }
+            if ($sim === 'success') {
+                return $resolveOutcome('success');
+            }
+
+            return $resolveOutcome('failed');
+        }
+
+        $amountOutcome = $this->walletService->resolveAmountTestOutcome($amount);
+        if ($amountOutcome !== null) {
+            return $resolveOutcome($amountOutcome);
+        }
+
+        return $resolveOutcome('success');
+    }
+
+    /**
+     * Idempotent replay for duplicate wallet/test callbacks.
+     */
+    protected function responseForExistingTransaction(Transaction $transaction, array $paymentData): array
+    {
+        Log::info('Wallet payment idempotency: existing transaction returned', [
+            'transaction_id' => $transaction->txn_id,
+            'status' => $transaction->status,
+        ]);
+
+        $base = [
+            'order_id' => $transaction->order?->order_id,
+            'transaction_id' => $transaction->txn_id,
+            'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
+            'already_processed' => true,
+        ];
+
+        if ($transaction->status === 'success') {
+            return array_merge($base, [
+                'success' => true,
+                'message' => 'Payment already processed',
+                'redirect_url' => $this->getSuccessUrl($paymentData),
+            ]);
+        }
+
+        if ($transaction->status === 'pending') {
+            return array_merge($base, [
+                'success' => true,
+                'pending' => true,
+                'message' => 'Payment already pending',
+            ]);
+        }
+
+        return array_merge($base, [
+            'success' => false,
+            'message' => 'Payment already processed',
+            'redirect_url' => $this->getFailureUrl($paymentData),
+        ]);
     }
 
     /**

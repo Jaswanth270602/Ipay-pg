@@ -89,6 +89,7 @@ Route::get('/cron/schedule', [CronScheduleController::class, 'run'])
 
 // Public payment checkout
 Route::get('/pay/{token}', [PaymentCheckoutController::class, 'show'])->name('payment.checkout');
+Route::get('/pay/{token}/wallet-providers', [PaymentCheckoutController::class, 'walletProviders'])->name('payment.wallet-providers');
 Route::post('/pay/{token}/test-simulate/store', [PaymentCheckoutController::class, 'storeTestSimulate'])->name('payment.test-simulate.store');
 Route::get('/pay/{token}/test-simulate', [PaymentCheckoutController::class, 'showTestSimulate'])->name('payment.test-simulate');
 Route::post('/pay/{token}', [PaymentCheckoutController::class, 'process'])->name('payment.process');

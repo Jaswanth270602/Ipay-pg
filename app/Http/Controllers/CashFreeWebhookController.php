@@ -394,9 +394,20 @@ class CashFreeWebhookController extends Controller
                 }
             }
 
+            $clientMessage = null;
+            if ($normalizedStatus === 'failed') {
+                $clientMessage = $statusResult['message']
+                    ?? data_get($statusResult, 'raw_response.payment_message')
+                    ?? data_get($statusResult, 'raw_response.payment_group')
+                    ?? 'Wallet payment was not completed. Please try again or choose another method in the Cashfree checkout.';
+            } elseif ($normalizedStatus === 'pending') {
+                $clientMessage = $statusResult['message'] ?? 'Payment is still processing at the gateway.';
+            }
+
             return response()->json([
                 'success' => true,
                 'status' => $normalizedStatus,
+                'message' => $clientMessage,
                 'payment_id' => $statusResult['payment_id'] ?? null,
                 'order_id' => $order->order_id ?? null,
                 'transaction_id' => $transaction->txn_id ?? null,
@@ -410,7 +421,8 @@ class CashFreeWebhookController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Verification failed',
+                'message' => $e->getMessage() ?: 'Verification failed',
+                'status' => 'failed',
             ], 500);
         }
     }

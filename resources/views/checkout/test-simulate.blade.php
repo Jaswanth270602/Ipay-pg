@@ -52,6 +52,13 @@
             font-weight: 600;
             padding: 12px;
         }
+        .btn-sim-pending {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            padding: 12px;
+        }
         .upi-qr-masked-wrap { text-align: center; margin-bottom: 12px; }
         .upi-qr-masked {
             width: 140px; height: 140px; margin: 0 auto; border-radius: 12px; position: relative;
@@ -104,6 +111,7 @@
                 @endif
                 @if(($payload['payment_method'] ?? '') === 'wallet')
                 <li class="mb-2"><strong>Wallet:</strong> {{ data_get($payload, 'payment_details.wallet_provider', '—') }}</li>
+                <li class="mb-2 text-muted small">Or set link amount to <strong>101</strong> (success), <strong>102</strong> (fail), <strong>103</strong> (pending) before Pay.</li>
                 @endif
                 <li class="mb-0"><strong>Customer:</strong> {{ data_get($payload, 'customer_details.name', '—') }}</li>
             </ul>
@@ -127,6 +135,11 @@
                 <button type="button" class="btn btn-sim-fail rounded-pill" id="simFailBtn">
                     <i class="bi bi-x-circle"></i> Simulate failure
                 </button>
+                @if(($payload['payment_method'] ?? '') === 'wallet')
+                <button type="button" class="btn btn-sim-pending rounded-pill" id="simPendingBtn">
+                    <i class="bi bi-hourglass-split"></i> Simulate pending
+                </button>
+                @endif
             </div>
 
             <a href="{{ route('payment.checkout', ['token' => $paymentLink->link_token]) }}" class="btn btn-outline-secondary btn-sm w-100 rounded-pill">
@@ -154,9 +167,15 @@
             const errEl = document.getElementById('simError');
             errEl.style.display = 'none';
 
+            let simulateResult = 'failed';
+            if (outcome === 'success') {
+                simulateResult = 'success';
+            } else if (outcome === 'pending') {
+                simulateResult = 'pending';
+            }
             const paymentDetails = Object.assign({}, initialPayload.payment_details || {}, {
                 simulate: true,
-                simulate_result: outcome === 'success' ? 'success' : 'failed',
+                simulate_result: simulateResult,
             });
 
             const body = {
@@ -182,6 +201,16 @@
                 });
                 const result = await res.json().catch(() => ({}));
 
+                if (result.pending || outcome === 'pending') {
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                        return;
+                    }
+                    errEl.textContent = result.message || 'Payment is pending.';
+                    errEl.className = 'alert alert-warning mt-3 mb-0 py-2 small';
+                    errEl.style.display = 'block';
+                    return;
+                }
                 if (result.redirect_url) {
                     window.location.href = result.redirect_url;
                     return;
@@ -205,6 +234,10 @@
 
         document.getElementById('simSuccessBtn').addEventListener('click', () => postSimulate('success'));
         document.getElementById('simFailBtn').addEventListener('click', () => postSimulate('failure'));
+        const simPendingBtn = document.getElementById('simPendingBtn');
+        if (simPendingBtn) {
+            simPendingBtn.addEventListener('click', () => postSimulate('pending'));
+        }
     </script>
 </body>
 </html>

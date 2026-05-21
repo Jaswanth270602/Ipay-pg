@@ -17,6 +17,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\PaymentOrchestration\AcquirerRoutingService;
 use App\Services\NativeUpiService;
+use App\Services\WalletService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -32,22 +33,46 @@ class PaymentCheckoutController extends Controller
      */
     private const CHECKOUT_PUBLIC_FAILURE_MESSAGE = 'Payment could not be completed. Please try again later or contact support.';
 
+    /**
+     * For live wallet checkout, return the real API/validation message to the hosted UI.
+     */
+    protected function checkoutClientErrorMessage(Request $request, string $fallback = '', ?string $paymentMethod = null): string
+    {
+        $method = $paymentMethod ?? (string) $request->input('payment_method', '');
+        $useDetailedWallet = $method === 'wallet'
+            && ! (bool) $request->input('payment_details.simulate', false);
+
+        if (! $useDetailedWallet) {
+            return $fallback !== '' ? $fallback : self::CHECKOUT_PUBLIC_FAILURE_MESSAGE;
+        }
+
+        $message = trim($fallback);
+        if ($message === '') {
+            return self::CHECKOUT_PUBLIC_FAILURE_MESSAGE;
+        }
+
+        return $message;
+    }
+
     protected PaymentService $paymentService;
     protected PaymentSimulationService $simulationService;
     protected FraudEngine $fraudEngine;
     protected NativeUpiService $nativeUpiService;
+    protected WalletService $walletService;
 
     public function __construct(
         PaymentService $paymentService,
         PaymentSimulationService $simulationService,
         FraudEngine $fraudEngine,
-        NativeUpiService $nativeUpiService
+        NativeUpiService $nativeUpiService,
+        WalletService $walletService
     )
     {
         $this->paymentService = $paymentService;
         $this->simulationService = $simulationService;
         $this->fraudEngine = $fraudEngine;
         $this->nativeUpiService = $nativeUpiService;
+        $this->walletService = $walletService;
     }
 
     public function show(string $token)
@@ -92,8 +117,9 @@ class PaymentCheckoutController extends Controller
             // Don't use embedded iframe - use our own payment forms with Razorpay Checkout.js
             // This keeps our UI visible and processes payments through Razorpay API
             $checkoutInternalSimulation = ! $this->useAcquirerGatewayForCheckout($paymentLink);
+            $walletProviders = $this->walletService->providersForLink($paymentLink);
 
-            return view('checkout.payment', compact('paymentLink', 'checkoutInternalSimulation'));
+            return view('checkout.payment', compact('paymentLink', 'checkoutInternalSimulation', 'walletProviders'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             $this->logError('Payment link not found', [
                 'token' => $token
@@ -317,6 +343,26 @@ class PaymentCheckoutController extends Controller
         return view('checkout.test-simulate', [
             'paymentLink' => $paymentLink,
             'payload' => $payload,
+        ]);
+    }
+
+    /**
+     * Wallet providers for hosted checkout (config-driven).
+     */
+    public function walletProviders(string $token)
+    {
+        $paymentLink = PaymentLink::where('link_token', $token)->firstOrFail();
+
+        if (! $paymentLink->isActive()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This payment link is no longer available.',
+            ], 410);
+        }
+
+        return response()->json([
+            'success' => true,
+            'providers' => $this->walletService->providersForLink($paymentLink),
         ]);
     }
 
@@ -650,6 +696,23 @@ class PaymentCheckoutController extends Controller
                 }
             }
 
+            if ($paymentMethod === 'wallet') {
+                $walletCode = strtolower(trim((string) ($paymentDetails['wallet_provider'] ?? '')));
+                if (! $this->walletService->isValidProvider($walletCode)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please select a valid wallet provider.',
+                        'errors' => ['payment_details.wallet_provider' => ['Invalid or missing wallet provider.']],
+                    ], 422);
+                }
+                $paymentDetails['wallet_provider'] = $walletCode;
+                $this->logInfo('Wallet checkout', [
+                    'merchant_id' => $merchant->id,
+                    'payment_link_id' => $paymentLink->id,
+                    'wallet_provider' => $walletCode,
+                ]);
+            }
+
             // Determine payment amount
             $paymentAmount = $paymentLink->amount; // Default to full amount
             
@@ -701,6 +764,10 @@ class PaymentCheckoutController extends Controller
                 'test_mode' => $paymentLink->test_mode,
                 'description' => $paymentLink->title . ($paymentLink->allow_partial_payment ? ' (Partial Payment)' : ''),
             ];
+
+            if ($request->filled('idempotency_key')) {
+                $paymentData['idempotency_key'] = (string) $request->input('idempotency_key');
+            }
 
             // FDS execution example:
             // Evaluate risk before gateway/simulation processing.
@@ -833,15 +900,69 @@ class PaymentCheckoutController extends Controller
                             'cashfree_order_result' => $cashfreeOrderResult,
                         ]);
                         
-                        // Step 2: Create transaction record (status: pending)
-                        $transaction = $this->paymentService->processPayment($order, [
+                        // Step 2: Pending transaction (do not call processPayment — it re-creates Cashfree orders)
+                        $baseRateService = app(\App\Services\BaseRateService::class);
+                        $bank = $merchant->bank ?? null;
+                        $feeCalculation = $baseRateService->calculateFee(
+                            $merchant,
+                            $order->amount,
+                            $paymentMethod,
+                            $bank,
+                            \App\Models\BaseRate::SERVICE_TYPE_PAYMENT,
+                            \App\Models\BaseRate::TRANSACTION_TYPE_DOMESTIC
+                        );
+
+                        $txnPaymentDetails = [];
+                        if ($paymentMethod === 'wallet' && ! empty($paymentDetails['wallet_provider'])) {
+                            $txnPaymentDetails['wallet_provider'] = $paymentDetails['wallet_provider'];
+                        }
+
+                        $transaction = Transaction::create([
+                            'order_id' => $order->id,
+                            'merchant_id' => $order->merchant_id,
+                            'txn_id' => Transaction::generateTxnId(),
+                            'amount' => $order->amount,
+                            'fee_amount' => $feeCalculation['fee_amount'],
+                            'gst_amount' => $feeCalculation['gst_amount'] ?? 0,
+                            'net_amount' => $order->amount - ($feeCalculation['total_fee'] ?? 0),
+                            'currency' => $order->currency,
                             'payment_method' => $paymentMethod,
+                            'status' => 'pending',
+                            'gateway' => 'cashfree',
+                            'gateway_txn_id' => $order->gateway_order_id,
+                            'payment_details' => $txnPaymentDetails,
+                            'gateway_response' => [
+                                'gateway' => 'cashfree',
+                                'gateway_order_id' => $order->gateway_order_id,
+                            ],
+                            'test_mode' => $order->test_mode,
+                            'ip_address' => $request->ip(),
+                            'user_agent' => $request->userAgent(),
                         ]);
-                        
-                        $transaction->status = 'pending'; // ACTIVE in CashFree = pending
-                        // Note: gateway_order_id is stored on Order model, not Transaction
-                        // Transaction uses gateway_txn_id for payment IDs (will be set via webhook)
-                        $transaction->save();
+
+                        try {
+                            $snapshot = app(\App\Services\Rates\MerchantRateSnapshotService::class)->createPaymentSnapshot(
+                                merchant: $merchant,
+                                paymentMethod: (string) $paymentMethod,
+                                amount: (float) $order->amount,
+                                feeAmount: (float) ($feeCalculation['fee_amount'] ?? 0),
+                                percentageFee: (float) ($feeCalculation['percentage_fee'] ?? 0),
+                                flatFee: (float) ($feeCalculation['flat_fee'] ?? 0),
+                                gstPercentage: (float) ($feeCalculation['gst_percentage'] ?? 18),
+                                baseRateId: $feeCalculation['rate_id'] ?? null
+                            );
+                            $transaction->update([
+                                'admin_rate_snapshot_id' => $snapshot->id,
+                                'admin_fee_percentage_snapshot' => $snapshot->effective_fee_percentage,
+                            ]);
+                        } catch (\Throwable $e) {
+                            $this->logWarning('Could not snapshot rate for pending Cashfree transaction', [
+                                'transaction_id' => $transaction->id,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+
+                        $order->update(['status' => 'pending']);
 
                         $this->linkLatestCheckoutRoutingMonitorToTransaction($merchant, $transaction->txn_id);
                         
@@ -869,6 +990,11 @@ class PaymentCheckoutController extends Controller
                     
                     // For Razorpay and other gateways, use standard flow
                     // Prepare payment data for gateway
+                    $gatewayMetadata = ['payment_link_id' => $paymentLink->id];
+                    if ($paymentMethod === 'wallet' && ! empty($paymentDetails['wallet_provider'])) {
+                        $gatewayMetadata['wallet_provider'] = $paymentDetails['wallet_provider'];
+                    }
+
                     $gatewayPaymentData = [
                         'order_id' => $order->order_id,
                         'amount' => $paymentAmount,
@@ -876,7 +1002,7 @@ class PaymentCheckoutController extends Controller
                         'payment_method' => $paymentMethod,
                         'customer_details' => $request->customer_details,
                         'description' => $paymentLink->title,
-                        'metadata' => ['payment_link_id' => $paymentLink->id],
+                        'metadata' => $gatewayMetadata,
                     ];
                     
                     // Add payment details for server-side processing (Razorpay, etc.)
@@ -1043,13 +1169,18 @@ class PaymentCheckoutController extends Controller
                     $baseUrl = config('app.url', 'http://127.0.0.1:8000');
                 }
                 
-                if ($result['success']) {
+                if (! empty($result['pending'])) {
+                    $result['redirect_url'] = route('payment.checkout', ['token' => $token])
+                        .'?wallet_pending=1&transaction_id='.urlencode((string) ($result['transaction_id'] ?? ''));
+                } elseif ($result['success']) {
                     $result['redirect_url'] = rtrim($baseUrl, '/') . '/success-simple.html?transaction_id=' . ($result['transaction_id'] ?? '');
                 } else {
                     $result['redirect_url'] = rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($result['transaction_id'] ?? '');
                 }
 
-                return response()->json($result, $result['success'] ? 200 : 402);
+                $httpStatus = ! empty($result['pending']) ? 200 : ($result['success'] ? 200 : 402);
+
+                return response()->json($result, $httpStatus);
                 
             } catch (\Exception $serviceError) {
                 $this->logError('Payment simulation service error', [
@@ -1117,7 +1248,7 @@ class PaymentCheckoutController extends Controller
 
                     return response()->json([
                         'success' => false,
-                        'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
+                        'message' => $this->checkoutClientErrorMessage($request, $rawError, $paymentMethod ?? null),
                         'error_code' => 'ACQUIRER_AUTH_FAILED',
                         'redirect_url' => rtrim($baseUrl, '/') . '/failure-simple.html?transaction_id=' . ($failedTxn?->txn_id ?? ''),
                     ], 422);
@@ -1132,7 +1263,8 @@ class PaymentCheckoutController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
+                    'message' => $this->checkoutClientErrorMessage($request, $rawError, $paymentMethod ?? null),
+                    'error_code' => 'PAYMENT_PROCESSING_ERROR',
                     'error' => config('app.debug') ? $rawError : null,
                 ], 500);
             }
@@ -1151,7 +1283,8 @@ class PaymentCheckoutController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => self::CHECKOUT_PUBLIC_FAILURE_MESSAGE,
+                'message' => $this->checkoutClientErrorMessage($request, $errorMessage, $request->input('payment_method')),
+                'error_code' => 'CHECKOUT_ERROR',
                 'error' => config('app.debug') ? [
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
