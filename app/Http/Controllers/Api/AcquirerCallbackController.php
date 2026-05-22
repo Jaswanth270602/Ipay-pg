@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcquirerAccount;
 use App\Models\ProviderResponse;
 use App\Services\Acquirers\AcquirerResolver;
+use App\Services\ChargebackCreationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -545,11 +546,45 @@ class AcquirerCallbackController extends Controller
      */
     protected function handleDispute($adapter, array $payload, ProviderResponse $providerResponse): void
     {
-        // Handle dispute creation/resolution
+        $disputeId = $providerResponse->dispute_id;
+        $paymentId = $providerResponse->payment_id;
+
         Log::info('Dispute event received', [
-            'dispute_id' => $providerResponse->dispute_id,
+            'dispute_id' => $disputeId,
+            'payment_id' => $paymentId,
             'provider_response_id' => $providerResponse->id,
         ]);
+
+        if (empty($disputeId) || empty($paymentId)) {
+            return;
+        }
+
+        $transaction = $this->findTransactionForCallback($paymentId, $providerResponse->order_id);
+        if (! $transaction) {
+            Log::warning('Dispute webhook: transaction not found', [
+                'payment_id' => $paymentId,
+                'dispute_id' => $disputeId,
+            ]);
+
+            return;
+        }
+
+        $entity = $payload['payload']['dispute']['entity'] ?? [];
+        $amount = (float) $transaction->amount;
+        if (is_array($entity) && isset($entity['amount'])) {
+            $raw = (float) $entity['amount'];
+            $amount = $raw > 1000 ? $raw / 100 : $raw;
+        }
+
+        $eventType = (string) ($payload['event'] ?? 'dispute.created');
+
+        app(ChargebackCreationService::class)->upsertFromAcquirerDispute(
+            $transaction,
+            (string) $disputeId,
+            $amount,
+            $eventType,
+            $payload
+        );
     }
 }
 

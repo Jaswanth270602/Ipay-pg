@@ -25,8 +25,9 @@ class BackfillFxSnapshotsCommand extends Command
             ->orderBy('id')
             ->chunkById($chunk, function ($transactions) use ($fxSnapshotService, &$txnCount) {
                 foreach ($transactions as $transaction) {
-                    $fxSnapshotService->captureTransactionSnapshot($transaction);
-                    $txnCount++;
+                    if ($fxSnapshotService->captureTransactionSnapshot($transaction, $transaction->created_at)) {
+                        $txnCount++;
+                    }
                 }
             });
 
@@ -37,8 +38,9 @@ class BackfillFxSnapshotsCommand extends Command
             ->orderBy('id')
             ->chunkById($chunk, function ($refunds) use ($fxSnapshotService, &$refundCount) {
                 foreach ($refunds as $refund) {
-                    $fxSnapshotService->captureRefundSnapshot($refund);
-                    $refundCount++;
+                    if ($fxSnapshotService->captureRefundSnapshot($refund, $refund->created_at)) {
+                        $refundCount++;
+                    }
                 }
             });
 

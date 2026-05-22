@@ -2,8 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Models\Merchant;
 use App\Models\Transaction;
+use App\Services\ChargebackCreationService;
 use App\Services\FileLifecycleService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -64,7 +67,7 @@ class ProcessBulkChargebackJob implements ShouldQueue
                 throw new \Exception('Bulk chargeback job record not found');
             }
 
-            $hasTestModeOnChargebacks = Schema::hasTable('chargebacks') && Schema::hasColumn('chargebacks', 'test_mode');
+            $chargebackService = app(ChargebackCreationService::class);
 
             $results = [];
             $successCount = 0;
@@ -112,26 +115,9 @@ class ProcessBulkChargebackJob implements ShouldQueue
                     continue;
                 }
 
-                $chargebackStatus = $this->normalizeChargebackStatus($statusRaw);
-
-                if (DB::table('chargebacks')->where('chargeback_request_id', $requestId)->exists()) {
-                    $message = 'Duplicate chargeback_request_id';
-                    $results[] = $this->rowResult($rowNumber, $requestId, $txnTxt, 'FAILED', $message);
-                    $errorMessages[] = "Row {$rowNumber}: {$message}";
-                    $errorCount++;
-
-                    continue;
-                }
-
-                $txnQuery = Transaction::query()
-                    ->where('txn_id', $txnTxt)
-                    ->where('merchant_id', $merchantIdForRow);
-                if ($jobRow->test_mode !== null) {
-                    $txnQuery->where('test_mode', (bool) $jobRow->test_mode);
-                }
-                $transaction = $txnQuery->first();
-                if (! $transaction) {
-                    $message = 'Transaction not found for txn_id / merchant (and test mode scope if set)';
+                $merchant = Merchant::query()->find($merchantIdForRow);
+                if (! $merchant) {
+                    $message = 'Merchant not found';
                     $results[] = $this->rowResult($rowNumber, $requestId, $txnTxt, 'FAILED', $message);
                     $errorMessages[] = "Row {$rowNumber}: {$message}";
                     $errorCount++;
@@ -140,23 +126,21 @@ class ProcessBulkChargebackJob implements ShouldQueue
                 }
 
                 try {
-                    $insert = [
-                        'merchant_id' => $merchantIdForRow,
-                        'transaction_id' => $transaction->id,
+                    $chargebackService->createForMerchant($merchant, [
                         'chargeback_request_id' => $requestId,
-                        'chargeback_amount' => round((float) $amount, 2),
-                        'chargeback_status' => $chargebackStatus,
+                        'transaction_id' => $txnTxt,
+                        'chargeback_amount' => $amount,
+                        'chargeback_status' => $statusRaw,
                         'notes' => 'Created from bulk upload job #'.$this->jobId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                    if ($hasTestModeOnChargebacks) {
-                        $insert['test_mode'] = (bool) $transaction->test_mode;
-                    }
-                    DB::table('chargebacks')->insert($insert);
+                    ], false);
 
                     $results[] = $this->rowResult($rowNumber, $requestId, $txnTxt, 'SUCCESS', 'Chargeback record created');
                     $successCount++;
+                } catch (ValidationException $e) {
+                    $message = collect($e->errors())->flatten()->first() ?? 'Validation failed';
+                    $results[] = $this->rowResult($rowNumber, $requestId, $txnTxt, 'FAILED', $message);
+                    $errorMessages[] = "Row {$rowNumber}: {$message}";
+                    $errorCount++;
                 } catch (\Throwable $e) {
                     $message = $e->getMessage();
                     $results[] = $this->rowResult($rowNumber, $requestId, $txnTxt, 'FAILED', $message);

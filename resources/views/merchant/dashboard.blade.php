@@ -73,13 +73,7 @@
         min-height: 38px;
         margin-top: auto;
     }
-    .dashboard-stats-row .stat-card > .flip-volume-inner {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    .dashboard-stats-row .flip-volume-face {
-        flex: 1;
+    .dashboard-stats-row .stat-card.card-volume {
         display: flex;
         flex-direction: column;
     }
@@ -103,43 +97,23 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     }
 
-    .flip-volume-wrap {
-        perspective: 1000px;
-        overflow: hidden;
+    .volume-card-tabs {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 0.75rem;
     }
-    .stat-card.card-volume.flip-volume-wrap:hover {
-        transform: none;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    .volume-card-tabs .btn {
+        flex: 1;
+        font-size: 0.72rem;
+        padding: 0.25rem 0.4rem;
     }
-    .flip-volume-inner {
-        position: relative;
-        width: 100%;
-        min-height: 140px;
-        transition: transform 0.55s ease;
-        transform-style: preserve-3d;
+    .volume-card-panel {
+        display: none;
+        flex: 1;
+        flex-direction: column;
     }
-    .flip-volume-inner.is-flipped {
-        transform: rotateY(180deg);
-    }
-    .flip-volume-face {
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-    }
-    .flip-volume-back {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        transform: rotateY(180deg);
-    }
-    .flip-volume-btn {
-        border: none;
-        background: transparent;
-        line-height: 1;
-    }
-    .flip-volume-btn:hover {
-        color: #7c3aed !important;
+    .volume-card-panel.is-active {
+        display: flex;
     }
     
     /* Quick Actions Cards */
@@ -228,32 +202,7 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('dashboard') }}" class="row g-2 align-items-end mb-3" id="merchantFxFilterForm" onsubmit="document.getElementById('merchantDashboardFxLoader').style.display='flex';">
-        <div class="col-auto">
-            <label class="form-label small mb-1">Display currency</label>
-            <select name="display_currency" class="form-select form-select-sm" onchange="this.form.submit()">
-                @foreach(($fx_options['supported_currencies'] ?? ['USD','INR','KES']) as $code)
-                <option value="{{ $code }}" @selected(($dashboard_display_currency ?? 'KES') === $code)>{{ $code }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-auto">
-            <label class="form-label small mb-1">Conversion</label>
-            <select name="fx_mode" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="historical" @selected(($dashboard_fx_mode ?? 'historical') === 'historical')>Historical rate</option>
-                <option value="live" @selected(($dashboard_fx_mode ?? 'historical') === 'live')>Live current rate</option>
-            </select>
-        </div>
-        <div class="col-auto">
-            <small class="text-muted d-block">
-                @if(($dashboard_fx_mode ?? 'historical') === 'historical')
-                    Volume totals use FX rates captured when each payment succeeded.
-                @elseif(($dashboard_fx_mode ?? '') === 'live')
-                    Volume totals use today's live exchange rates.
-                @endif
-            </small>
-        </div>
-    </form>
+    @include('merchant.partials.dashboard-fx-panel')
 
     <!-- Stats Cards -->
     <div class="row g-4 mb-4 dashboard-stats-row align-items-stretch">
@@ -274,35 +223,33 @@
         </div>
 
         <div class="col-md-3">
-            <div class="stat-card card-volume flip-volume-wrap">
-                <div class="flip-volume-inner" id="merchantVolumeFlipInner">
-                    <div class="flip-volume-face flip-volume-front">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="mb-0">Total Volume</h6>
-                            <i class="bi bi-currency-dollar"></i>
-                        </div>
-                        <div class="flip-volume-metric">
-                            <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
-                            <small class="text-muted">Gross (converted to {{ $dashboard_display_currency }})</small>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show net volume" aria-label="Show net volume">
-                            <i class="bi bi-arrow-down-up me-1"></i> Net volume
-                        </button>
+            <div class="stat-card card-volume" id="merchantVolumeCard">
+                <div class="volume-card-tabs" role="tablist">
+                    <button type="button" class="btn btn-sm btn-primary volume-tab is-active" data-volume-panel="gross" role="tab" aria-selected="true">Gross</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary volume-tab" data-volume-panel="net" role="tab" aria-selected="false">Net</button>
+                </div>
+                <div class="volume-card-panel is-active" id="volumePanelGross" data-panel="gross">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0">Gross Volume</h6>
+                        <i class="bi bi-currency-dollar"></i>
                     </div>
-                    <div class="flip-volume-face flip-volume-back">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <h6 class="mb-0">Net Volume</h6>
-                            <i class="bi bi-wallet2"></i>
-                        </div>
-                        <div class="flip-volume-metric">
-                            <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['net_volume'], 2) }}</h3>
-                            <small class="text-muted">After refunds &amp; settled payouts ({{ $dashboard_display_currency }})</small>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-auto pt-2" onclick="document.getElementById('merchantVolumeFlipInner').classList.toggle('is-flipped');" title="Show gross volume" aria-label="Show gross volume">
-                            <i class="bi bi-arrow-down-up me-1"></i> Gross volume
-                        </button>
+                    <div class="flip-volume-metric">
+                        <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['total_volume'], 2) }}</h3>
+                        <small class="text-muted">Successful payments ({{ $dashboard_display_currency }})</small>
                     </div>
                 </div>
+                <div class="volume-card-panel" id="volumePanelNet" data-panel="net">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0">Net Volume</h6>
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="flip-volume-metric">
+                        <h3 class="fw-bold mb-1">{{ $dashboard_display_currency }} {{ number_format($stats['net_volume'], 2) }}</h3>
+                        <small class="text-muted d-block">Gross minus completed refunds</small>
+                        <small class="text-muted d-block mt-1">Unsettled: {{ $dashboard_display_currency }} {{ number_format($stats['unsettled_volume'] ?? 0, 2) }}</small>
+                    </div>
+                </div>
+                <div class="stat-card-spacer" aria-hidden="true"></div>
             </div>
         </div>
 
@@ -558,3 +505,30 @@
 @endsection
 
 @include('merchant.dashboard.angular.main_controller')
+
+@push('scripts')
+<script>
+(function () {
+    var card = document.getElementById('merchantVolumeCard');
+    if (!card) return;
+    var tabs = card.querySelectorAll('.volume-tab');
+    var panels = card.querySelectorAll('.volume-card-panel');
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            var target = tab.getAttribute('data-volume-panel');
+            tabs.forEach(function (t) {
+                t.classList.remove('btn-primary', 'is-active');
+                t.classList.add('btn-outline-secondary');
+                t.setAttribute('aria-selected', 'false');
+            });
+            tab.classList.add('btn-primary', 'is-active');
+            tab.classList.remove('btn-outline-secondary');
+            tab.setAttribute('aria-selected', 'true');
+            panels.forEach(function (panel) {
+                panel.classList.toggle('is-active', panel.getAttribute('data-panel') === target);
+            });
+        });
+    });
+})();
+</script>
+@endpush

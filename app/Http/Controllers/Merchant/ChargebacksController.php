@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Merchant;
 
 use App\Http\Controllers\Controller;
+use App\Services\ChargebackCreationService;
 use App\Traits\LogsConditionally;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ChargebacksController extends Controller
@@ -27,15 +30,22 @@ class ChargebacksController extends Controller
             $query = DB::table('chargebacks')
                 ->leftJoin('transactions', 'chargebacks.transaction_id', '=', 'transactions.id')
                 ->where('chargebacks.merchant_id', $merchant->id)
-                ->where('chargebacks.test_mode', $merchant->test_mode)
                 ->select('chargebacks.*', 'transactions.txn_id as transaction_txn_id');
+
+            if (Schema::hasColumn('chargebacks', 'test_mode')) {
+                $query->where('chargebacks.test_mode', $merchant->test_mode);
+            }
 
             // Filters
             if ($request->has('filter_chargeback_request_id') && $request->get('filter_chargeback_request_id')) {
                 $query->where('chargebacks.chargeback_request_id', 'like', "%{$request->get('filter_chargeback_request_id')}%");
             }
             if ($request->has('filter_chargeback_status') && $request->get('filter_chargeback_status') !== 'all') {
-                $query->where('chargebacks.chargeback_status', $request->get('filter_chargeback_status'));
+                $statusFilter = $request->get('filter_chargeback_status');
+                if ($statusFilter === 'disputed') {
+                    $statusFilter = 'contested';
+                }
+                $query->where('chargebacks.chargeback_status', $statusFilter);
             }
 
             $chargebacks = $query->latest('chargebacks.created_at')->paginate($perPage);
@@ -86,9 +96,111 @@ class ChargebacksController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            $this->logError('Failed to fetch chargebacks', [
+                'merchant_id' => $request->user()->merchant_id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch chargebacks',
+            ], 500);
+        }
+    }
+
+    public function lookupTransaction(Request $request, ChargebackCreationService $chargebacks): JsonResponse
+    {
+        $request->validate([
+            'q' => 'required|string|max:120',
+        ]);
+
+        $merchant = $request->user()->merchant;
+        $result = $chargebacks->lookupTransactionForMerchant($merchant, $request->input('q'));
+
+        if (! $result) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No eligible payment found for this reference in your current Test/Live mode.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+        ]);
+    }
+
+    public function store(Request $request, ChargebackCreationService $chargebacks): JsonResponse
+    {
+        $request->validate([
+            'chargeback_request_id' => 'nullable|string|max:120',
+            'transaction_id' => 'required|string|max:120',
+            'chargeback_amount' => 'required|numeric|min:0.01',
+            'chargeback_status' => 'nullable|string|max:32',
+            'target_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        try {
+            $merchant = $request->user()->merchant;
+            $created = $chargebacks->createForMerchant($merchant, $request->only([
+                'chargeback_request_id',
+                'transaction_id',
+                'chargeback_amount',
+                'chargeback_status',
+                'target_date',
+                'notes',
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chargeback registered. Respond before the target date to contest with the bank.',
+                'data' => $created,
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            $this->logError('Failed to create chargeback', [
+                'merchant_id' => $request->user()->merchant_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create chargeback: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function contest(Request $request, int $id, ChargebackCreationService $chargebacks): JsonResponse
+    {
+        $request->validate([
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        try {
+            $merchant = $request->user()->merchant;
+            $updated = $chargebacks->contestChargeback($merchant, $id, $request->input('notes'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chargeback marked as contested. Awaiting acquirer/bank decision.',
+                'data' => $updated,
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to contest chargeback: '.$e->getMessage(),
             ], 500);
         }
     }

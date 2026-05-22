@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class OnboardingController extends Controller
 {
@@ -55,10 +56,19 @@ class OnboardingController extends Controller
     public function updateStep(Request $request, $step)
     {
         $merchant = auth()->user()->merchant;
-        $validated = $request->validate(
-            $this->getStepValidationRules($step),
-            $this->getStepValidationMessages($step)
-        );
+
+        try {
+            $validated = $request->validate(
+                $this->getStepValidationRules($step, $merchant, $request),
+                $this->getStepValidationMessages($step)
+            );
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Please check the form and try again.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         try {
             switch ($step) {
@@ -81,24 +91,27 @@ class OnboardingController extends Controller
                     $merchant->update([
                         'bank_account_holder_name' => $validated['bank_account_holder_name'],
                         'bank_account_number' => $validated['bank_account_number'],
-                        'bank_ifsc_code' => $validated['bank_ifsc_code'],
+                        'bank_ifsc_code' => strtoupper($validated['bank_ifsc_code']),
                         'bank_name' => $validated['bank_name'],
                         'bank_branch' => $validated['bank_branch'] ?? null,
                     ]);
                     break;
 
                 case 3: // KYC Documents
+                    $kycUpdate = [
+                        'kyc_document_type' => $validated['kyc_document_type'],
+                        'kyc_document_number' => $validated['kyc_document_number'],
+                    ];
                     if ($request->hasFile('kyc_document')) {
-                        $file = $request->file('kyc_document');
-                        $path = $file->store('kyc_documents', 'public');
-                        
-                        $merchant->update([
-                            'kyc_document_type' => $validated['kyc_document_type'],
-                            'kyc_document_number' => $validated['kyc_document_number'],
-                            'kyc_document_file' => $path,
-                            'kyc_status' => 'under_review',
+                        $path = $request->file('kyc_document')->store('kyc_documents', 'public');
+                        $kycUpdate['kyc_document_file'] = $path;
+                        $kycUpdate['kyc_status'] = 'under_review';
+                    } elseif (empty($merchant->kyc_document_file)) {
+                        throw ValidationException::withMessages([
+                            'kyc_document' => ['Please upload a KYC document to continue.'],
                         ]);
                     }
+                    $merchant->update($kycUpdate);
                     break;
 
                 case 4: // Review & Submit
@@ -127,6 +140,12 @@ class OnboardingController extends Controller
                 'next_step' => $step < 4 ? $step + 1 : null,
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'Please check the form and try again.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Onboarding step failed', [
                 'merchant_id' => $merchant->id,
@@ -136,7 +155,7 @@ class OnboardingController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save step: ' . $e->getMessage(),
+                'message' => 'We could not save this step. Please try again or contact support if it persists.',
             ], 500);
         }
     }
@@ -181,37 +200,41 @@ class OnboardingController extends Controller
         return 4;
     }
 
-    protected function getStepValidationRules($step)
+    protected function getStepValidationRules($step, ?Merchant $merchant = null, ?Request $request = null)
     {
         switch ($step) {
             case 1:
                 return [
-                    'company_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^[A-Za-z ]+$/'],
+                    'company_name' => ['required', 'string', 'min:2', 'max:256', 'regex:/^[\p{L}\p{N}\s\.\-\'\,&]+$/u'],
                     'business_type' => 'required|string|in:sole_proprietorship,partnership,private_limited,llp,other',
-                    'business_phone' => ['required', 'string', 'min:6', 'max:16', 'regex:/^\+?[0-9]{6,15}$/'],
+                    'business_phone' => ['required', 'string', 'min:8', 'max:16', 'regex:/^\+?[0-9]{8,15}$/'],
                     'business_email' => 'nullable|email|max:255',
                     'business_address' => 'required|string|min:3|max:500',
                     'business_city' => ['required', 'string', 'max:100'],
                     'business_state' => ['required', 'string', 'max:100'],
                     'business_country' => 'required|string|max:2',
-                    'business_postal_code' => ['required', 'string', 'min:4', 'max:16', 'regex:/^[A-Za-z0-9]+$/'],
+                    'business_postal_code' => ['required', 'string', 'min:4', 'max:16', 'regex:/^[A-Za-z0-9\s\-]+$/'],
                     'business_website' => 'nullable|url|max:255',
                 ];
 
             case 2:
                 return [
-                    'bank_account_holder_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^[A-Za-z ]+$/'],
+                    'bank_account_holder_name' => ['required', 'string', 'min:2', 'max:256', 'regex:/^[\p{L}\p{N}\s\.\-\']+$/u'],
                     'bank_account_number' => ['required', 'string', 'min:8', 'max:34', 'regex:/^[A-Za-z0-9]+$/'],
-                    'bank_ifsc_code' => ['required', 'string', 'min:7', 'max:15', 'regex:/^[A-Za-z]{4}[A-Za-z0-9]{3,11}$/'],
-                    'bank_name' => ['required', 'string', 'min:3', 'max:256', 'regex:/^[A-Za-z ]+$/'],
-                    'bank_branch' => ['nullable', 'string', 'min:3', 'max:255', 'regex:/^[A-Za-z0-9 ]+$/'],
+                    'bank_ifsc_code' => ['required', 'string', 'min:11', 'max:11', 'regex:/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/i'],
+                    'bank_name' => ['required', 'string', 'min:2', 'max:256'],
+                    'bank_branch' => ['nullable', 'string', 'min:2', 'max:255'],
                 ];
 
             case 3:
+                $hasExistingDoc = $merchant && ! empty($merchant->kyc_document_file);
+
                 return [
                     'kyc_document_type' => 'required|in:pan,aadhaar,passport,driving_license,business_license',
-                    'kyc_document_number' => ['required', 'string', 'min:4', 'max:50', 'regex:/^[A-Za-z0-9]+$/'],
-                    'kyc_document' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB
+                    'kyc_document_number' => ['required', 'string', 'min:4', 'max:50', 'regex:/^[A-Za-z0-9\-]+$/'],
+                    'kyc_document' => ($hasExistingDoc || ($request && $request->hasFile('kyc_document')))
+                        ? 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120'
+                        : 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
                 ];
 
             case 4:
@@ -229,12 +252,12 @@ class OnboardingController extends Controller
                 'company_name.required' => 'Company name is required.',
                 'company_name.min' => 'Company name must be at least 3 characters.',
                 'company_name.max' => 'Company name may not be greater than 256 characters.',
-                'company_name.regex' => 'Company name may contain only letters and spaces.',
+                'company_name.regex' => 'Company name contains invalid characters.',
                 'business_type.required' => 'Business type is required.',
                 'business_type.in' => 'Please select a valid business type.',
                 'business_phone.required' => 'Business phone is required.',
-                'business_phone.regex' => 'Business phone must contain only numbers and optional + (6-15 digits).',
-                'business_phone.min' => 'Business phone must be at least 6 characters.',
+                'business_phone.regex' => 'Enter a valid phone number (8–15 digits, optional +).',
+                'business_phone.min' => 'Business phone must be at least 8 digits.',
                 'business_phone.max' => 'Business phone may not be greater than 16 characters.',
                 'business_email.email' => 'Business email must be a valid email address.',
                 'business_address.required' => 'Business address is required.',
@@ -261,13 +284,12 @@ class OnboardingController extends Controller
                 'bank_account_number.max' => 'Account number may not be greater than 34 characters.',
                 'bank_account_number.regex' => 'Account number may contain only letters and numbers.',
                 'bank_ifsc_code.required' => 'IFSC code is required.',
-                'bank_ifsc_code.min' => 'IFSC code must be at least 7 characters.',
-                'bank_ifsc_code.max' => 'IFSC code may not be greater than 15 characters.',
-                'bank_ifsc_code.regex' => 'IFSC code must start with 4 letters followed by letters or numbers (e.g., ABCD0001234).',
+                'bank_ifsc_code.min' => 'IFSC code must be 11 characters (e.g. HDFC0001234).',
+                'bank_ifsc_code.max' => 'IFSC code must be 11 characters.',
+                'bank_ifsc_code.regex' => 'Enter a valid 11-character IFSC (4 letters + 0 + 6 alphanumeric).',
                 'bank_name.required' => 'Bank name is required.',
-                'bank_name.min' => 'Bank name must be at least 3 characters.',
+                'bank_name.min' => 'Bank name must be at least 2 characters.',
                 'bank_name.max' => 'Bank name may not be greater than 256 characters.',
-                'bank_name.regex' => 'Bank name may contain only letters and spaces.',
                 'bank_branch.min' => 'Bank branch must be at least 3 characters.',
                 'bank_branch.regex' => 'Bank branch may contain only letters, numbers, and spaces.',
             ];

@@ -151,6 +151,53 @@ class SettlementSummaryController extends Controller
             ], 500);
         }
     }
+
+    public function markAsBounced(Request $request, SettlementCompletionService $completion): JsonResponse
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'bounce_reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $count = $completion->markSettlementsBounced(
+                array_map('intval', $request->input('ids', [])),
+                null,
+                $request->input('bounce_reason'),
+                true
+            );
+
+            if ($count === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No settlements were updated. Selected rows may already be bounced.',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $count === 1
+                    ? 'Settlement marked as bounced.'
+                    : "{$count} settlements marked as bounced.",
+                'updated_count' => $count,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Exception $e) {
+            $this->logError('Admin failed to bounce settlements', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to bounce settlements: '.$e->getMessage(),
+            ], 500);
+        }
+    }
 }
 
 

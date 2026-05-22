@@ -126,6 +126,9 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/fx-backfill', [DashboardController::class, 'backfillFxSnapshots'])
+        ->middleware('merchant')
+        ->name('dashboard.fx-backfill');
 
     // Notifications (shared for admin + merchant)
     Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications.index');
@@ -187,6 +190,13 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.payments.chargebacks');
         Route::get('/payments/chargebacks/data', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'getData'])
             ->name('merchant.payments.chargebacks.data');
+        Route::get('/payments/chargebacks/lookup-transaction', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'lookupTransaction'])
+            ->name('merchant.payments.chargebacks.lookup-transaction');
+        Route::post('/payments/chargebacks', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'store'])
+            ->name('merchant.payments.chargebacks.store');
+        Route::post('/payments/chargebacks/{id}/contest', [\App\Http\Controllers\Merchant\ChargebacksController::class, 'contest'])
+            ->whereNumber('id')
+            ->name('merchant.payments.chargebacks.contest');
         Route::get('/payments/bulk-chargebacks', [\App\Http\Controllers\Merchant\BulkChargebacksController::class, 'index'])
             ->name('merchant.payments.bulk-chargebacks');
         Route::get('/payments/bulk-chargebacks/jobs', [\App\Http\Controllers\Merchant\BulkChargebacksController::class, 'getJobs'])
@@ -229,6 +239,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.settlements.summary.data');
         Route::post('/settlements/summary/mark-settled', [\App\Http\Controllers\Merchant\SettlementSummaryController::class, 'markAsSettled'])
             ->name('merchant.settlements.summary.mark-settled');
+        Route::post('/settlements/summary/bounce', [\App\Http\Controllers\Merchant\SettlementSummaryController::class, 'markAsBounced'])
+            ->name('merchant.settlements.summary.bounce');
 
         // Settlement Details
         Route::get('/settlements/details', [\App\Http\Controllers\Merchant\SettlementDetailsController::class, 'index'])
@@ -517,6 +529,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.settlements.summary.data');
         Route::post('/settlements/summary/mark-settled', [SettlementSummaryController::class, 'markAsSettled'])
             ->name('admin.settlements.summary.mark-settled');
+        Route::post('/settlements/summary/bounce', [SettlementSummaryController::class, 'markAsBounced'])
+            ->name('admin.settlements.summary.bounce');
         Route::get('/settlements/details', [SettlementDetailsController::class, 'index'])
             ->name('admin.settlements.details');
         Route::get('/settlements/details/data', [SettlementDetailsController::class, 'getData'])

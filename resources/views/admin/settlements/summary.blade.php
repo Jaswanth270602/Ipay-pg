@@ -75,8 +75,8 @@
                 <button class="btn btn-sm btn-primary" ng-click="assc.markAsSettled()" ng-disabled="!assc.hasSelected()">
                     <i class="bi bi-pencil"></i> Mark as Settled
                 </button>
-                <button class="btn btn-sm btn-warning" ng-click="assc.bounceSettlement()" ng-disabled="!assc.hasSelected()">
-                    Bounce Settlement
+                <button class="btn btn-sm btn-warning text-dark" ng-click="assc.bounceSettlement()" ng-disabled="!assc.hasSelected()">
+                    <i class="bi bi-arrow-return-left me-1"></i> Bounce Settlement
                 </button>
             </div>
         </div>
@@ -261,7 +261,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (assc.pagination.current_page - 1) * assc.pagination.per_page + 1 }} to @{{ Math.min(assc.pagination.current_page * assc.pagination.per_page, assc.pagination.total) }} of @{{ assc.pagination.total }} entries
+                    Showing <span ng-bind="assc.paginationFrom"></span> to <span ng-bind="assc.paginationTo"></span> of <span ng-bind="assc.pagination.total"></span> entries
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 
@@ -279,6 +279,12 @@
             </div>
         </div>
     </div>
+
+    @include('settlements.partials.mark-settled-ui', ['ng' => 'assc'])
+    @include('settlements.partials.bounce-settlement-ui', [
+        'ng' => 'assc',
+        'postUrl' => route('admin.settlements.summary.bounce'),
+    ])
 </div>
 @endsection
 
@@ -298,10 +304,23 @@
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
                 vm.settlements = [];
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
+                vm.paginationFrom = 0;
+                vm.paginationTo = 0;
                 vm.filters = {};
                 vm.loading = false;
                 vm.selectAll = false;
                 vm.dateRange = ''; // Empty = show all dates
+
+                vm.refreshPaginationDisplay = function() {
+                    var p = vm.pagination;
+                    if (!p || !p.total) {
+                        vm.paginationFrom = 0;
+                        vm.paginationTo = 0;
+                        return;
+                    }
+                    vm.paginationFrom = (p.current_page - 1) * p.per_page + 1;
+                    vm.paginationTo = Math.min(p.current_page * p.per_page, p.total);
+                };
                 vm.mode = 'all';
                 vm.sortColumn = 'id';
                 vm.sortDirection = 'desc';
@@ -355,6 +374,7 @@
                             total: response.data.pagination.total,
                             per_page: response.data.pagination.per_page
                         };
+                        vm.refreshPaginationDisplay();
                         vm.loading = false;
                     }, function(error) {
                         vm.loading = false;
@@ -409,23 +429,24 @@
                     });
                 };
 
-                vm.markAsSettled = function() {
-                    var selected = vm.settlements.filter(function(s) { return s.selected; }).map(function(s) { return s.id; });
-                    if (selected.length === 0) return;
-                    
-                    $http.post('/admin/settlements/summary/mark-settled', { ids: selected }, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Settlements marked as settled');
-                            vm.loadSettlements();
-                        }
+                if (typeof window.attachMarkSettledHandlers === 'function') {
+                    window.attachMarkSettledHandlers(vm, {
+                        postUrl: @json(route('admin.settlements.summary.mark-settled')),
+                        modalId: 'markSettledModal-assc',
+                        $http: $http,
+                        csrf: csrf,
+                        onDone: function() { vm.loadSettlements(); }
                     });
-                };
-
-                vm.bounceSettlement = function() {
-                    alert('Bounce settlement functionality');
-                };
+                }
+                if (typeof window.attachBounceSettlementHandlers === 'function') {
+                    window.attachBounceSettlementHandlers(vm, {
+                        postUrl: @json(route('admin.settlements.summary.bounce')),
+                        modalId: 'bounceSettlementModal-assc',
+                        $http: $http,
+                        csrf: csrf,
+                        onDone: function() { vm.loadSettlements(); }
+                    });
+                }
 
                 vm.toggleColumn = function(key) {
                     if (vm.visibleColumns.hasOwnProperty(key)) {

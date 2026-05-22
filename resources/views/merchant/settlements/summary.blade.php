@@ -69,8 +69,8 @@
                 <button class="btn btn-sm btn-primary" ng-click="mssc.markAsSettled()" ng-disabled="!mssc.hasSelected()">
                     <i class="bi bi-pencil"></i> Mark as Settled
                 </button>
-                <button class="btn btn-sm btn-warning" ng-click="mssc.bounceSettlement()" ng-disabled="!mssc.hasSelected()">
-                    Bounce Settlement
+                <button class="btn btn-sm btn-warning text-dark" ng-click="mssc.bounceSettlement()" ng-disabled="!mssc.hasSelected()">
+                    <i class="bi bi-arrow-return-left me-1"></i> Bounce Settlement
                 </button>
             </div>
         </div>
@@ -251,7 +251,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    Showing @{{ (mssc.pagination.current_page - 1) * mssc.pagination.per_page + 1 }} to @{{ Math.min(mssc.pagination.current_page * mssc.pagination.per_page, mssc.pagination.total) }} of @{{ mssc.pagination.total }} entries
+                    Showing <span ng-bind="mssc.paginationFrom"></span> to <span ng-bind="mssc.paginationTo"></span> of <span ng-bind="mssc.pagination.total"></span> entries
                 </div>
                 <div>
                     <button class="btn btn-sm btn-outline-secondary" 
@@ -269,6 +269,12 @@
             </div>
         </div>
     </div>
+
+    @include('settlements.partials.mark-settled-ui', ['ng' => 'mssc'])
+    @include('settlements.partials.bounce-settlement-ui', [
+        'ng' => 'mssc',
+        'postUrl' => route('merchant.settlements.summary.bounce'),
+    ])
 </div>
 @endsection
 
@@ -288,8 +294,21 @@
                 var csrf = document.querySelector('meta[name="csrf-token"]').content;
                 vm.settlements = [];
                 vm.pagination = { current_page: 1, per_page: 5, total: 0, last_page: 1 };
+                vm.paginationFrom = 0;
+                vm.paginationTo = 0;
                 vm.filters = {};
                 vm.loading = false;
+
+                vm.refreshPaginationDisplay = function() {
+                    var p = vm.pagination;
+                    if (!p || !p.total) {
+                        vm.paginationFrom = 0;
+                        vm.paginationTo = 0;
+                        return;
+                    }
+                    vm.paginationFrom = (p.current_page - 1) * p.per_page + 1;
+                    vm.paginationTo = Math.min(p.current_page * p.per_page, p.total);
+                };
                 vm.selectAll = false;
                 vm.dateRange = '';
                 vm.sortColumn = 'id';
@@ -339,6 +358,7 @@
                             total: response.data.pagination.total,
                             per_page: response.data.pagination.per_page
                         };
+                        vm.refreshPaginationDisplay();
                         vm.loading = false;
                     }, function(error) {
                         vm.loading = false;
@@ -392,23 +412,24 @@
                     });
                 };
 
-                vm.markAsSettled = function() {
-                    var selected = vm.settlements.filter(function(s) { return s.selected; }).map(function(s) { return s.id; });
-                    if (selected.length === 0) return;
-                    
-                    $http.post('/merchant/settlements/summary/mark-settled', { ids: selected }, {
-                        headers: { 'X-CSRF-TOKEN': csrf }
-                    }).then(function(response) {
-                        if (response.data.success) {
-                            alert('Settlements marked as settled');
-                            vm.loadSettlements();
-                        }
+                if (typeof window.attachMarkSettledHandlers === 'function') {
+                    window.attachMarkSettledHandlers(vm, {
+                        postUrl: @json(route('merchant.settlements.summary.mark-settled')),
+                        modalId: 'markSettledModal-mssc',
+                        $http: $http,
+                        csrf: csrf,
+                        onDone: function() { vm.loadSettlements(); }
                     });
-                };
-
-                vm.bounceSettlement = function() {
-                    alert('Bounce settlement functionality');
-                };
+                }
+                if (typeof window.attachBounceSettlementHandlers === 'function') {
+                    window.attachBounceSettlementHandlers(vm, {
+                        postUrl: @json(route('merchant.settlements.summary.bounce')),
+                        modalId: 'bounceSettlementModal-mssc',
+                        $http: $http,
+                        csrf: csrf,
+                        onDone: function() { vm.loadSettlements(); }
+                    });
+                }
 
                 vm.toggleColumn = function(key) {
                     if (vm.visibleColumns.hasOwnProperty(key)) {
