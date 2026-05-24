@@ -184,5 +184,81 @@ class RefundFlowTest extends TestCase
             'is_approved' => 'pending',
         ]);
     }
+
+    public function test_api_rejects_mismatched_refund_currency(): void
+    {
+        $order = Order::create([
+            'merchant_id' => $this->merchant->id,
+            'order_id' => Order::generateOrderId(),
+            'amount' => 100.00,
+            'currency' => 'INR',
+            'status' => 'completed',
+            'test_mode' => true,
+        ]);
+
+        $transaction = Transaction::create([
+            'order_id' => $order->id,
+            'merchant_id' => $this->merchant->id,
+            'txn_id' => Transaction::generateTxnId(),
+            'payment_method' => 'card',
+            'amount' => 100.00,
+            'fee_amount' => 0,
+            'net_amount' => 100.00,
+            'currency' => 'INR',
+            'status' => 'success',
+            'test_mode' => true,
+        ]);
+
+        $response = $this->postJson('/api/v1/refunds', [
+            'transaction_id' => $transaction->txn_id,
+            'amount' => 50.00,
+            'currency' => 'USD',
+        ], [
+            'X-API-Key' => $this->apiKey->key,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('error', 'Invalid currency');
+    }
+
+    public function test_merchant_web_refund_uses_transaction_currency(): void
+    {
+        $order = Order::create([
+            'merchant_id' => $this->merchant->id,
+            'order_id' => Order::generateOrderId(),
+            'amount' => 100.00,
+            'currency' => 'INR',
+            'status' => 'completed',
+            'test_mode' => true,
+        ]);
+
+        $transaction = Transaction::create([
+            'order_id' => $order->id,
+            'merchant_id' => $this->merchant->id,
+            'txn_id' => Transaction::generateTxnId(),
+            'payment_method' => 'card',
+            'amount' => 100.00,
+            'fee_amount' => 0,
+            'net_amount' => 100.00,
+            'currency' => 'INR',
+            'status' => 'success',
+            'test_mode' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson('/merchant/refunds', [
+            'transaction_id' => $transaction->txn_id,
+            'amount' => 25.00,
+            'reason' => 'Partial refund',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.currency', 'INR');
+
+        $this->assertDatabaseHas('refunds', [
+            'transaction_id' => $transaction->id,
+            'amount' => 25.00,
+            'currency' => 'INR',
+        ]);
+    }
 }
 

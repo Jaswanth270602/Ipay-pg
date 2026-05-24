@@ -50,7 +50,11 @@ class RefundService
                 throw new \Exception('Refund amount must be greater than zero');
             }
 
-            $currencyCode = strtoupper($currency ?? $transaction->currency);
+            $txnCurrency = strtoupper(trim((string) ($transaction->currency ?? config('ipay.default_currency', 'USD'))));
+            if ($currency !== null && strtoupper(trim($currency)) !== $txnCurrency) {
+                throw new \Exception("Refund currency must match the original payment currency ({$transaction->currency}).");
+            }
+            $currencyCode = $txnCurrency;
             $refundStrategy = $strategy ?? 'proportional';
 
             $mode = $this->refundMode($transaction);

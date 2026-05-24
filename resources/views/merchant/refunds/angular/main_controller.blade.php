@@ -17,9 +17,12 @@
         vm.perPage = 10;
         vm.pagination = { current_page: 1, last_page: 1, total: 0, from: 0, to: 0, per_page: 10 };
         vm.filters = { status: '', from_date: '', to_date: '', search: '' };
-        vm.defaultCurrency = 'USD';
-        vm.newRefund = { transaction_id: '', amount: '', reason: '', currency: vm.defaultCurrency };
+        vm.newRefund = { transaction_id: '', amount: '', reason: '' };
         vm.selectedRefund = null;
+        vm.paymentInfo = null;
+        vm.lookupLoading = false;
+        vm.lookupError = null;
+        var lookupTimeout;
 
         vm.loadRefunds = function() {
             vm.loading = true;
@@ -54,6 +57,51 @@
             });
         };
 
+        vm.resetPaymentLookup = function() {
+            vm.paymentInfo = null;
+            vm.lookupError = null;
+            vm.lookupLoading = false;
+        };
+
+        vm.onTransactionIdChange = function() {
+            vm.resetPaymentLookup();
+            if (lookupTimeout) {
+                $timeout.cancel(lookupTimeout);
+            }
+            var id = (vm.newRefund.transaction_id || '').trim();
+            if (id.length >= 6) {
+                lookupTimeout = $timeout(function() {
+                    vm.lookupPayment();
+                }, 400);
+            }
+        };
+
+        vm.lookupPayment = function() {
+            var id = (vm.newRefund.transaction_id || '').trim();
+            if (!id) {
+                vm.resetPaymentLookup();
+                return;
+            }
+            vm.lookupLoading = true;
+            vm.lookupError = null;
+            vm.paymentInfo = null;
+            $http.get('/merchant/refunds/lookup-transaction', { params: { q: id } }).then(function(response) {
+                vm.lookupLoading = false;
+                if (response.data && response.data.success) {
+                    vm.paymentInfo = response.data.data;
+                    vm.lookupError = null;
+                } else {
+                    vm.lookupError = (response.data && response.data.message) ? response.data.message : 'Payment not found.';
+                }
+            }, function(error) {
+                vm.lookupLoading = false;
+                vm.paymentInfo = null;
+                vm.lookupError = (error.data && error.data.message)
+                    ? error.data.message
+                    : 'Payment not found. Check the transaction ID and Test/Live mode.';
+            });
+        };
+
         vm.createRefund = function() {
             // Prevent double submission
             if (vm.creating) {
@@ -79,15 +127,6 @@
                 return;
             }
 
-            if (!vm.newRefund.currency || !String(vm.newRefund.currency).trim()) {
-                if (typeof showToast === 'function') {
-                    showToast('Please select a currency', 'error');
-                } else if (typeof ipayAlert === 'function') {
-                    ipayAlert('Please select a currency', 'warning');
-                }
-                return;
-            }
-
             vm.creating = true;
             var csrf = document.querySelector('meta[name="csrf-token"]');
             if (!csrf) {
@@ -103,7 +142,6 @@
             var requestData = {
                 transaction_id: vm.newRefund.transaction_id.trim(),
                 amount: parseFloat(vm.newRefund.amount),
-                currency: String(vm.newRefund.currency || '').trim().toUpperCase(),
                 reason: (vm.newRefund.reason || '').trim()
             };
 
@@ -129,7 +167,8 @@
                     }
                     
                     // Reset form
-                    vm.newRefund = { transaction_id: '', amount: '', reason: '', currency: vm.defaultCurrency };
+                    vm.newRefund = { transaction_id: '', amount: '', reason: '' };
+                    vm.resetPaymentLookup();
                     
                     // Reload refunds list
                     vm.loadRefunds();

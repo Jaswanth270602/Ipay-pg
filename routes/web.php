@@ -168,6 +168,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('merchant.refunds.index');
         Route::get('/refunds/data', [MerchantRefundsController::class, 'getData'])
             ->name('merchant.refunds.data');
+        Route::get('/refunds/lookup-transaction', [MerchantRefundsController::class, 'lookupTransaction'])
+            ->name('merchant.refunds.lookup-transaction');
         Route::get('/refunds/export', [MerchantRefundsController::class, 'export'])
             ->name('merchant.refunds.export');
         Route::post('/refunds', [MerchantRefundsController::class, 'store'])

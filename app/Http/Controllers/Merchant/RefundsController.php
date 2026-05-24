@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\FileLifecycleService;
 use App\Services\RefundService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -83,6 +82,37 @@ class RefundsController extends Controller
         ]);
     }
 
+    public function lookupTransaction(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q' => 'required|string|max:120',
+        ]);
+
+        $merchant = $request->user()->merchant;
+        $transaction = $merchant->transactions()
+            ->where('test_mode', $merchant->test_mode)
+            ->where('txn_id', trim($request->input('q')))
+            ->first();
+
+        if (! $transaction) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not found. Check the transaction ID and your current Test/Live mode.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'txn_id' => $transaction->txn_id,
+                'currency' => $transaction->currency,
+                'amount' => (float) $transaction->amount,
+                'refundable_amount' => $transaction->refundableAmount(),
+                'status' => $transaction->status,
+            ],
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         // Refund creation via web interface
@@ -98,11 +128,9 @@ class RefundsController extends Controller
                 ], 403);
             }
             
-            // Validate input
             $request->validate([
                 'transaction_id' => 'required|string',
                 'amount' => 'required|numeric|min:0.01',
-                'currency' => ['required', 'string', 'size:3', Rule::in(config('ipay.supported_currencies', ['INR', 'USD', 'EUR', 'GBP']))],
                 'reason' => 'nullable|string|max:500',
             ]);
             

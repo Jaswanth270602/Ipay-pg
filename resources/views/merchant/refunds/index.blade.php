@@ -61,6 +61,32 @@
         color: #6b7280;
         margin-top: 0.35rem;
     }
+    .refund-payment-currency {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding: 0.55rem 0.75rem;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #bfdbfe;
+        font-size: 0.84rem;
+        color: #1e40af;
+    }
+    .refund-payment-currency .badge {
+        font-size: 0.78rem;
+        letter-spacing: 0.03em;
+    }
+    .refund-payment-currency.is-error {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border-color: #fecaca;
+        color: #991b1b;
+    }
+    .refund-payment-currency.is-loading {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        color: #6b7280;
+    }
     .refund-create-modal .modal-footer {
         border-top: 1px solid #eef0f4;
         padding: 0.9rem 1.25rem 1rem;
@@ -280,25 +306,32 @@
                     <form ng-submit="rc.createRefund(); $event.preventDefault();">
                         <div class="mb-3">
                             <label class="form-label">Transaction ID *</label>
-                            <input type="text" class="form-control" ng-model="rc.newRefund.transaction_id" required id="refundTransactionId">
-                            <div class="field-hint">Enter original payment transaction ID.</div>
+                            <input type="text" class="form-control" ng-model="rc.newRefund.transaction_id" required id="refundTransactionId"
+                                   ng-change="rc.onTransactionIdChange()"
+                                   ng-blur="rc.lookupPayment()">
+                            <div class="field-hint">Enter original payment transaction ID. Refund currency is always the same as the payment.</div>
+                            <div class="refund-payment-currency is-loading" ng-if="rc.lookupLoading">
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                Looking up payment…
+                            </div>
+                            <div class="refund-payment-currency is-error" ng-if="!rc.lookupLoading && rc.lookupError">
+                                <i class="bi bi-exclamation-circle"></i>
+                                @{{ rc.lookupError }}
+                            </div>
+                            <div class="refund-payment-currency" ng-if="!rc.lookupLoading && rc.paymentInfo && !rc.lookupError">
+                                <i class="bi bi-currency-exchange"></i>
+                                <span>Refund in</span>
+                                <span class="badge bg-primary">@{{ rc.paymentInfo.currency }}</span>
+                                <span class="text-muted">· max @{{ rc.paymentInfo.currency }} @{{ rc.paymentInfo.refundable_amount | number:2 }}</span>
+                            </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label">Amount *</label>
-                                    <input type="number" class="form-control" ng-model="rc.newRefund.amount" step="0.01" min="0.01" required id="refundAmount">
-                                </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text" ng-if="rc.paymentInfo">@{{ rc.paymentInfo.currency }}</span>
+                                <input type="number" class="form-control" ng-model="rc.newRefund.amount" step="0.01" min="0.01" required id="refundAmount">
                             </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Currency *</label>
-                                    <select class="form-select" id="refundCurrency" ng-model="rc.newRefund.currency" required>
-                                        @include('components.currency-options')
-                                    </select>
-                                    <div class="field-hint">Must match original transaction currency.</div>
-                                </div>
-                            </div>
+                            <div class="field-hint" ng-if="rc.paymentInfo">Enter amount in @{{ rc.paymentInfo.currency }} (original payment currency).</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Reason</label>
